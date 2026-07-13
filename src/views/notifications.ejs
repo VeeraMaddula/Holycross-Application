@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><title>Notifications - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Notifications</h2>
+
+    <% if (!emailConfigured) { %>
+      <div class="error-box">
+        Email isn't configured yet. Set SMTP_HOST, SMTP_USER, SMTP_PASS (and optionally SMTP_PORT, SMTP_SECURE, SMTP_FROM)
+        in your .env file to enable confirmation, reminder, and cancellation emails. Until then, sends are logged as "skipped".
+      </div>
+    <% } %>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0">Reminder log</h3>
+        <form method="POST" action="/notifications/run-reminder-sweep">
+          <button class="btn small secondary" type="submit">Run reminder check now</button>
+        </form>
+      </div>
+      <p class="muted">Reminders run automatically every 15 minutes for confirmed bookings inside the reminder window (see Settings).</p>
+      <table>
+        <thead><tr><th>Sent</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th></tr></thead>
+        <tbody>
+        <% notifications.forEach(n => { %>
+          <tr>
+            <td><%= new Date(n.sentAt).toLocaleString() %></td>
+            <td><%= n.type %></td>
+            <td><%= n.recipient %></td>
+            <td><%= n.subject %></td>
+            <td><span class="badge status-<%= n.status %>"><%= n.status %></span></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <% if (notifications.length === 0) { %><p class="muted">No notifications sent yet.</p><% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dashboard - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Dashboard</h2>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num"><%= stats.todayCount %></div><div class="label">Bookings today</div></div>
+      <div class="stat-card"><div class="num"><%= stats.todayGuests %></div><div class="label">Guests today</div></div>
+      <div class="stat-card"><div class="num"><%= stats.confirmedCount %></div><div class="label">Confirmed (all time)</div></div>
+      <div class="stat-card"><div class="num"><%= stats.totalTables %></div><div class="label">Tables set up</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0">Today's bookings</h3>
+        <a class="btn small" href="/bookings/new">+ New booking</a>
+      </div>
+      <% if (todayBookings.length === 0) { %>
+        <p class="muted">No bookings for today yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Time</th><th>Customer</th><th>Party</th><th>Table</th><th>Status</th></tr></thead>
+          <tbody>
+          <% todayBookings.forEach(b => { const t = tables.find(x => x.id === b.tableId); %>
+            <tr onclick="window.location='/bookings/<%= b.id %>'" style="cursor:pointer">
+              <td><%= b.time %></td>
+              <td><%= b.customerName %></td>
+              <td><%= b.partySize %></td>
+              <td><%= t ? t.name : '-' %></td>
+              <td><span class="badge <%= b.status %>"><%= b.status %></span></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Upcoming bookings</h3>
+      <% if (upcoming.length === 0) { %>
+        <p class="muted">Nothing upcoming.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Party</th></tr></thead>
+          <tbody>
+          <% upcoming.forEach(b => { %>
+            <tr onclick="window.location='/bookings/<%= b.id %>'" style="cursor:pointer">
+              <td><%= b.date %></td>
+              <td><%= b.time %></td>
+              <td><%= b.customerName %></td>
+              <td><%= b.partySize %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

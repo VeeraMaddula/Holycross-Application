@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><title>Bookings - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Bookings</h2>
+      <a class="btn" href="/bookings/new">+ New booking</a>
+    </div>
+
+    <form class="filters" method="GET" action="/bookings">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" name="date" value="<%= filterDate %>">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select name="status">
+          <option value="">All</option>
+          <option value="confirmed" <%= filterStatus==='confirmed'?'selected':'' %>>Confirmed</option>
+          <option value="seated" <%= filterStatus==='seated'?'selected':'' %>>Seated</option>
+          <option value="completed" <%= filterStatus==='completed'?'selected':'' %>>Completed</option>
+          <option value="cancelled" <%= filterStatus==='cancelled'?'selected':'' %>>Cancelled</option>
+        </select>
+      </div>
+      <button class="btn secondary" type="submit">Filter</button>
+      <a class="btn secondary" href="/bookings">Clear</a>
+    </form>
+
+    <div class="card">
+      <% if (bookings.length === 0) { %>
+        <p class="muted">No bookings match.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Party</th><th>Table</th><th>Status</th><th>Payment</th><th></th></tr></thead>
+          <tbody>
+          <% bookings.forEach(b => { const t = tables.find(x => x.id === b.tableId); %>
+            <tr>
+              <td><%= b.date %></td>
+              <td><%= b.time %></td>
+              <td><a href="/bookings/<%= b.id %>"><%= b.customerName %></a></td>
+              <td><%= b.partySize %></td>
+              <td><%= t ? t.name : '-' %></td>
+              <td><span class="badge <%= b.status %>"><%= b.status %></span></td>
+              <td>
+                <span class="badge payment-<%= b.paymentStatus || 'unpaid' %>"><%= (b.paymentStatus || 'unpaid').replace('_', ' ') %></span>
+                <% if (b.depositAmount) { %><div class="muted" style="margin-top:2px">€<%= Number(b.depositAmount).toFixed(2) %></div><% } %>
+              </td>
+              <td><a class="btn small secondary" href="/bookings/<%= b.id %>">View</a></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

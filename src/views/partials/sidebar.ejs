@@ -1,0 +1,18 @@
+<div class="sidebar">
+  <div class="brand">
+    <img src="/img/logo.jpeg" alt="The Holy Cross">
+    <div class="brand-sub">Booking Admin</div>
+  </div>
+  <nav>
+    <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Dashboard</a>
+    <a href="/bookings" class="<%= currentPath.startsWith('/bookings') ? 'active' : '' %>">Bookings</a>
+    <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">Calendar</a>
+    <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">Tables</a>
+    <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">Menu &amp; Events</a>
+    <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">Notifications</a>
+    <a href="/settings" class="<%= currentPath.startsWith('/settings') ? 'active' : '' %>">Settings</a>
+  </nav>
+  <form class="logout-form" method="POST" action="/logout">
+    <button class="linklike" type="submit">Log out</button>
+  </form>
+</div>

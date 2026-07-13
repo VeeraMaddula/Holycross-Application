@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Tables - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2>Tables</h2>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Seats</th><th>Area</th><th></th></tr></thead>
+        <tbody>
+        <% tables.forEach(t => { %>
+          <tr>
+            <td><%= t.name %></td>
+            <td><%= t.seats %></td>
+            <td><%= t.area %></td>
+            <td>
+              <form class="inline" method="POST" action="/tables/<%= t.id %>/delete" onsubmit="return confirm('Remove this table?')">
+                <button class="btn small danger" type="submit">Remove</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="max-width:420px">
+      <h3 style="margin-top:0">Add a table</h3>
+      <form method="POST" action="/tables">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Table 9">
+        </div>
+        <div class="field">
+          <label>Seats</label>
+          <input type="number" name="seats" min="1" required>
+        </div>
+        <div class="field">
+          <label>Area</label>
+          <input type="text" name="area" placeholder="Main Floor, Bar, Patio...">
+        </div>
+        <button class="btn" type="submit">Add table</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

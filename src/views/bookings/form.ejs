@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head><title><%= booking ? 'Edit' : 'New' %> Booking - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2><%= booking ? 'Edit Booking' : 'New Booking' %></h2>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+    <div class="card">
+      <form method="POST" action="<%= booking ? '/bookings/' + booking.id : '/bookings' %>">
+        <div class="form-grid">
+          <div class="field">
+            <label>Customer name *</label>
+            <input type="text" name="customerName" required value="<%= booking ? booking.customerName : '' %>">
+          </div>
+          <div class="field">
+            <label>Party size *</label>
+            <input type="number" min="1" name="partySize" required value="<%= booking ? booking.partySize : '' %>">
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" name="phone" value="<%= booking ? booking.phone : '' %>">
+          </div>
+          <div class="field">
+            <label>Email (for confirmations &amp; reminders)</label>
+            <input type="email" name="email" value="<%= booking ? booking.email : '' %>">
+          </div>
+          <div class="field">
+            <label>Date *</label>
+            <input type="date" name="date" required value="<%= booking ? booking.date : '' %>">
+          </div>
+          <div class="field">
+            <label>Time *</label>
+            <input type="time" name="time" required value="<%= booking ? booking.time : '' %>">
+          </div>
+          <div class="field">
+            <label>Table *</label>
+            <select name="tableId" required>
+              <option value="">Select a table</option>
+              <% tables.forEach(t => { %>
+                <option value="<%= t.id %>" <%= booking && Number(booking.tableId) === t.id ? 'selected' : '' %>>
+                  <%= t.name %> (<%= t.seats %> seats, <%= t.area %>)
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Duration (minutes)</label>
+            <input type="number" min="15" step="15" name="durationMinutes" value="<%= booking && booking.durationMinutes ? booking.durationMinutes : 90 %>">
+          </div>
+          <div class="field">
+            <label>Occasion</label>
+            <input type="text" name="occasion" placeholder="Birthday, anniversary..." value="<%= booking ? booking.occasion : '' %>">
+          </div>
+          <div class="field">
+            <label>Payment status</label>
+            <select name="paymentStatus">
+              <option value="unpaid" <%= (!booking || booking.paymentStatus === 'unpaid' || !booking.paymentStatus) ? 'selected' : '' %>>Unpaid</option>
+              <option value="deposit_paid" <%= booking && booking.paymentStatus === 'deposit_paid' ? 'selected' : '' %>>Deposit paid</option>
+              <option value="paid_full" <%= booking && booking.paymentStatus === 'paid_full' ? 'selected' : '' %>>Paid in full</option>
+              <option value="refunded" <%= booking && booking.paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Deposit amount</label>
+            <input type="number" min="0" step="0.01" name="depositAmount" placeholder="0.00" value="<%= booking && booking.depositAmount ? booking.depositAmount : '' %>">
+          </div>
+        </div>
+
+        <div class="section-title">Music</div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Music provided by</label>
+            <select name="musicProvidedBy" id="musicProvidedBy" onchange="document.getElementById('musicOtherField').style.display = this.value === 'other' ? 'block' : 'none'">
+              <% const mProvidedBy = booking && booking.music ? booking.music.providedBy : ''; %>
+              <option value="" <%= !mProvidedBy ? 'selected' : '' %>>None / not decided yet</option>
+              <option value="holy_cross" <%= mProvidedBy === 'holy_cross' ? 'selected' : '' %>>Holy Cross (in-house)</option>
+              <option value="self" <%= mProvidedBy === 'self' ? 'selected' : '' %>>Self (customer arranging)</option>
+              <option value="other" <%= mProvidedBy === 'other' ? 'selected' : '' %>>Other</option>
+            </select>
+          </div>
+          <div class="field" id="musicOtherField" style="display:<%= (booking && booking.music && booking.music.providedBy === 'other') ? 'block' : 'none' %>">
+            <label>Please specify who's providing the music</label>
+            <input type="text" name="musicProvidedByOther" placeholder="e.g. XYZ Entertainment" value="<%= booking && booking.music ? booking.music.providedByOther : '' %>">
+          </div>
+        </div>
+
+        <div class="section-title">Music timings</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Start time</label>
+            <input type="time" name="musicStart" value="<%= booking && booking.music ? booking.music.startTime : '' %>">
+          </div>
+          <div class="field">
+            <label>End time</label>
+            <input type="time" name="musicEnd" value="<%= booking && booking.music ? booking.music.endTime : '' %>">
+          </div>
+        </div>
+
+        <div class="section-title">Artist &amp; price</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Name of artist / band / DJ</label>
+            <input type="text" name="musicArtistName" placeholder="e.g. The Fureys, DJ Conor..." value="<%= booking && booking.music ? booking.music.artistName : '' %>">
+          </div>
+          <div class="field">
+            <label>Price</label>
+            <input type="number" min="0" step="0.01" name="musicPrice" placeholder="0.00" value="<%= booking && booking.music && booking.music.price ? booking.music.price : '' %>">
+          </div>
+        </div>
+
+        <div class="section-title">Type of music</div>
+        <% const mTypes = (booking && booking.music && booking.music.types) ? booking.music.types : []; %>
+        <div class="checkbox-grid">
+          <% const musicGenres = [
+            'Traditional Irish / Trad', 'Irish Folk', 'Céilí / Set Dancing', 'Folk', 'Acoustic / Singer-Songwriter',
+            'Rock', 'Indie', 'Pop', 'Country', 'Blues', 'Jazz', 'Soul / Motown', 'Classical',
+            'Hip Hop / R&B', 'Reggae / Ska', 'House / Dance / Electronic', 'DJ Set', 'Karaoke',
+            'Wedding / Covers Band', 'GAA / Sports Day Music', 'Christmas / Seasonal'
+          ]; %>
+          <% musicGenres.forEach(g => { %>
+            <label class="checkbox-item">
+              <input type="checkbox" name="musicTypes" value="<%= g %>" <%= mTypes.includes(g) ? 'checked' : '' %>>
+              <%= g %>
+            </label>
+          <% }) %>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>Other type (specify)</label>
+          <input type="text" name="musicTypesOther" placeholder="Anything not listed above" value="<%= booking && booking.music ? booking.music.typesOther : '' %>">
+        </div>
+
+        <div class="section-title">Food</div>
+        <% const food = (booking && booking.food) ? booking.food : {}; %>
+        <% const foodPkg = food.package || ''; %>
+        <% const foodCourses = food.courses || []; %>
+        <div class="form-grid">
+          <div class="field">
+            <label>Food package</label>
+            <select name="foodPackage" id="foodPackage" onchange="onFoodPackageChange()">
+              <option value="" <%= !foodPkg ? 'selected' : '' %>>None / not decided yet</option>
+              <option value="two_course" <%= foodPkg === 'two_course' ? 'selected' : '' %>>Two course meal</option>
+              <option value="three_course" <%= foodPkg === 'three_course' ? 'selected' : '' %>>Three course meal</option>
+              <option value="four_course" <%= foodPkg === 'four_course' ? 'selected' : '' %>>Four course meal</option>
+              <option value="soup_sandwiches" <%= foodPkg === 'soup_sandwiches' ? 'selected' : '' %>>Soups &amp; sandwiches</option>
+              <option value="finger_food" <%= foodPkg === 'finger_food' ? 'selected' : '' %>>Finger food</option>
+              <option value="scone_tea" <%= foodPkg === 'scone_tea' ? 'selected' : '' %>>Scone &amp; tea</option>
+              <option value="other" <%= foodPkg === 'other' ? 'selected' : '' %>>Other</option>
+            </select>
+          </div>
+          <div class="field" id="foodPackageOtherField" style="display:<%= foodPkg === 'other' ? 'block' : 'none' %>">
+            <label>Please specify</label>
+            <input type="text" name="foodPackageOther" placeholder="Describe the food option" value="<%= food.packageOther || '' %>">
+          </div>
+          <div class="field">
+            <label>Price <span class="muted" id="foodPriceHint"></span></label>
+            <input type="number" min="0" step="0.01" name="foodPrice" id="foodPrice" placeholder="0.00 (TBC if unknown)" value="<%= food.price ? food.price : '' %>">
+          </div>
+        </div>
+
+        <div id="foodCoursesWrap">
+          <% for (let i = 1; i <= 4; i++) { %>
+            <% const c = foodCourses[i - 1] || {}; %>
+            <div class="form-grid food-course-row" id="foodCourseRow<%= i %>" style="display:none">
+              <div class="field">
+                <label>Course <%= i %> — dish name</label>
+                <input type="text" name="foodCourse<%= i %>Name" placeholder="e.g. Soup of the day" value="<%= c.name || '' %>">
+              </div>
+              <div class="field">
+                <label>Course <%= i %> — price</label>
+                <input type="number" min="0" step="0.01" name="foodCourse<%= i %>Price" placeholder="0.00" value="<%= c.price ? c.price : '' %>">
+              </div>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="form-grid" style="margin-top:8px">
+          <div class="field full">
+            <label>Notes</label>
+            <textarea name="notes"><%= booking ? booking.notes : '' %></textarea>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn" type="submit"><%= booking ? 'Save changes' : 'Create booking' %></button>
+          <a class="btn secondary" href="<%= booking ? '/bookings/' + booking.id : '/bookings' %>">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  var FOOD_DEFAULT_PRICES = {
+    two_course: 26, three_course: 32, four_course: 38,
+    soup_sandwiches: 12, finger_food: 15, scone_tea: 8, other: ''
+  };
+  var FOOD_COURSE_COUNTS = { two_course: 2, three_course: 3, four_course: 4 };
+
+  function onFoodPackageChange() {
+    var sel = document.getElementById('foodPackage');
+    var val = sel.value;
+    var priceInput = document.getElementById('foodPrice');
+    var hint = document.getElementById('foodPriceHint');
+
+    var courseCount = FOOD_COURSE_COUNTS[val] || 0;
+    for (var i = 1; i <= 4; i++) {
+      var row = document.getElementById('foodCourseRow' + i);
+      if (row) row.style.display = i <= courseCount ? 'grid' : 'none';
+    }
+
+    var otherField = document.getElementById('foodPackageOtherField');
+    if (otherField) otherField.style.display = val === 'other' ? 'block' : 'none';
+
+    if (val === 'other') {
+      hint.textContent = '(price TBC / unknown)';
+    } else if (FOOD_DEFAULT_PRICES[val] !== undefined && FOOD_DEFAULT_PRICES[val] !== '') {
+      hint.textContent = '(suggested: €' + FOOD_DEFAULT_PRICES[val] + ')';
+      if (!priceInput.value) priceInput.value = FOOD_DEFAULT_PRICES[val];
+    } else {
+      hint.textContent = '';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', onFoodPackageChange);
+</script>
+</body>
+</html>

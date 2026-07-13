@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head><title>Menu & Events - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2>Menu &amp; Events</h2>
+
+    <div class="card">
+      <h3 style="margin-top:0">Menu</h3>
+      <form method="POST" action="/menu">
+        <div class="field">
+          <label>Intro line</label>
+          <input type="text" name="intro" value="<%= menu.intro %>">
+        </div>
+        <% menu.sections.forEach((sec, i) => { %>
+          <div class="menu-section">
+            <div class="field">
+              <label>Section title</label>
+              <input type="text" name="sectionTitles[]" value="<%= sec.title %>">
+            </div>
+            <% sec.items.forEach(item => { %>
+              <div class="item-row">
+                <input type="text" name="title[<%= i %>][]" placeholder="Item name" value="<%= item.name %>">
+                <input type="text" name="prices[<%= i %>][]" placeholder="Price" value="<%= item.price %>">
+                <input type="text" name="descs[<%= i %>][]" placeholder="Description" value="<%= item.desc %>">
+              </div>
+            <% }) %>
+            <div class="item-row">
+              <input type="text" name="title[<%= i %>][]" placeholder="New item name">
+              <input type="text" name="prices[<%= i %>][]" placeholder="Price">
+              <input type="text" name="descs[<%= i %>][]" placeholder="Description">
+            </div>
+          </div>
+        <% }) %>
+        <div class="menu-section">
+          <div class="field">
+            <label>New section title (leave blank to skip)</label>
+            <input type="text" name="sectionTitles[]" placeholder="e.g. Desserts">
+          </div>
+          <div class="item-row">
+            <input type="text" name="title[<%= menu.sections.length %>][]" placeholder="Item name">
+            <input type="text" name="prices[<%= menu.sections.length %>][]" placeholder="Price">
+            <input type="text" name="descs[<%= menu.sections.length %>][]" placeholder="Description">
+          </div>
+        </div>
+        <button class="btn" type="submit">Save menu</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Events</h3>
+      <table>
+        <thead><tr><th>Date</th><th>Title</th><th>Description</th><th></th></tr></thead>
+        <tbody>
+        <% events.forEach(e => { %>
+          <tr>
+            <td><%= e.date %></td>
+            <td><%= e.title %></td>
+            <td><%= e.description %></td>
+            <td>
+              <form class="inline" method="POST" action="/menu/events/<%= e.id %>/delete">
+                <button class="btn small danger" type="submit">Remove</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <h4>Add event</h4>
+      <form method="POST" action="/menu/events">
+        <div class="form-grid">
+          <div class="field"><label>Title</label><input type="text" name="title" required></div>
+          <div class="field"><label>Date</label><input type="date" name="date" required></div>
+          <div class="field full"><label>Description</label><textarea name="description"></textarea></div>
+        </div>
+        <button class="btn" type="submit">Add event</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

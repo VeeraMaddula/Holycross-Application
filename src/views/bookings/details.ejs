@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head><title>Booking #<%= booking.id %> - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Booking #<%= booking.id %>
+        <span class="badge <%= booking.status %>"><%= booking.status %></span>
+        <span class="badge payment-<%= booking.paymentStatus || 'unpaid' %>"><%= (booking.paymentStatus || 'unpaid').replace('_', ' ') %></span>
+      </h2>
+      <div class="actions-row" style="margin-top:0">
+        <a class="btn secondary" href="/bookings/<%= booking.id %>/edit">Edit</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <dl class="detail-grid">
+        <div><dt>Customer</dt><dd><%= booking.customerName %></dd></div>
+        <div><dt>Party size</dt><dd><%= booking.partySize %> guests</dd></div>
+        <div><dt>Phone</dt><dd><%= booking.phone || '—' %></dd></div>
+        <div><dt>Email</dt><dd><%= booking.email || '—' %></dd></div>
+        <div><dt>Date</dt><dd><%= booking.date %></dd></div>
+        <div><dt>Time</dt><dd><%= booking.time %> (<%= booking.durationMinutes %> min)</dd></div>
+        <div><dt>Table</dt><dd><%= table ? table.name + ' — ' + table.area + ' (' + table.seats + ' seats)' : 'Unassigned' %></dd></div>
+        <div><dt>Occasion</dt><dd><%= booking.occasion || '—' %></dd></div>
+        <div><dt>Payment status</dt><dd><%= (booking.paymentStatus || 'unpaid').replace('_', ' ') %></dd></div>
+        <div><dt>Deposit amount</dt><dd><%= booking.depositAmount ? '€' + Number(booking.depositAmount).toFixed(2) : '—' %></dd></div>
+        <div style="grid-column:1/-1"><dt>Notes</dt><dd><%= booking.notes || '—' %></dd></div>
+        <div><dt>Created</dt><dd><%= new Date(booking.createdAt).toLocaleString() %></dd></div>
+        <div><dt>Reminder sent</dt><dd><%= booking.reminderSent ? 'Yes' : 'No' %></dd></div>
+      </dl>
+
+      <div class="actions-row">
+        <% if (booking.status !== 'seated' && booking.status !== 'cancelled' && booking.status !== 'completed') { %>
+          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status">
+            <input type="hidden" name="status" value="seated">
+            <button class="btn" type="submit">Mark seated</button>
+          </form>
+        <% } %>
+        <% if (booking.status !== 'completed' && booking.status !== 'cancelled') { %>
+          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status">
+            <input type="hidden" name="status" value="completed">
+            <button class="btn secondary" type="submit">Mark completed</button>
+          </form>
+        <% } %>
+        <% if (booking.status !== 'cancelled') { %>
+          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status" onsubmit="return confirm('Cancel this booking? An email will be sent if an address is on file.')">
+            <input type="hidden" name="status" value="cancelled">
+            <button class="btn danger" type="submit">Cancel booking</button>
+          </form>
+        <% } %>
+        <form class="inline" method="POST" action="/bookings/<%= booking.id %>/delete" onsubmit="return confirm('Permanently delete this booking record?')">
+          <button class="btn secondary" type="submit">Delete record</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Update payment</h3>
+      <form method="POST" action="/bookings/<%= booking.id %>/payment" class="form-grid">
+        <div class="field">
+          <label>Payment status</label>
+          <select name="paymentStatus">
+            <option value="unpaid" <%= (booking.paymentStatus || 'unpaid') === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
+            <option value="deposit_paid" <%= booking.paymentStatus === 'deposit_paid' ? 'selected' : '' %>>Deposit paid</option>
+            <option value="paid_full" <%= booking.paymentStatus === 'paid_full' ? 'selected' : '' %>>Paid in full</option>
+            <option value="refunded" <%= booking.paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Deposit amount</label>
+          <input type="number" min="0" step="0.01" name="depositAmount" value="<%= booking.depositAmount || '' %>">
+        </div>
+        <div class="field full">
+          <button class="btn small" type="submit">Save payment status</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Music</h3>
+      <% const music = booking.music || {}; %>
+      <% const providedByLabel = { holy_cross: 'Holy Cross (in-house)', self: 'Self (customer arranging)', other: music.providedByOther || 'Other' }[music.providedBy] || 'Not decided yet'; %>
+      <dl class="detail-grid">
+        <div><dt>Provided by</dt><dd><%= providedByLabel %></dd></div>
+        <div><dt>Timings</dt><dd><%= (music.startTime || music.endTime) ? (music.startTime || '?') + ' – ' + (music.endTime || '?') : '—' %></dd></div>
+        <div><dt>Artist / band / DJ</dt><dd><%= music.artistName || '—' %></dd></div>
+        <div><dt>Price</dt><dd><%= music.price ? '€' + Number(music.price).toFixed(2) : '—' %></dd></div>
+      </dl>
+      <% if ((music.types && music.types.length) || music.typesOther) { %>
+        <dt style="font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:0.03em;">Type of music</dt>
+        <div class="music-tags">
+          <% (music.types || []).forEach(t => { %><span class="music-tag"><%= t %></span><% }) %>
+          <% if (music.typesOther) { %><span class="music-tag"><%= music.typesOther %></span><% } %>
+        </div>
+      <% } else { %>
+        <p class="muted">No music type selected.</p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Food</h3>
+      <% const food = booking.food || {}; %>
+      <% const foodPackageLabels = { two_course: 'Two course meal', three_course: 'Three course meal', four_course: 'Four course meal', soup_sandwiches: 'Soups & sandwiches', finger_food: 'Finger food', scone_tea: 'Scone & tea', other: food.packageOther || 'Other' }; %>
+      <dl class="detail-grid">
+        <div><dt>Package</dt><dd><%= foodPackageLabels[food.package] || 'Not decided yet' %></dd></div>
+        <div><dt>Price</dt><dd><%= food.price ? '€' + Number(food.price).toFixed(2) : (food.package === 'other' ? 'TBC / unknown' : '—') %></dd></div>
+      </dl>
+      <% if (food.courses && food.courses.length) { %>
+        <dt style="font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:0.03em;">Courses</dt>
+        <table style="margin-top:6px">
+          <thead><tr><th>Course</th><th>Dish</th><th>Price</th></tr></thead>
+          <tbody>
+            <% food.courses.forEach((c, i) => { %>
+              <tr>
+                <td><%= i + 1 %></td>
+                <td><%= c.name %></td>
+                <td><%= c.price ? '€' + Number(c.price).toFixed(2) : '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">History</h3>
+      <ul class="history-list">
+        <% booking.history.slice().reverse().forEach(h => { %>
+          <li><%= new Date(h.at).toLocaleString() %> — <%= h.event %></li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>
