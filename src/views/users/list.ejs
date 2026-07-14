@@ -10,7 +10,7 @@
 
     <div class="card">
       <table>
-        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Requests access</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <% users.forEach(u => { %>
           <tr>
@@ -50,6 +50,17 @@
                 <form class="inline" method="POST" action="/users/<%= u.id %>/roster-access">
                   <button class="btn small <%= u.canManageRoster ? 'secondary' : '' %>" type="submit">
                     <%= u.canManageRoster ? 'Revoke access' : 'Grant access' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff'].includes(u.role)) { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/requests-access">
+                  <button class="btn small <%= u.canMakeRequests ? 'secondary' : '' %>" type="submit">
+                    <%= u.canMakeRequests ? 'Revoke access' : 'Grant access' %>
                   </button>
                 </form>
               <% } %>

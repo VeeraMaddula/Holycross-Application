@@ -56,7 +56,12 @@ function shiftUpdatedSms(shift) {
   return `The Holy Cross: Your shift on ${shift.date} was updated - now ${shift.startTime} to ${shift.endTime}.`;
 }
 
+function newRequestSms(request) {
+  const preview = (request.details || '').slice(0, 80);
+  return `The Holy Cross: New ${request.typeLabel} request from ${request.requestedByName} - "${preview}". Check the app.`;
+}
+
 module.exports = {
   isConfigured, sendSms, normalizePhone, bookingConfirmationSms, bookingReminderSms, cancellationSms,
-  shiftAssignedSms, shiftUpdatedSms
+  shiftAssignedSms, shiftUpdatedSms, newRequestSms
 };

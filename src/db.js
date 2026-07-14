@@ -77,6 +77,7 @@ const DEFAULT_DATA = {
   externalCalendarEvents: [],
   timeEntries: [],
   rosterShifts: [],
+  requests: [],
   settings: {
     slotDurationMinutes: 90,
     reminderHoursBefore: 24,
@@ -91,6 +92,7 @@ const DEFAULT_DATA = {
     nextUserId: 1,
     nextTimeEntryId: 1,
     nextRosterShiftId: 1,
+    nextRequestId: 1,
     lastGoogleSyncAt: null
   }
 };

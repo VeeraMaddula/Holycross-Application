@@ -8,6 +8,7 @@ const ROLES = [
   { value: 'senior_manager', label: 'Senior Manager' },
   { value: 'general_manager', label: 'General Manager' },
   { value: 'staff_manager', label: 'Staff Manager' },
+  { value: 'floor_manager', label: 'Floor Manager' },
   { value: 'staff', label: 'Staff' }
 ];
 

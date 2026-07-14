@@ -69,6 +69,12 @@ function shiftUpdatedEmail(shift, userName) {
   return { subject, text };
 }
 
+function newRequestEmail(request) {
+  const subject = `New ${request.typeLabel} request from ${request.requestedByName}`;
+  const text = `Hi ${request.recipientName},\n\n${request.requestedByName} sent you a ${request.typeLabel.toLowerCase()} request:\n\n"${request.details}"\n\nCheck Requests in the app to follow up.`;
+  return { subject, text };
+}
+
 async function notifyAdminNewBooking(booking, tableName) {
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!adminEmail) return;
@@ -121,6 +127,6 @@ function startScheduler() {
 
 module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
-  shiftAssignedEmail, shiftUpdatedEmail,
+  shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail,
   notifyAdminNewBooking, runReminderSweep, startScheduler, getTransporter
 };

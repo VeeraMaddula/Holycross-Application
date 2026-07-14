@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess } = require('./middleware');
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');
@@ -56,9 +56,10 @@ app.use((req, res, next) => {
           roleLabel: ROLE_LABELS[dbUser.role] || dbUser.role,
           avatarPath: dbUser.avatarPath || '',
           canViewTimesheets: !!dbUser.canViewTimesheets,
-          canManageRoster: !!dbUser.canManageRoster
+          canManageRoster: !!dbUser.canManageRoster,
+          canMakeRequests: !!dbUser.canMakeRequests
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false };
   } else {
     res.locals.currentUser = null;
   }
@@ -82,6 +83,7 @@ app.use('/staff-status', requireAuth, require('./routes/staffStatus'));
 app.use('/timesheets', requireAuth, requireTimesheetAccess, require('./routes/timesheets'));
 app.use('/roster', requireAuth, requireRosterAccess, require('./routes/roster'));
 app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
+app.use('/requests', requireAuth, requireRequestsAccess, require('./routes/requests'));
 
 app.use((req, res) => {
   res.status(404).render('404');

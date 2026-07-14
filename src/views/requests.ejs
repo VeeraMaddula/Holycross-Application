@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head><title>Requests - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Requests</h2>
+    <p class="muted">Ask a specific person for stock, leave, or anything else — they'll get a text and an email as soon as you send it.</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:520px">
+      <h3 style="margin-top:0">Send a request</h3>
+      <form method="POST" action="/requests">
+        <div class="field">
+          <label>Type</label>
+          <select name="type" required>
+            <% requestTypes.forEach(t => { %>
+              <option value="<%= t.value %>"><%= t.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Send to</label>
+          <select name="recipientUserId" required>
+            <option value="">Choose a person</option>
+            <% recipients.forEach(u => { %>
+              <option value="<%= u.id %>"><%= u.name %> (<%= u.roleLabel %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Details</label>
+          <textarea name="details" rows="3" required placeholder="What do you need?"></textarea>
+        </div>
+        <button class="btn" type="submit">Send request</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Sent to you</h3>
+      <% if (!received.length) { %>
+        <p class="muted">No requests yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>From</th><th>Type</th><th>Details</th><th>Sent</th></tr></thead>
+          <tbody>
+          <% received.forEach(r => { %>
+            <tr>
+              <td><%= r.requestedByName %></td>
+              <td><span class="badge confirmed"><%= r.typeLabel %></span></td>
+              <td><%= r.details %></td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Sent by you</h3>
+      <% if (!sent.length) { %>
+        <p class="muted">You haven't sent any requests yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>To</th><th>Type</th><th>Details</th><th>Sent</th></tr></thead>
+          <tbody>
+          <% sent.forEach(r => { %>
+            <tr>
+              <td><%= r.recipientName %></td>
+              <td><span class="badge confirmed"><%= r.typeLabel %></span></td>
+              <td><%= r.details %></td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

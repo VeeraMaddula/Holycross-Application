@@ -25,4 +25,14 @@ function requireRosterAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess };
+// Requests access = Admin, Senior Manager, General Manager, Floor Manager,
+// Staff, or anyone individually granted access via the Users page (covers
+// e.g. a Staff Manager who needs it — same pattern as the other gates above).
+function requireRequestsAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  const autoRoles = ['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff'];
+  if (u && (autoRoles.includes(u.role) || u.canMakeRequests)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess };

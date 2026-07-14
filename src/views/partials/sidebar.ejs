@@ -32,6 +32,9 @@
       <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canManageRoster)) { %>
         <a href="/roster" class="<%= currentPath.startsWith('/roster') ? 'active' : '' %>">Roster</a>
       <% } %>
+      <% if (currentUser && (['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff'].includes(currentUser.role) || currentUser.canMakeRequests)) { %>
+        <a href="/requests" class="<%= currentPath.startsWith('/requests') ? 'active' : '' %>">Requests</a>
+      <% } %>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <a href="/settings" class="<%= currentPath.startsWith('/settings') ? 'active' : '' %>">Settings</a>
         <a href="/users" class="<%= currentPath.startsWith('/users') ? 'active' : '' %>">Users</a>
