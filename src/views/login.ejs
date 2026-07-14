@@ -12,16 +12,27 @@
       <% if (error) { %><div class="error-box"><%= error %></div><% } %>
       <form method="POST" action="/login">
         <div class="field">
-          <label>Email</label>
-          <input type="email" name="email" required autofocus>
+          <label>Username or Phone Number</label>
+          <div style="display:flex;gap:8px">
+            <select name="countryCode" id="loginCountryCode" style="width:auto;flex:0 0 92px">
+              <% countryCodes.forEach(c => { %>
+                <option value="<%= c.code %>" <%= c.code === '+353' ? 'selected' : '' %>><%= c.flag %> <%= c.code %></option>
+              <% }) %>
+            </select>
+            <input type="text" name="identifier" id="loginIdentifier" required autofocus autocomplete="username" style="flex:1">
+          </div>
         </div>
         <div class="field">
           <label>Password</label>
           <div style="position:relative">
-            <input type="password" name="password" id="loginPassword" required style="padding-right:52px">
+            <input type="password" name="password" id="loginPassword" required autocomplete="current-password" style="padding-right:52px">
             <button type="button" id="toggleLoginPassword" aria-label="Show password"
               style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--accent-dark)">Show</button>
           </div>
+        </div>
+        <div class="field" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="rememberMe" id="rememberMe" value="1" style="width:auto">
+          <label for="rememberMe" style="margin:0;font-weight:400">Remember me</label>
         </div>
         <button class="btn" type="submit">Log in</button>
       </form>
@@ -30,14 +41,28 @@
 
   <script>
     (function() {
-      var input = document.getElementById('loginPassword');
+      var passwordInput = document.getElementById('loginPassword');
       var toggle = document.getElementById('toggleLoginPassword');
       toggle.addEventListener('click', function() {
-        var showing = input.type === 'text';
-        input.type = showing ? 'password' : 'text';
+        var showing = passwordInput.type === 'text';
+        passwordInput.type = showing ? 'password' : 'text';
         toggle.textContent = showing ? 'Show' : 'Hide';
         toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
       });
+
+      // The country-code dropdown only makes sense once someone's clearly
+      // typing a phone number — hide it while they might be typing a
+      // username instead, so the field doesn't look intimidating by default.
+      var identifierInput = document.getElementById('loginIdentifier');
+      var countryCodeSelect = document.getElementById('loginCountryCode');
+      function looksLikePhoneNumber(value) {
+        return /^\+?[0-9][0-9\s-]*$/.test(value.trim()) && value.trim().length > 0;
+      }
+      function updateCountryCodeVisibility() {
+        countryCodeSelect.style.display = looksLikePhoneNumber(identifierInput.value) ? 'block' : 'none';
+      }
+      identifierInput.addEventListener('input', updateCountryCodeVisibility);
+      updateCountryCodeVisibility();
     })();
   </script>
 </body>

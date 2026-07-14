@@ -1,6 +1,7 @@
 const { readDb, writeDb } = require('./db');
 const { ROLE_VALUES } = require('./roles');
 const { toDateStr } = require('./dateUtils');
+const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
 
 function normalizeRole(role) {
   return ROLE_VALUES.includes(role) ? role : 'staff';
@@ -305,12 +306,38 @@ function getUserByEmail(email) {
   return (db.users || []).find(u => u.email.toLowerCase() === target);
 }
 
+// Username is a separate login identifier from the display name — e.g. a
+// staff member's name might be "Venkata Satya" but their username "vsatya".
+function getUserByUsername(username) {
+  const db = readDb();
+  const target = String(username || '').trim().toLowerCase();
+  if (!target) return null;
+  return (db.users || []).find(u => (u.username || '').toLowerCase() === target);
+}
+
+// Matches a phone number typed at login (with an explicit country code from
+// the dropdown) against stored user.phone values, comparing both in
+// normalized E.164 form so formatting differences don't matter.
+function getUserByPhone(phone, countryCode) {
+  const target = normalizePhoneWithCountryCode(phone, countryCode);
+  if (!target) return null;
+  const db = readDb();
+  return (db.users || []).find(u => u.phone && normalizePhone(u.phone) === target);
+}
+
+// Login accepts username, phone number (with country code), or — for
+// continuity with accounts created before usernames existed — email too.
+function getUserByLoginIdentifier(identifier, countryCode) {
+  if (!identifier) return null;
+  return getUserByUsername(identifier) || getUserByEmail(identifier) || getUserByPhone(identifier, countryCode);
+}
+
 function getUserById(id) {
   const db = readDb();
   return (db.users || []).find(u => u.id === Number(id));
 }
 
-function createUser({ name, email, passwordHash, role, phone, dob, sex, location }) {
+function createUser({ name, username, email, passwordHash, role, phone, dob, sex, location }) {
   const db = readDb();
   if (!db.users) db.users = [];
   if (!db.meta.nextUserId) db.meta.nextUserId = 1;
@@ -318,6 +345,7 @@ function createUser({ name, email, passwordHash, role, phone, dob, sex, location
   const user = {
     id,
     name,
+    username: (username || '').trim(),
     email: String(email).toLowerCase(),
     passwordHash,
     role: normalizeRole(role),
@@ -338,8 +366,9 @@ function createUser({ name, email, passwordHash, role, phone, dob, sex, location
 }
 
 // Edits the editable profile fields for an existing user (used from the
-// Users > Edit page). Email uniqueness is re-checked since it can change.
-function updateUserProfile(id, { name, email, phone, dob, sex, location }) {
+// Users > Edit page). Email and username uniqueness are re-checked since
+// either can change.
+function updateUserProfile(id, { name, username, email, phone, dob, sex, location }) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
   if (!u) return { error: 'User not found.' };
@@ -348,6 +377,12 @@ function updateUserProfile(id, { name, email, phone, dob, sex, location }) {
     const clash = (db.users || []).find(x => x.id !== u.id && x.email.toLowerCase() === target);
     if (clash) return { error: 'Another user already has that email.' };
     u.email = target;
+  }
+  if (username) {
+    const target = String(username).trim().toLowerCase();
+    const clash = (db.users || []).find(x => x.id !== u.id && (x.username || '').toLowerCase() === target);
+    if (clash) return { error: 'Another user already has that username.' };
+    u.username = String(username).trim();
   }
   if (name) u.name = name;
   u.phone = phone || '';
@@ -631,7 +666,7 @@ module.exports = {
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications,
   getSettings, saveSettings,
-  listUsers, getUserByEmail, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserColor,
+  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserColor,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,

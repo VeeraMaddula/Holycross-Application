@@ -8,11 +8,18 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { name, email, password, role, phone, dob, sex, location } = req.body;
+  const { name, username, email, password, role, phone, dob, sex, location } = req.body;
   if (!name || !email || !password) {
     return res.status(400).render('users/list', {
       users: models.listUsers(),
       error: 'Name, email and password are all required.',
+      currentUserId: req.session.userId
+    });
+  }
+  if (!username) {
+    return res.status(400).render('users/list', {
+      users: models.listUsers(),
+      error: 'Username is required — it\'s what this person will log in with, along with their phone number.',
       currentUserId: req.session.userId
     });
   }
@@ -30,6 +37,13 @@ router.post('/', (req, res) => {
       currentUserId: req.session.userId
     });
   }
+  if (models.getUserByUsername(username)) {
+    return res.status(400).render('users/list', {
+      users: models.listUsers(),
+      error: 'A user with that username already exists.',
+      currentUserId: req.session.userId
+    });
+  }
   if (models.getUserByEmail(email)) {
     return res.status(400).render('users/list', {
       users: models.listUsers(),
@@ -37,7 +51,7 @@ router.post('/', (req, res) => {
       currentUserId: req.session.userId
     });
   }
-  models.createUser({ name, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
+  models.createUser({ name, username, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
   res.redirect('/users');
 });
 
@@ -48,18 +62,18 @@ router.get('/:id/edit', (req, res) => {
 });
 
 router.post('/:id', (req, res) => {
-  const { name, email, phone, dob, sex, location } = req.body;
-  if (!name || !email || !phone) {
+  const { name, username, email, phone, dob, sex, location } = req.body;
+  if (!name || !username || !email || !phone) {
     const user = models.getUserById(req.params.id);
     return res.status(400).render('users/edit', {
-      user: { ...user, name, email, phone, dob, sex, location },
-      error: 'Name, email and phone are all required.'
+      user: { ...user, name, username, email, phone, dob, sex, location },
+      error: 'Name, username, email and phone are all required.'
     });
   }
-  const result = models.updateUserProfile(req.params.id, { name, email, phone, dob, sex, location });
+  const result = models.updateUserProfile(req.params.id, { name, username, email, phone, dob, sex, location });
   if (result.error) {
     return res.status(400).render('users/edit', {
-      user: { ...models.getUserById(req.params.id), name, email, phone, dob, sex, location },
+      user: { ...models.getUserById(req.params.id), name, username, email, phone, dob, sex, location },
       error: result.error
     });
   }

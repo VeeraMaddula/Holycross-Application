@@ -10,11 +10,12 @@
 
     <div class="card">
       <table>
-        <thead><tr><th>Name</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <% users.forEach(u => { %>
           <tr>
             <td><%= u.name %><% if (u.id === currentUserId) { %> <span class="muted">(you)</span><% } %></td>
+            <td><%= u.username || '—' %></td>
             <td>
               <form class="inline" method="POST" action="/users/<%= u.id %>/color">
                 <input type="color" name="color" value="<%= u.color || '#7a8f6b' %>" onchange="this.form.submit()" style="width:36px;height:28px;padding:2px;cursor:pointer" title="Roster colour for <%= u.name %>">
@@ -74,6 +75,11 @@
         <div class="field">
           <label>Name</label>
           <input type="text" name="name" required>
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" name="username" required autocomplete="username">
+          <p class="muted" style="margin-top:4px">What this person logs in with, along with their phone number.</p>
         </div>
         <div class="field">
           <label>Email</label>

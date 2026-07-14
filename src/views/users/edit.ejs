@@ -15,6 +15,11 @@
           <input type="text" name="name" value="<%= user.name %>" required>
         </div>
         <div class="field">
+          <label>Username</label>
+          <input type="text" name="username" value="<%= user.username || '' %>" required autocomplete="username">
+          <p class="muted" style="margin-top:4px">What this person logs in with, along with their phone number.</p>
+        </div>
+        <div class="field">
           <label>Email</label>
           <input type="email" name="email" value="<%= user.email %>" required>
         </div>

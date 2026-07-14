@@ -1,22 +1,10 @@
 // SMS notifications via Twilio's REST API, using only Node's built-in fetch
 // (no twilio SDK dependency needed) — same philosophy as googleCalendar.js.
 const models = require('./models');
+const { normalizePhone } = require('./phoneUtils');
 
 function isConfigured() {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-}
-
-// Converts a local Irish number (e.g. "089 433 8657") into E.164 format
-// (e.g. "+353894338657") that Twilio requires. Leaves already-international
-// numbers (starting with + or 00) alone.
-function normalizePhone(phone) {
-  if (!phone) return null;
-  let p = String(phone).trim().replace(/[\s-()]/g, '');
-  if (!p) return null;
-  if (p.startsWith('+')) return p;
-  if (p.startsWith('00')) return '+' + p.slice(2);
-  if (p.startsWith('0')) return '+353' + p.slice(1);
-  return p;
 }
 
 async function sendSms({ to, body, type, bookingId }) {
