@@ -16,4 +16,17 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(hashBuffer, candidateBuffer);
 }
 
-module.exports = { hashPassword, verifyPassword };
+// Enforced whenever a new password is set (currently: creating a staff
+// account from the Users page). Not applied at login — an existing
+// password shouldn't suddenly stop working if the rules change later.
+const PASSWORD_RULES = 'Password must be 8-16 characters and include at least one uppercase letter, one lowercase letter, and one special character.';
+function isValidPassword(password) {
+  if (typeof password !== 'string') return false;
+  if (password.length < 8 || password.length > 16) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[^A-Za-z0-9]/.test(password)) return false;
+  return true;
+}
+
+module.exports = { hashPassword, verifyPassword, isValidPassword, PASSWORD_RULES };

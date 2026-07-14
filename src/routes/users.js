@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const models = require('../models');
-const { hashPassword } = require('../password');
+const { hashPassword, isValidPassword, PASSWORD_RULES } = require('../password');
 
 router.get('/', (req, res) => {
   res.render('users/list', { users: models.listUsers(), error: null, currentUserId: req.session.userId });
@@ -20,6 +20,13 @@ router.post('/', (req, res) => {
     return res.status(400).render('users/list', {
       users: models.listUsers(),
       error: 'Phone number is required — it\'s used to text staff their shift notifications.',
+      currentUserId: req.session.userId
+    });
+  }
+  if (!isValidPassword(password)) {
+    return res.status(400).render('users/list', {
+      users: models.listUsers(),
+      error: PASSWORD_RULES,
       currentUserId: req.session.userId
     });
   }

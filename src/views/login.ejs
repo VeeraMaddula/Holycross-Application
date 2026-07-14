@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>The Holy Cross - Booking Admin</title>
+  <title>The Holy Cross - Holybook</title>
   <%- include('partials/head') %>
 </head>
 <body>
   <div class="login-wrap--brand">
     <div class="login-card--brand">
       <img class="login-logo-full" src="/img/logo-full.png" alt="The Holy Cross - Bar & Restaurant, Since 1775">
-      <p class="login-tagline">Booking Admin — sign in to continue.</p>
+      <p class="login-tagline">Holybook — sign in to continue.</p>
       <% if (error) { %><div class="error-box"><%= error %></div><% } %>
       <form method="POST" action="/login">
         <div class="field">
@@ -17,11 +17,28 @@
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" name="password" required>
+          <div style="position:relative">
+            <input type="password" name="password" id="loginPassword" required style="padding-right:52px">
+            <button type="button" id="toggleLoginPassword" aria-label="Show password"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--accent-dark)">Show</button>
+          </div>
         </div>
         <button class="btn" type="submit">Log in</button>
       </form>
     </div>
   </div>
+
+  <script>
+    (function() {
+      var input = document.getElementById('loginPassword');
+      var toggle = document.getElementById('toggleLoginPassword');
+      toggle.addEventListener('click', function() {
+        var showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        toggle.textContent = showing ? 'Show' : 'Hide';
+        toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      });
+    })();
+  </script>
 </body>
 </html>

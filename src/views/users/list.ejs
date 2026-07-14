@@ -81,7 +81,15 @@
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" name="password" required minlength="6">
+          <div style="position:relative">
+            <input type="password" name="password" id="newUserPassword" required minlength="8" maxlength="16"
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,16}"
+              title="8-16 characters, with at least one uppercase letter, one lowercase letter, and one special character."
+              style="padding-right:52px">
+            <button type="button" id="toggleNewUserPassword" aria-label="Show password"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--accent-dark)">Show</button>
+          </div>
+          <p class="muted" style="margin-top:4px">8-16 characters, with at least one uppercase letter, one lowercase letter, and one special character.</p>
         </div>
         <div class="field">
           <label>Phone number</label>
@@ -118,5 +126,19 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    var input = document.getElementById('newUserPassword');
+    var toggle = document.getElementById('toggleNewUserPassword');
+    if (!input || !toggle) return;
+    toggle.addEventListener('click', function() {
+      var showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.textContent = showing ? 'Show' : 'Hide';
+      toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    });
+  })();
+</script>
 </body>
 </html>
