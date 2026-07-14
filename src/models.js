@@ -471,6 +471,20 @@ function getStaffStatus(userId) {
   return { status: 'clocked_in', since: latest.at }; // clock_in or break_end
 }
 
+// The clock_in time that started the shift currently in progress (walks
+// back through entries, newest first, until it hits the clock_in — or a
+// clock_out, meaning there's no active shift). Distinct from getStaffStatus's
+// `since`, which for "on_break" is the break's own start time, not the
+// original clock-in — the dashboard needs both.
+function getCurrentShiftStart(userId) {
+  const entries = listClockEntries({ userId }); // newest first
+  for (const e of entries) {
+    if (e.action === 'clock_in') return e.at;
+    if (e.action === 'clock_out') return null;
+  }
+  return null;
+}
+
 // Which single action is legal next, given a current status. Enforced
 // server-side so a stale/tampered client request can't log an impossible
 // sequence (e.g. clocking in twice in a row).
@@ -482,10 +496,17 @@ function nextValidAction(status) {
 }
 
 function listAllStaffStatus() {
-  return listUsers().filter(u => u.active).map(u => ({
-    user: { id: u.id, name: u.name, role: u.role, avatarPath: u.avatarPath || '' },
-    ...getStaffStatus(u.id)
-  }));
+  return listUsers().filter(u => u.active).map(u => {
+    const status = getStaffStatus(u.id);
+    const clockInAt = (status.status === 'clocked_in' || status.status === 'on_break')
+      ? getCurrentShiftStart(u.id)
+      : null;
+    return {
+      user: { id: u.id, name: u.name, role: u.role, avatarPath: u.avatarPath || '' },
+      ...status,
+      clockInAt
+    };
+  });
 }
 
 function addClockEntry({ userId, userName, action, selfiePath }) {

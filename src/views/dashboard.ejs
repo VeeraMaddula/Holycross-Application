@@ -12,6 +12,37 @@
       <div class="stat-card"><div class="num"><%= stats.todayGuests %></div><div class="label">Guests today</div></div>
       <div class="stat-card"><div class="num"><%= stats.confirmedCount %></div><div class="label">Confirmed (all time)</div></div>
       <div class="stat-card"><div class="num"><%= stats.totalTables %></div><div class="label">Tables set up</div></div>
+      <div class="stat-card"><div class="num"><%= stats.workingNowCount %></div><div class="label">Clocked in now<% if (stats.onBreakCount > 0) { %> (<%= stats.onBreakCount %> on break)<% } %></div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0">Who's working now</h3>
+        <a class="btn small secondary" href="/staff-status">Full staff status</a>
+      </div>
+      <% if (workingNow.length === 0) { %>
+        <p class="muted">No one's clocked in right now.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Name</th><th>Clocked in at</th><th>Status</th><th>Break time</th></tr></thead>
+          <tbody id="workingNowBody">
+          <% workingNow.forEach(s => { %>
+            <tr>
+              <td><%= s.user.name %></td>
+              <td><%= s.clockInAt ? new Date(s.clockInAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+              <td>
+                <span class="badge <%= s.status === 'clocked_in' ? 'confirmed' : 'status-skipped-no-smtp' %>">
+                  <%= s.status === 'clocked_in' ? 'Present' : 'On break' %>
+                </span>
+              </td>
+              <td class="break-cell" data-break-since="<%= s.status === 'on_break' ? s.since : '' %>">
+                <%= s.status === 'on_break' ? '…' : '—' %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
     </div>
 
     <div class="card">
@@ -61,5 +92,57 @@
     </div>
   </div>
 </div>
+
+<script>
+  // "Who's working now" break timers tick locally every second (no server
+  // round-trip needed for that), and the whole table refreshes every 20s
+  // from the same live endpoint the Staff Status page uses, so a shift
+  // change (clock in/out, break start/end) shows up here without a reload.
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+  function formatDuration(ms) {
+    if (ms < 0) ms = 0;
+    var totalSec = Math.floor(ms / 1000);
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    return (h > 0 ? h + 'h ' : '') + m + 'm';
+  }
+
+  function tickBreakTimers() {
+    document.querySelectorAll('.break-cell').forEach(function(cell) {
+      var since = cell.getAttribute('data-break-since');
+      cell.textContent = since ? formatDuration(Date.now() - new Date(since).getTime()) : '—';
+    });
+  }
+  tickBreakTimers();
+  setInterval(tickBreakTimers, 1000);
+
+  function renderWorkingNow(staff) {
+    var workingNow = staff.filter(function(s) { return s.status === 'clocked_in' || s.status === 'on_break'; });
+    var body = document.getElementById('workingNowBody');
+    if (!body) return;
+    var rows = workingNow.map(function(s) {
+      var statusClass = s.status === 'clocked_in' ? 'confirmed' : 'status-skipped-no-smtp';
+      var statusLabel = s.status === 'clocked_in' ? 'Present' : 'On break';
+      var clockInAt = s.clockInAt ? new Date(s.clockInAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
+      var breakSince = s.status === 'on_break' ? s.since : '';
+      return '<tr><td>' + escapeHtml(s.user.name) + '</td><td>' + escapeHtml(clockInAt) + '</td>' +
+        '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+        '<td class="break-cell" data-break-since="' + escapeHtml(breakSince) + '">' + (breakSince ? '…' : '—') + '</td></tr>';
+    });
+    body.innerHTML = rows.join('');
+    tickBreakTimers();
+  }
+
+  setInterval(function() {
+    fetch('/staff-status/data', { headers: { Accept: 'application/json' } })
+      .then(function(res) { return res.json(); })
+      .then(renderWorkingNow)
+      .catch(function() { /* silent — keep showing the last known state */ });
+  }, 20000);
+</script>
 </body>
 </html>
