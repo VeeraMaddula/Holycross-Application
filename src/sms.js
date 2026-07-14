@@ -62,4 +62,13 @@ function cancellationSms(booking) {
 }
 
 function shiftAssignedSms(shift) {
-  return `The Holy Cross: New shift on ${shift.date} from ${shift.startTime} to ${shif
+  return `The Holy Cross: New shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.`;
+}
+function shiftUpdatedSms(shift) {
+  return `The Holy Cross: Your shift on ${shift.date} was updated - now ${shift.startTime} to ${shift.endTime}.`;
+}
+
+module.exports = {
+  isConfigured, sendSms, normalizePhone, bookingConfirmationSms, bookingReminderSms, cancellationSms,
+  shiftAssignedSms, shiftUpdatedSms
+};

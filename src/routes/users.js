@@ -52,4 +52,54 @@ router.post('/:id', (req, res) => {
   const result = models.updateUserProfile(req.params.id, { name, email, phone, dob, sex, location });
   if (result.error) {
     return res.status(400).render('users/edit', {
-      user: { ...models.getUserById(req.params.id), name, emai
+      user: { ...models.getUserById(req.params.id), name, email, phone, dob, sex, location },
+      error: result.error
+    });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/toggle-active', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserActive(req.params.id, !(target && target.active));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/role', (req, res) => {
+  const result = models.setUserRole(req.params.id, req.body.role);
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/timesheet-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserTimesheetAccess(req.params.id, !(target && target.canViewTimesheets));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/roster-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserRosterAccess(req.params.id, !(target && target.canManageRoster));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/color', (req, res) => {
+  const result = models.setUserColor(req.params.id, req.body.color);
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+module.exports = router;

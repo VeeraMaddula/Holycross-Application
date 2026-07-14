@@ -18,3 +18,11 @@ function requireTimesheetAccess(req, res, next) {
 }
 
 // Roster access = Admin, Senior Manager, or anyone individually granted
+// access via the Users page (same pattern as requireTimesheetAccess).
+function requireRosterAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (u.role === 'admin' || u.role === 'senior_manager' || u.canManageRoster)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess };

@@ -46,4 +46,14 @@
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.14 0-7.5 2.46-7.5 5.5V21h15v-1.5c0-3.04-3.36-5.5-7.5-5.5Z" fill="currentColor"/></svg>
           </span>
         <% } %>
-        <di
+        <div class="user-card-text">
+          <div class="user-card-name"><%= currentUser.firstName %></div>
+          <div class="user-card-role"><%= currentUser.roleLabel %></div>
+        </div>
+      </a>
+    <% } %>
+    <form class="logout-form" method="POST" action="/logout">
+      <button class="linklike" type="submit">Log out</button>
+    </form>
+  </div>
+</div>

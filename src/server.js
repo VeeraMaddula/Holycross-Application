@@ -81,4 +81,14 @@ app.use('/clock', requireAuth, require('./routes/clock'));
 app.use('/staff-status', requireAuth, require('./routes/staffStatus'));
 app.use('/timesheets', requireAuth, requireTimesheetAccess, require('./routes/timesheets'));
 app.use('/roster', requireAuth, requireRosterAccess, require('./routes/roster'));
-app.use('/my-shifts', requireAuth, require('./routes/myShift
+app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
+
+app.use((req, res) => {
+  res.status(404).render('404');
+});
+
+app.listen(PORT, () => {
+  console.log(`Bar & Restaurant Booking admin running at http://localhost:${PORT}`);
+  notify.startScheduler();
+  googleCalendar.startSync(models);
+});

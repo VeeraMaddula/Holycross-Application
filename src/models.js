@@ -471,4 +471,149 @@ function getStaffStatus(userId) {
   return { status: 'clocked_in', since: latest.at }; // clock_in or break_end
 }
 
-// 
+// Which single action is legal next, given a current status. Enforced
+// server-side so a stale/tampered client request can't log an impossible
+// sequence (e.g. clocking in twice in a row).
+function nextValidAction(status) {
+  if (status === 'clocked_out') return 'clock_in';
+  if (status === 'clocked_in') return ['clock_out', 'break_start'];
+  if (status === 'on_break') return 'break_end';
+  return null;
+}
+
+function listAllStaffStatus() {
+  return listUsers().filter(u => u.active).map(u => ({
+    user: { id: u.id, name: u.name, role: u.role, avatarPath: u.avatarPath || '' },
+    ...getStaffStatus(u.id)
+  }));
+}
+
+function addClockEntry({ userId, userName, action, selfiePath }) {
+  const db = readDb();
+  if (!db.timeEntries) db.timeEntries = [];
+  if (!db.meta.nextTimeEntryId) db.meta.nextTimeEntryId = 1;
+  const entry = {
+    id: db.meta.nextTimeEntryId++,
+    userId: Number(userId),
+    userName,
+    action,
+    at: new Date().toISOString(),
+    selfiePath: selfiePath || ''
+  };
+  db.timeEntries.push(entry);
+  writeDb(db);
+  return entry;
+}
+
+function listClockEntries({ userId, from, to } = {}) {
+  const db = readDb();
+  let entries = db.timeEntries || [];
+  if (userId) entries = entries.filter(e => e.userId === Number(userId));
+  if (from) entries = entries.filter(e => e.at >= from);
+  if (to) entries = entries.filter(e => e.at <= to);
+  return entries.slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+}
+
+// ---- Roster (direct per-date shifts, no recurring pattern) ----
+// Design: every shift is pinned to one specific calendar date — there is no
+// "repeats every week" layer. That's deliberate: a small bar/restaurant's
+// staffing changes week to week (holidays, swaps, seasonal hours), so a
+// recurring template just meant editing overrides on top of a template
+// every week anyway. Assigning directly to a date is simpler and always
+// shows exactly who's actually working.
+function dateToDayOfWeek(dateStr) {
+  return new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun..6=Sat
+}
+
+function eachDateInRange(fromDate, toDate) {
+  const dates = [];
+  let cur = new Date(fromDate + 'T00:00:00');
+  const end = new Date(toDate + 'T00:00:00');
+  while (cur <= end) {
+    dates.push(toDateStr(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+// Shifts within a date range, joined with staff name/colour for the roster grid.
+function listRosterShiftsForRange(fromDate, toDate) {
+  const db = readDb();
+  const users = db.users || [];
+  const shifts = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate);
+  return shifts.map(s => {
+    const user = users.find(u => u.id === s.userId);
+    return {
+      ...s,
+      userName: user ? user.name : 'Unknown staff',
+      color: user ? (user.color || defaultColorForId(user.id)) : '#999'
+    };
+  });
+}
+
+function addRosterShift({ date, userId, startTime, endTime }) {
+  const db = readDb();
+  if (!db.rosterShifts) db.rosterShifts = [];
+  if (!db.meta.nextRosterShiftId) db.meta.nextRosterShiftId = 1;
+  const shift = {
+    id: db.meta.nextRosterShiftId++,
+    date,
+    userId: Number(userId),
+    startTime, endTime
+  };
+  db.rosterShifts.push(shift);
+  writeDb(db);
+  const user = (db.users || []).find(u => u.id === shift.userId);
+  return { shift: { ...shift, user: user || null } };
+}
+
+function updateRosterShift(id, { date, startTime, endTime }) {
+  const db = readDb();
+  const shift = (db.rosterShifts || []).find(s => s.id === Number(id));
+  if (!shift) return { error: 'Shift not found.' };
+  if (date) shift.date = date;
+  if (startTime) shift.startTime = startTime;
+  if (endTime) shift.endTime = endTime;
+  writeDb(db);
+  const user = (db.users || []).find(u => u.id === shift.userId);
+  return { shift: { ...shift, user: user || null } };
+}
+
+function removeRosterShift(id) {
+  const db = readDb();
+  db.rosterShifts = (db.rosterShifts || []).filter(s => s.id !== Number(id));
+  writeDb(db);
+}
+
+// Groups shifts by date for a range. Returns [{ date, dayOfWeek, shifts: [...] }, ...].
+function getResolvedScheduleForRange(fromDate, toDate) {
+  const shifts = listRosterShiftsForRange(fromDate, toDate);
+  return eachDateInRange(fromDate, toDate).map(date => {
+    const dayShifts = shifts
+      .filter(s => s.date === date)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.userName.localeCompare(b.userName));
+    return { date, dayOfWeek: dateToDayOfWeek(date), shifts: dayShifts };
+  });
+}
+
+function getUserUpcomingShifts(userId, fromDate, toDate) {
+  const schedule = getResolvedScheduleForRange(fromDate, toDate);
+  const uid = Number(userId);
+  return schedule
+    .map(day => ({ date: day.date, dayOfWeek: day.dayOfWeek, shifts: day.shifts.filter(s => s.userId === uid) }))
+    .filter(day => day.shifts.length > 0);
+}
+
+module.exports = {
+  listTables, createTable, deleteTable,
+  listBookings, getBooking, createBooking, updateBooking, setStatus, updatePayment, deleteBooking,
+  getMenu, saveMenu, listEvents, createEvent, deleteEvent,
+  logNotification, listNotifications,
+  getSettings, saveSettings,
+  listUsers, getUserByEmail, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserColor,
+  setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
+  getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
+  listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
+  getResolvedScheduleForRange, getUserUpcomingShifts,
+  toMinutes
+};

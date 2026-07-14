@@ -73,4 +73,50 @@
       <form method="POST" action="/users">
         <div class="field">
           <label>Name</label>
-          
+          <input type="text" name="name" required>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" required minlength="6">
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="tel" name="phone" placeholder="089 433 8657" required>
+        </div>
+        <div class="field">
+          <label>Date of birth</label>
+          <input type="date" name="dob">
+        </div>
+        <div class="field">
+          <label>Sex</label>
+          <select name="sex">
+            <option value="">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" name="location" placeholder="City / area">
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select name="role">
+            <% roles.forEach(r => { %>
+              <option value="<%= r.value %>" <%= r.value === 'staff' ? 'selected' : '' %>><%= r.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <p class="muted">Phone number is required so staff get text notifications when a shift is assigned or changed. Admins have full access, including Settings, payments, and deleting bookings. The other roles (Senior Manager, General Manager, Staff Manager, Staff) currently have the same access as Staff — specific permissions per role can be set up once you decide what each should be able to do.</p>
+        <button class="btn" type="submit">Create user</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

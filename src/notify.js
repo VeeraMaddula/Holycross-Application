@@ -100,4 +100,27 @@ async function runReminderSweep() {
         await sms.sendSms({ to: booking.phone, body: sms.bookingReminderSms(booking, table ? table.name : 'your table'), type: 'reminder', bookingId: booking.id });
       }
       models.updateBookingReminderFlag && models.updateBookingReminderFlag(booking.id);
-      // Mark reminderSent directly via mode
+      // Mark reminderSent directly via models
+      const dbFresh = readDb();
+      const b = dbFresh.bookings.find(x => x.id === booking.id);
+      if (b) {
+        b.reminderSent = true;
+        require('./db').writeDb(dbFresh);
+      }
+    }
+  }
+}
+
+function startScheduler() {
+  // Runs every 15 minutes to catch bookings entering the reminder window.
+  cron.schedule('*/15 * * * *', () => {
+    runReminderSweep().catch(err => console.error('Reminder sweep failed:', err.message));
+  });
+  console.log('Reminder scheduler started (checks every 15 minutes).');
+}
+
+module.exports = {
+  sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
+  shiftAssignedEmail, shiftUpdatedEmail,
+  notifyAdminNewBooking, runReminderSweep, startScheduler, getTransporter
+};

@@ -114,4 +114,4 @@ function writeDb(data) {
   fs.renameSync(tmp, DB_FILE);
 }
 
-module.exports = { re
+module.exports = { readDb, writeDb, ensureDb, DATA_DIR, DB_FILE };

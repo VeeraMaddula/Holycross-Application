@@ -18,4 +18,4 @@ router.get('/', (req, res) => {
   res.render('my-shifts', { days, dayNames: DAY_NAMES, from, to });
 });
 
-module.expo
+module.exports = router;

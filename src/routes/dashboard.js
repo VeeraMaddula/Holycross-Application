@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const models = require('../models');
+const { todayStr } = require('../dateUtils');
 
 router.get('/', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
   const todayBookings = models.listBookings({ date: today }).filter(b => b.status !== 'cancelled');
 
   const now = new Date();

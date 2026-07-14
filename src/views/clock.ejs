@@ -128,4 +128,20 @@
           return res.json().then(function(data) { return { ok: res.ok, data: data }; });
         }).then(function(result) {
           if (!result.ok) {
-            showError((result.data && result.data.e
+            showError((result.data && result.data.error) || 'Something went wrong. Please try again.');
+            buttons.forEach(function(b) { b.disabled = false; });
+            btn.textContent = originalText;
+            return;
+          }
+          window.location.reload();
+        }).catch(function() {
+          showError('Could not save — please check your connection and try again.');
+          buttons.forEach(function(b) { b.disabled = false; });
+          btn.textContent = originalText;
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>
