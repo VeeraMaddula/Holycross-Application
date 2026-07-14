@@ -31,6 +31,25 @@
       <h3 style="margin-top:0">Email setup</h3>
       <p class="muted">Email sending is configured via environment variables in your <code>.env</code> file (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, ADMIN_NOTIFICATION_EMAIL). See README for a Gmail example.</p>
     </div>
+
+    <div class="card" style="max-width:480px">
+      <h3 style="margin-top:0">Google Calendar sync</h3>
+      <% if (googleConfigured) { %>
+        <p><span class="badge confirmed">Connected</span></p>
+        <dl class="detail-grid">
+          <div><dt>Calendar ID</dt><dd><%= googleCalendarId %></dd></div>
+          <div><dt>Last synced</dt><dd><%= googleSyncStatus.lastSyncAt ? new Date(googleSyncStatus.lastSyncAt).toLocaleString() : 'Not yet' %></dd></div>
+          <div><dt>External events pulled in</dt><dd><%= googleSyncStatus.externalEventCount %></dd></div>
+        </dl>
+        <p class="muted">Bookings created, edited, or cancelled in this app are automatically pushed to that calendar. Events added directly on Google Calendar show up on the app's Calendar page (synced every 10 minutes).</p>
+        <form method="POST" action="/settings/google-sync-now">
+          <button class="btn small secondary" type="submit">Sync now</button>
+        </form>
+      <% } else { %>
+        <p><span class="badge cancelled">Not configured</span></p>
+        <p class="muted">Set <code>GOOGLE_SERVICE_ACCOUNT_KEY_PATH</code> and <code>GOOGLE_CALENDAR_ID</code> in your <code>.env</code> file to enable two-way sync with Google Calendar. See README for the one-time Google Cloud Console setup steps.</p>
+      <% } %>
+    </div>
   </div>
 </div>
 </body>

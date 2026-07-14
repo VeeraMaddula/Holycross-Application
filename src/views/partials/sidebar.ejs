@@ -1,18 +1,49 @@
-<div class="sidebar">
+<% if (currentUser) { %>
+  <a href="/profile" class="topbar-avatar" title="<%= currentUser.firstName %> — <%= currentUser.roleLabel %>">
+    <% if (currentUser.avatarPath) { %>
+      <img src="<%= currentUser.avatarPath %>" alt="<%= currentUser.firstName %>">
+    <% } else { %>
+      <span class="topbar-avatar-placeholder" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.14 0-7.5 2.46-7.5 5.5V21h15v-1.5c0-3.04-3.36-5.5-7.5-5.5Z" fill="currentColor"/></svg>
+      </span>
+    <% } %>
+  </a>
+<% } %>
+<div class="sidebar" id="sidebar">
   <div class="brand">
     <img src="/img/logo.jpeg" alt="The Holy Cross">
     <div class="brand-sub">Booking Admin</div>
+    <button type="button" class="menu-toggle" aria-label="Toggle menu" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
   </div>
-  <nav>
-    <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Dashboard</a>
-    <a href="/bookings" class="<%= currentPath.startsWith('/bookings') ? 'active' : '' %>">Bookings</a>
-    <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">Calendar</a>
-    <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">Tables</a>
-    <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">Menu &amp; Events</a>
-    <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">Notifications</a>
-    <a href="/settings" class="<%= currentPath.startsWith('/settings') ? 'active' : '' %>">Settings</a>
-  </nav>
-  <form class="logout-form" method="POST" action="/logout">
-    <button class="linklike" type="submit">Log out</button>
-  </form>
-</div>
+  <div class="sidebar-body">
+    <nav>
+      <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Dashboard</a>
+      <a href="/bookings" class="<%= currentPath.startsWith('/bookings') ? 'active' : '' %>">Bookings</a>
+      <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">Calendar</a>
+      <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">Tables</a>
+      <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">Menu &amp; Events</a>
+      <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">Notifications</a>
+      <a href="/clock" class="<%= currentPath.startsWith('/clock') ? 'active' : '' %>">Clock In / Out</a>
+      <a href="/staff-status" class="<%= currentPath.startsWith('/staff-status') ? 'active' : '' %>">Staff Status</a>
+      <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canViewTimesheets)) { %>
+        <a href="/timesheets" class="<%= currentPath.startsWith('/timesheets') ? 'active' : '' %>">Timesheets</a>
+      <% } %>
+      <a href="/my-shifts" class="<%= currentPath.startsWith('/my-shifts') ? 'active' : '' %>">My Shifts</a>
+      <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canManageRoster)) { %>
+        <a href="/roster" class="<%= currentPath.startsWith('/roster') ? 'active' : '' %>">Roster</a>
+      <% } %>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+        <a href="/settings" class="<%= currentPath.startsWith('/settings') ? 'active' : '' %>">Settings</a>
+        <a href="/users" class="<%= currentPath.startsWith('/users') ? 'active' : '' %>">Users</a>
+      <% } %>
+    </nav>
+    <% if (currentUser) { %>
+      <a href="/profile" class="user-card">
+        <% if (currentUser.avatarPath) { %>
+          <img class="user-avatar" src="<%= currentUser.avatarPath %>" alt="<%= currentUser.firstName %>">
+        <% } else { %>
+          <span class="user-avatar user-avatar-placeholder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.14 0-7.5 2.46-7.5 5.5V21h15v-1.5c0-3.04-3.36-5.5-7.5-5.5Z" fill="currentColor"/></svg>
+          </span>
+        <% } %>
+        <di

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head><title>Users - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2>Users</h2>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><%= u.name %><% if (u.id === currentUserId) { %> <span class="muted">(you)</span><% } %></td>
+            <td>
+              <form class="inline" method="POST" action="/users/<%= u.id %>/color">
+                <input type="color" name="color" value="<%= u.color || '#7a8f6b' %>" onchange="this.form.submit()" style="width:36px;height:28px;padding:2px;cursor:pointer" title="Roster colour for <%= u.name %>">
+              </form>
+            </td>
+            <td><%= u.email %></td>
+            <td>
+              <form class="inline" method="POST" action="/users/<%= u.id %>/role">
+                <select name="role" onchange="this.form.submit()" <%= u.id === currentUserId ? 'disabled' : '' %>>
+                  <% roles.forEach(r => { %>
+                    <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                  <% }) %>
+                </select>
+              </form>
+            </td>
+            <td><span class="badge <%= u.active ? 'confirmed' : 'cancelled' %>"><%= u.active ? 'Active' : 'Inactive' %></span></td>
+            <td>
+              <% if (u.role === 'admin' || u.role === 'senior_manager') { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/timesheet-access">
+                  <button class="btn small <%= u.canViewTimesheets ? 'secondary' : '' %>" type="submit">
+                    <%= u.canViewTimesheets ? 'Revoke access' : 'Grant access' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (u.role === 'admin' || u.role === 'senior_manager') { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/roster-access">
+                  <button class="btn small <%= u.canManageRoster ? 'secondary' : '' %>" type="submit">
+                    <%= u.canManageRoster ? 'Revoke access' : 'Grant access' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td><%= new Date(u.createdAt).toLocaleDateString() %></td>
+            <td style="white-space:nowrap">
+              <a class="btn small secondary" href="/users/<%= u.id %>/edit">Edit</a>
+              <% if (u.id !== currentUserId) { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/toggle-active" onsubmit="return confirm('<%= u.active ? 'Deactivate' : 'Reactivate' %> this user?')">
+                  <button class="btn small secondary" type="submit"><%= u.active ? 'Deactivate' : 'Reactivate' %></button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="max-width:480px">
+      <h3 style="margin-top:0">Add a user</h3>
+      <form method="POST" action="/users">
+        <div class="field">
+          <label>Name</label>
+          

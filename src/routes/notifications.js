@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const notify = require('../notify');
+const sms = require('../sms');
 
 router.get('/', (req, res) => {
   const emailConfigured = !!notify.getTransporter();
-  res.render('notifications', { notifications: models.listNotifications(), emailConfigured });
+  const smsConfigured = sms.isConfigured();
+  res.render('notifications', { notifications: models.listNotifications(), emailConfigured, smsConfigured });
 });
 
 router.post('/run-reminder-sweep', async (req, res) => {

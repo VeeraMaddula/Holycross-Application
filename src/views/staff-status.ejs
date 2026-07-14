@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head><title>Staff Status - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Staff Status</h2>
+      <a class="btn small secondary" href="/clock">Clock In / Out</a>
+    </div>
+    <p class="muted">Live view of who's currently working. Refreshes automatically every 20 seconds.</p>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Since</th></tr></thead>
+        <tbody id="staffStatusBody">
+        <% staff.forEach(s => { %>
+          <tr>
+            <td><%= s.user.name %></td>
+            <td><%= s.user.role %></td>
+            <td>
+              <span class="badge <%= s.status === 'clocked_in' ? 'confirmed' : (s.status === 'on_break' ? 'status-skipped-no-smtp' : 'cancelled') %>">
+                <%= s.status === 'clocked_in' ? 'Present' : (s.status === 'on_break' ? 'On break' : 'Clocked out') %>
+              </span>
+            </td>
+            <td class="since-cell" data-since="<%= s.since || '' %>"><%= s.since ? new Date(s.since).toLocaleString() : '—' %></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <% if (staff.length === 0) { %><p class="muted">No active staff accounts yet.</p><% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Poll for fresh status every 20s so this can be left open on a shared screen.
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  setInterval(function() {
+    fetch('/staff-status/data', { headers: { Accept: 'application/json' } })
+      .then(function(res) { return res.json(); })
+      .then(function(staff) {
+        var body = document.getElementById('staffStatusBody');
+        var rows = staff.map(function(s) {
+          var statusClass = s.status === 'clocked_in' ? 'confirmed' : (s.status === 'on_break' ? 'status-skipped-no-smtp' : 'cancelled');
+          var statusLabel = s.status === 'clocked_in' ? 'Present' : (s.status === 'on_break' ? 'On break' : 'Clocked out');
+          var since = s.since ? new Date(s.since).toLocaleString() : '—';
+          return '<tr><td>' + escapeHtml(s.user.name) + '</td><td>' + escapeHtml(s.user.role) + '</td>' +
+            '<td><span class="badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+            '<td>' + escapeHtml(since) + '</td></tr>';
+        });
+        body.innerHTML = rows.join('') || '';
+      })
+      .catch(function() { /* silent — keep showing the last known state */ });
+  }, 20000);
+</script>
+</body>
+</html>

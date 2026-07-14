@@ -146,6 +146,7 @@
               <option value="four_course" <%= foodPkg === 'four_course' ? 'selected' : '' %>>Four course meal</option>
               <option value="soup_sandwiches" <%= foodPkg === 'soup_sandwiches' ? 'selected' : '' %>>Soups &amp; sandwiches</option>
               <option value="finger_food" <%= foodPkg === 'finger_food' ? 'selected' : '' %>>Finger food</option>
+              <option value="bbq" <%= foodPkg === 'bbq' ? 'selected' : '' %>>BBQ</option>
               <option value="scone_tea" <%= foodPkg === 'scone_tea' ? 'selected' : '' %>>Scone &amp; tea</option>
               <option value="other" <%= foodPkg === 'other' ? 'selected' : '' %>>Other</option>
             </select>
@@ -194,7 +195,7 @@
 <script>
   var FOOD_DEFAULT_PRICES = {
     two_course: 26, three_course: 32, four_course: 38,
-    soup_sandwiches: 12, finger_food: 15, scone_tea: 8, other: ''
+    soup_sandwiches: 12, finger_food: 15, bbq: 22, scone_tea: 8, other: ''
   };
   var FOOD_COURSE_COUNTS = { two_course: 2, three_course: 3, four_course: 4 };
 

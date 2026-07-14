@@ -1,4 +1,21 @@
 const { readDb, writeDb } = require('./db');
+const { ROLE_VALUES } = require('./roles');
+const { toDateStr } = require('./dateUtils');
+
+function normalizeRole(role) {
+  return ROLE_VALUES.includes(role) ? role : 'staff';
+}
+
+// Default colour a new staff member gets on the roster grid (admin can change
+// it any time from the Users page). Cycles through a curated palette so
+// people are visually distinguishable even before anyone picks manually.
+const COLOR_PALETTE = [
+  '#c9a24b', '#7a8f6b', '#5b6b8c', '#b5543a', '#8a5fb3',
+  '#3a8a8a', '#c96b96', '#4a7a3a', '#a67c52', '#5f5fa6'
+];
+function defaultColorForId(id) {
+  return COLOR_PALETTE[(Number(id) - 1) % COLOR_PALETTE.length];
+}
 
 function toMinutes(hhmm) {
   const [h, m] = hhmm.split(':').map(Number);
@@ -96,7 +113,7 @@ function findConflict(db, candidate, excludeId) {
   });
 }
 
-function createBooking(input) {
+function createBooking(input, createdBy) {
   const db = readDb();
   const candidate = {
     date: input.date,
@@ -136,8 +153,11 @@ function createBooking(input) {
     food: buildFood(input),
     status: 'confirmed',
     reminderSent: false,
+    googleEventId: '',
     createdAt: new Date().toISOString(),
-    history: [{ at: new Date().toISOString(), event: 'Booking created' }]
+    createdByUserId: createdBy ? createdBy.id : null,
+    createdByName: createdBy ? createdBy.name : '',
+    history: [{ at: new Date().toISOString(), event: `Booking created${createdBy ? ' by ' + createdBy.name : ''}` }]
   };
   db.bookings.push(booking);
   writeDb(db);
@@ -269,11 +289,186 @@ function saveSettings(settings) {
   return db.settings;
 }
 
-module.exports = {
-  listTables, createTable, deleteTable,
-  listBookings, getBooking, createBooking, updateBooking, setStatus, updatePayment, deleteBooking,
-  getMenu, saveMenu, listEvents, createEvent, deleteEvent,
-  logNotification, listNotifications,
-  getSettings, saveSettings,
-  toMinutes
-};
+// ---- Users ----
+function activeAdminCount(db) {
+  return (db.users || []).filter(u => u.role === 'admin' && u.active).length;
+}
+
+function listUsers() {
+  const db = readDb();
+  return (db.users || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function getUserByEmail(email) {
+  const db = readDb();
+  const target = String(email || '').toLowerCase();
+  return (db.users || []).find(u => u.email.toLowerCase() === target);
+}
+
+function getUserById(id) {
+  const db = readDb();
+  return (db.users || []).find(u => u.id === Number(id));
+}
+
+function createUser({ name, email, passwordHash, role, phone, dob, sex, location }) {
+  const db = readDb();
+  if (!db.users) db.users = [];
+  if (!db.meta.nextUserId) db.meta.nextUserId = 1;
+  const id = db.meta.nextUserId++;
+  const user = {
+    id,
+    name,
+    email: String(email).toLowerCase(),
+    passwordHash,
+    role: normalizeRole(role),
+    active: true,
+    avatarPath: '',
+    canViewTimesheets: false,
+    canManageRoster: false,
+    color: defaultColorForId(id),
+    phone: phone || '',
+    dob: dob || '',
+    sex: sex || '',
+    location: location || '',
+    createdAt: new Date().toISOString()
+  };
+  db.users.push(user);
+  writeDb(db);
+  return user;
+}
+
+// Edits the editable profile fields for an existing user (used from the
+// Users > Edit page). Email uniqueness is re-checked since it can change.
+function updateUserProfile(id, { name, email, phone, dob, sex, location }) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  if (email) {
+    const target = String(email).toLowerCase();
+    const clash = (db.users || []).find(x => x.id !== u.id && x.email.toLowerCase() === target);
+    if (clash) return { error: 'Another user already has that email.' };
+    u.email = target;
+  }
+  if (name) u.name = name;
+  u.phone = phone || '';
+  u.dob = dob || '';
+  u.sex = sex || '';
+  u.location = location || '';
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserColor(id, color) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.color = color || defaultColorForId(u.id);
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserTimesheetAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canViewTimesheets = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserRosterAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canManageRoster = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserAvatar(id, avatarPath) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.avatarPath = avatarPath || '';
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserActive(id, active) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  if (u.role === 'admin' && u.active && !active && activeAdminCount(db) <= 1) {
+    return { error: "Can't deactivate the last active admin." };
+  }
+  u.active = !!active;
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserRole(id, role) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  const newRole = normalizeRole(role);
+  if (u.role === 'admin' && newRole !== 'admin' && activeAdminCount(db) <= 1) {
+    return { error: "Can't remove admin rights from the last active admin." };
+  }
+  u.role = newRole;
+  writeDb(db);
+  return { user: u };
+}
+
+// ---- Google Calendar sync ----
+function setBookingGoogleEventId(id, googleEventId) {
+  const db = readDb();
+  const b = db.bookings.find(x => x.id === Number(id));
+  if (!b) return;
+  b.googleEventId = googleEventId || '';
+  writeDb(db);
+}
+
+function listExternalCalendarEvents() {
+  return readDb().externalCalendarEvents || [];
+}
+
+function replaceExternalCalendarEvents(events) {
+  const db = readDb();
+  db.externalCalendarEvents = events;
+  db.meta.lastGoogleSyncAt = new Date().toISOString();
+  writeDb(db);
+}
+
+function getGoogleSyncStatus() {
+  const db = readDb();
+  return {
+    lastSyncAt: db.meta.lastGoogleSyncAt || null,
+    externalEventCount: (db.externalCalendarEvents || []).length
+  };
+}
+
+// ---- Staff clock in / out ----
+// Status is derived from each user's most recent time entry rather than
+// stored separately, so there's a single source of truth:
+//   no entries, or latest action is clock_out -> "clocked_out"
+//   latest action is break_start              -> "on_break"
+//   latest action is clock_in or break_end     -> "clocked_in"
+function getLatestClockEntry(userId) {
+  const db = readDb();
+  const entries = (db.timeEntries || []).filter(e => e.userId === Number(userId));
+  if (!entries.length) return null;
+  return entries.reduce((latest, e) => (new Date(e.at) > new Date(latest.at) ? e : latest));
+}
+
+function getStaffStatus(userId) {
+  const latest = getLatestClockEntry(userId);
+  if (!latest || latest.action === 'clock_out') {
+    return { status: 'clocked_out', since: latest ? latest.at : null };
+  }
+  if (latest.action === 'break_start') {
+    return { status: 'on_break', since: latest.at };
+  }
+  return { status: 'clocked_in', since: latest.at }; // clock_in or break_end
+}
+
+// 

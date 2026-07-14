@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head><title>Roster - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Roster</h2>
+    <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Staff get an email and text as soon as a shift is added or edited. Change anyone's colour from the <a href="/users">Users page</a>.</p>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <strong><%= weekStart %> to <%= weekEnd %></strong>
+        <div style="display:flex;gap:8px">
+          <a class="btn small secondary" href="/roster/week?week=<%= prevWeek %>">&larr; Prev</a>
+          <a class="btn small secondary" href="/roster/week?week=<%= thisWeek %>">This week</a>
+          <a class="btn small secondary" href="/roster/week?week=<%= nextWeek %>">Next &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <% if (users.length === 0) { %>
+      <div class="card"><p class="muted" style="margin:0">No active staff accounts yet — add staff from the Users page first.</p></div>
+    <% } else { %>
+
+      <% days.forEach(day => { %>
+        <div class="card">
+          <h3 style="margin-top:0"><%= dayNames[day.dayOfWeek] %>, <%= day.date %></h3>
+
+          <form class="roster-add-form" method="POST" action="/roster/shifts">
+            <input type="hidden" name="date" value="<%= day.date %>">
+            <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+            <div class="field">
+              <label>Staff</label>
+              <select name="userId" required>
+                <option value="">Choose staff…</option>
+                <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %>
+              </select>
+            </div>
+            <div class="field narrow">
+              <label>Start</label>
+              <input type="time" name="startTime" required>
+            </div>
+            <div class="field narrow">
+              <label>End</label>
+              <input type="time" name="endTime" required>
+            </div>
+            <button class="btn" type="submit">Add to <%= dayNames[day.dayOfWeek] %></button>
+          </form>
+
+          <% if (day.shifts.length === 0) { %>
+            <p class="muted" style="margin:0">Nothing scheduled.</p>
+          <% } else { %>
+            <div class="roster-hour-header">
+              <% for (let h = 0; h < 24; h += 2) { %><span><%= String(h).padStart(2,'0') %></span><span></span><% } %>
+            </div>
+            <% day.shifts.forEach(s => { %>
+              <div class="roster-timeline-row">
+                <div class="roster-timeline-name" title="<%= s.userName %>"><%= s.userName %></div>
+                <div class="roster-timeline-track">
+                  <% for (let h = 0; h < 24; h++) { %><div class="roster-hour-cell"></div><% } %>
+                  <div class="roster-timeline-bar" style="left:<%= s.leftPct %>%;width:<%= s.widthPct %>%;background:<%= s.color %>">
+                    <span><%= s.startTime %>–<%= s.endTime %></span>
+                  </div>
+                </div>
+                <button type="button" class="roster-timeline-remove" title="Edit this shift" style="font-size:15px"
+                  onclick="var f=document.getElementById('edit-<%= s.id %>'); f.style.display = f.style.display==='none' ? 'flex' : 'none';">&#9998;</button>
+                <form class="inline" method="POST" action="/roster/shifts/<%= s.id %>/delete">
+                  <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                  <button class="roster-timeline-remove" type="submit" title="Remove this shift">&times;</button>
+                </form>
+              </div>
+              <div id="edit-<%= s.id %>" style="display:none;margin:0 0 10px 138px;">
+                <form class="roster-add-form" method="POST" action="/roster/shifts/<%= s.id %>/edit" style="margin-bottom:0">
+                  <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                  <div class="field narrow"><label>Date</label><input type="date" name="date" value="<%= s.date %>" required></div>
+                  <div class="field narrow"><label>Start</label><input type="time" name="startTime" value="<%= s.startTime %>" required></div>
+                  <div class="field narrow"><label>End</label><input type="time" name="endTime" value="<%= s.endTime %>" required></div>
+                  <button class="btn small secondary" type="submit">Save — will notify <%= s.userName %></button>
+                </form>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      <% }) %>
+
+    <% } %>
+  </div>
+</div>
+</body>
+</html>

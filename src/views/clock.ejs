@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clock In / Out - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main" style="max-width:none">
+    <div style="min-height:calc(100vh - 80px);width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <h2 style="text-align:center;font-size:28px">Clock In / Out</h2>
+      <div id="clockError" class="error-box" style="max-width:640px;width:100%;margin:0 0 16px;<%= error ? '' : 'display:none' %>"><%= error || '' %></div>
+
+      <div class="card" style="max-width:640px;width:100%;padding:36px">
+        <div style="text-align:center;margin-bottom:20px">
+          <span class="badge <%= status === 'clocked_in' ? 'confirmed' : (status === 'on_break' ? 'status-skipped-no-smtp' : 'cancelled') %>" style="font-size:16px;padding:8px 20px">
+            <%= status === 'clocked_in' ? 'Present' : (status === 'on_break' ? 'On break' : 'Clocked out') %>
+          </span>
+          <div class="muted" id="sinceLabel" style="margin-top:10px;font-size:15px" data-since="<%= since || '' %>" data-status="<%= status %>"></div>
+        </div>
+
+        <div id="cameraWrap" style="text-align:center">
+          <video id="cameraVideo" autoplay playsinline muted style="width:100%;max-width:440px;border-radius:14px;background:#000;display:block;margin:0 auto"></video>
+          <canvas id="cameraCanvas" style="display:none"></canvas>
+          <p class="muted" id="cameraStatus" style="margin-top:10px">Starting camera…</p>
+        </div>
+
+        <div class="actions-row" id="actionButtons" style="justify-content:center;margin-top:22px;gap:12px">
+          <% if (status === 'clocked_out') { %>
+            <button class="btn" type="button" data-action="clock_in" disabled style="font-size:16px;padding:12px 28px">Clock In</button>
+          <% } else if (status === 'clocked_in') { %>
+            <button class="btn danger" type="button" data-action="clock_out" disabled style="font-size:16px;padding:12px 28px">Clock Out</button>
+            <button class="btn secondary" type="button" data-action="break_start" disabled style="font-size:16px;padding:12px 28px">Start Break</button>
+          <% } else if (status === 'on_break') { %>
+            <button class="btn" type="button" data-action="break_end" disabled style="font-size:16px;padding:12px 28px">End Break</button>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
+    var cameraStatus = document.getElementById('cameraStatus');
+    var errorBox = document.getElementById('clockError');
+    var buttons = document.querySelectorAll('#actionButtons button');
+    var sinceLabel = document.getElementById('sinceLabel');
+    var stream = null;
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = 'block';
+    }
+
+    // Live "since" / running counter, updates every second.
+    function tickSince() {
+      var since = sinceLabel.getAttribute('data-since');
+      var status = sinceLabel.getAttribute('data-status');
+      if (!since) { sinceLabel.textContent = ''; return; }
+      var ms = Date.now() - new Date(since).getTime();
+      if (ms < 0) ms = 0;
+      var totalSec = Math.floor(ms / 1000);
+      var h = Math.floor(totalSec / 3600);
+      var m = Math.floor((totalSec % 3600) / 60);
+      var s = totalSec % 60;
+      var timeStr = (h > 0 ? h + 'h ' : '') + m + 'm ' + s + 's';
+      if (status === 'on_break') {
+        sinceLabel.textContent = 'On break for ' + timeStr;
+      } else if (status === 'clocked_in') {
+        sinceLabel.textContent = 'Clocked in for ' + timeStr;
+      } else {
+        sinceLabel.textContent = since ? ('Last clocked out ' + new Date(since).toLocaleString()) : 'Not clocked in yet';
+      }
+    }
+    tickSince();
+    setInterval(tickSince, 1000);
+
+    // Start the camera.
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then(function(s) {
+          stream = s;
+          video.srcObject = s;
+          cameraStatus.textContent = 'Camera ready — take a photo to continue.';
+          buttons.forEach(function(b) { b.disabled = false; });
+        })
+        .catch(function(err) {
+          cameraStatus.textContent = 'Camera access is required to clock in/out.';
+          showError('Could not access the camera: ' + err.message + '. Please allow camera access and reload the page.');
+        });
+    } else {
+      cameraStatus.textContent = 'Camera not supported on this device/browser.';
+      showError('This device/browser does not support camera capture. Try a different browser or device.');
+    }
+
+    function captureSelfie() {
+      canvas.width = video.videoWidth || 480;
+      canvas.height = video.videoHeight || 480;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise(function(resolve) {
+        canvas.toBlob(function(blob) { resolve(blob); }, 'image/jpeg', 0.85);
+      });
+    }
+
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!stream) {
+          showError('Camera is not ready yet. Please wait a moment and try again.');
+          return;
+        }
+        errorBox.style.display = 'none';
+        buttons.forEach(function(b) { b.disabled = true; });
+        var originalText = btn.textContent;
+        btn.textContent = 'Saving…';
+
+        captureSelfie().then(function(blob) {
+          var formData = new FormData();
+          formData.append('selfie', blob, 'selfie.jpg');
+          formData.append('action', btn.getAttribute('data-action'));
+          return fetch('/clock/action', {
+            method: 'POST',
+            body: formData,
+            headers: { Accept: 'application/json' }
+          });
+        }).then(function(res) {
+          return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+        }).then(function(result) {
+          if (!result.ok) {
+            showError((result.data && result.data.e

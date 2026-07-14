@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Profile - Booking Admin</title>
+  <%- include('partials/head') %>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet" onerror="this.remove()">
+</head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>My Profile</h2>
+    <div id="uploadError" class="error-box" style="<%= error ? '' : 'display:none' %>"><%= error || '' %></div>
+    <% if (success) { %><div class="badge confirmed" style="padding:8px 14px;margin-bottom:16px;display:inline-block">✓ <%= success %></div><% } %>
+
+    <div class="card" style="max-width:480px">
+      <div class="profile-header">
+        <% if (profileUser.avatarPath) { %>
+          <img class="profile-avatar-lg" id="currentAvatarImg" src="<%= profileUser.avatarPath %>" alt="<%= profileUser.name %>">
+        <% } else { %>
+          <span class="profile-avatar-lg-placeholder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.14 0-7.5 2.46-7.5 5.5V21h15v-1.5c0-3.04-3.36-5.5-7.5-5.5Z" fill="currentColor"/></svg>
+          </span>
+        <% } %>
+        <div>
+          <div style="font-size:18px;font-weight:700"><%= profileUser.name %></div>
+          <div class="muted"><%= profileUser.email %></div>
+          <% const roleObj = (roles || []).find(r => r.value === profileUser.role); %>
+          <span class="badge confirmed" style="margin-top:6px;display:inline-block">
+            <%= roleObj ? roleObj.label : profileUser.role %>
+          </span>
+        </div>
+      </div>
+
+      <form method="POST" action="/profile/avatar" enctype="multipart/form-data" id="avatarForm" style="margin-top:18px">
+        <div class="field">
+          <label>Upload a new profile picture</label>
+          <input type="file" name="avatar" id="avatarFileInput" accept="image/jpeg,image/png,image/webp" required>
+        </div>
+        <p class="muted">JPG, PNG, or WEBP — up to 3MB. Once chosen, drag to reposition and scroll (or use the slider) to zoom.</p>
+
+        <div class="cropper-wrap" id="cropperWrap" style="display:none">
+          <div class="cropper-image-box">
+            <img id="cropperImage" style="max-width:100%;display:block">
+          </div>
+          <div class="zoom-row">
+            <span class="muted">Zoom</span>
+            <input type="range" id="zoomRange" min="0" max="3" step="0.01" value="0">
+          </div>
+          <div class="actions-row">
+            <button class="btn" type="button" id="saveAvatarBtn">Save profile picture</button>
+            <button class="btn secondary" type="button" id="cancelCropBtn">Cancel</button>
+          </div>
+        </div>
+
+        <div class="actions-row" id="plainUploadRow">
+          <button class="btn secondary" type="submit" id="plainUploadBtn">Upload without cropping</button>
+        </div>
+      </form>
+
+      <% if (profileUser.avatarPath) { %>
+        <form method="POST" action="/profile/avatar/remove" style="margin-top:10px" onsubmit="return confirm('Remove your profile picture?')">
+          <button class="btn secondary small" type="submit">Remove current picture</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+  (function() {
+    var fileInput = document.getElementById('avatarFileInput');
+    var cropperWrap = document.getElementById('cropperWrap');
+    var cropperImage = document.getElementById('cropperImage');
+    var zoomRange = document.getElementById('zoomRange');
+    var saveBtn = document.getElementById('saveAvatarBtn');
+    var cancelBtn = document.getElementById('cancelCropBtn');
+    var plainUploadRow = document.getElementById('plainUploadRow');
+    var errorBox = document.getElementById('uploadError');
+    var cropper = null;
+
+    // If the CropperJS CDN script failed to load, silently fall back to the
+    // plain "Upload without cropping" form submit — nothing else to wire up.
+    if (typeof Cropper === 'undefined') return;
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = 'block';
+    }
+    function hideError() {
+      errorBox.style.display = 'none';
+    }
+
+    fileInput.addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      hideError();
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        cropperImage.src = ev.target.result;
+        cropperWrap.style.display = 'block';
+        plainUploadRow.style.display = 'none';
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropperImage, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          background: false,
+          autoCropArea: 1,
+          cropBoxResizable: false,
+          cropBoxMovable: false,
+          zoomOnWheel: true,
+          ready: function() { zoomRange.value = 0; }
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    zoomRange.addEventListener('input', function() {
+      if (cropper) cropper.zoomTo(Number(zoomRange.value));
+    });
+
+    cancelBtn.addEventListener('click', function() {
+      if (cropper) { cropper.destroy(); cropper = null; }
+      cropperWrap.style.display = 'none';
+      plainUploadRow.style.display = 'flex';
+      fileInput.value = '';
+      hideError();
+    });
+
+    saveBtn.addEventListener('click', function() {
+      if (!cropper) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      cropper.getCroppedCanvas({ width: 480, height: 480, imageSmoothingQuality: 'high' }).toBlob(function(blob) {
+        var formData = new FormData();
+        formData.append('avatar', blob, 'avatar.jpg');
+        fetch('/profile/avatar', {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(function(res) {
+            return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+          })
+          .then(function(result) {
+            if (!result.ok) {
+              showError((result.data && result.data.error) || 'Upload failed. Please try again.');
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Save profile picture';
+              return;
+            }
+            window.location.reload();
+          })
+          .catch(function() {
+            showError('Upload failed. Please check your connection and try again.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save profile picture';
+          });
+      }, 'image/jpeg', 0.92);
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><title>Edit User - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2>Edit User</h2>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:480px">
+      <form method="POST" action="/users/<%= user.id %>">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" value="<%= user.name %>" required>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" value="<%= user.email %>" required>
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="tel" name="phone" value="<%= user.phone || '' %>" placeholder="089 433 8657" required>
+        </div>
+        <div class="field">
+          <label>Date of birth</label>
+          <input type="date" name="dob" value="<%= user.dob || '' %>">
+        </div>
+        <div class="field">
+          <label>Sex</label>
+          <select name="sex">
+            <option value="" <%= !user.sex ? 'selected' : '' %>>Prefer not to say</option>
+            <option value="male" <%= user.sex === 'male' ? 'selected' : '' %>>Male</option>
+            <option value="female" <%= user.sex === 'female' ? 'selected' : '' %>>Female</option>
+            <option value="other" <%= user.sex === 'other' ? 'selected' : '' %>>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" name="location" value="<%= user.location || '' %>" placeholder="City / area">
+        </div>
+        <p class="muted">Phone number is required so this person gets text notifications when a shift is assigned or changed.</p>
+        <div class="actions-row">
+          <button class="btn" type="submit">Save changes</button>
+          <a class="btn secondary" href="/users">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

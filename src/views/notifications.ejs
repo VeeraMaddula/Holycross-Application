@@ -10,7 +10,13 @@
     <% if (!emailConfigured) { %>
       <div class="error-box">
         Email isn't configured yet. Set SMTP_HOST, SMTP_USER, SMTP_PASS (and optionally SMTP_PORT, SMTP_SECURE, SMTP_FROM)
-        in your .env file to enable confirmation, reminder, and cancellation emails. Until then, sends are logged as "skipped".
+        in your .env file to enable confirmation, reminder, and cancellation emails. Until then, sends are logged as "skipped". See README for Resend setup steps.
+      </div>
+    <% } %>
+    <% if (!smsConfigured) { %>
+      <div class="error-box">
+        SMS isn't configured yet. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER
+        in your .env file to enable confirmation, reminder, and cancellation texts. Until then, sends are logged as "skipped". See README for Twilio setup steps.
       </div>
     <% } %>
 
@@ -33,6 +39,12 @@
             <td><%= n.subject %></td>
             <td><span class="badge status-<%= n.status %>"><%= n.status %></span></td>
           </tr>
+          <% if (n.error) { %>
+            <tr>
+              <td></td>
+              <td colspan="4" style="color:var(--danger);font-size:12px;padding-top:0;padding-bottom:12px;"><%= n.error %></td>
+            </tr>
+          <% } %>
         <% }) %>
         </tbody>
       </table>

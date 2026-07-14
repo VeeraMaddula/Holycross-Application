@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head><title>Roster - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Roster</h2>
+    <p class="muted">Build a weekly shift pattern once and it repeats every week for 24/7 coverage. Use "This week's schedule" below to make one-off changes (swaps, holiday cover) for a specific date without touching the weekly pattern.</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card">
+      <h3 style="margin-top:0">Shift templates</h3>
+      <% if (shiftTemplates.length === 0) { %>
+        <p class="muted">No shift templates yet — add one below (e.g. Morning, Evening, Night).</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Name</th><th>Start</th><th>End</th><th></th><th></th></tr></thead>
+          <tbody>
+          <% shiftTemplates.forEach(t => { %>
+            <tr>
+              <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= t.color %>;margin-right:6px;vertical-align:middle"></span><%= t.name %></td>
+              <td><%= t.startTime %></td>
+              <td><%= t.endTime %></td>
+              <td></td>
+              <td>
+                <form class="inline" method="POST" action="/roster/shift-templates/<%= t.id %>/delete" onsubmit="return confirm('Remove this shift template? Any weekly assignments and overrides using it will also be removed.')">
+                  <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                  <button class="btn small danger" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+
+      <h3>Add a shift template</h3>
+      <form method="POST" action="/roster/shift-templates" class="form-grid" style="max-width:600px">
+        <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Morning">
+        </div>
+        <div class="field">
+          <label>Start time</label>
+          <input type="time" name="startTime" required>
+        </div>
+        <div class="field">
+          <label>End time</label>
+          <input type="time" name="endTime" required>
+        </div>
+        <div class="field">
+          <label>Colour</label>
+          <input type="color" name="color" value="#7a8f6b" style="width:60px;padding:2px">
+        </div>
+        <button class="btn" type="submit" style="align-self:end">Add shift</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Weekly pattern <span class="muted" style="font-weight:400;font-size:12px">(repeats every week)</span></h3>
+      <% if (shiftTemplates.length === 0) { %>
+        <p class="muted">Add a shift template above first.</p>
+      <% } else if (users.length === 0) { %>
+        <p class="muted">No active staff accounts to assign yet.</p>
+      <% } else { %>
+        <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Shift</th>
+              <% gridDays.forEach(dow => { %><th><%= dayNames[dow] %></th><% }) %>
+            </tr>
+          </thead>
+          <tbody>
+          <% shiftTemplates.forEach(t => { %>
+            <tr>
+              <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= t.color %>;margin-right:6px;vertical-align:middle"></span><%= t.name %><br><span class="muted" style="font-size:11px"><%= t.startTime %>–<%= t.endTime %></span></td>
+              <% gridDays.forEach(dow => { %>
+                <td style="min-width:150px;vertical-align:top">
+                  <% patternGrid[dow][t.id].forEach(a => { %>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px;background:#fbf8f1;border-radius:6px;padding:3px 6px;font-size:12px">
+                      <span><%= a.userName %></span>
+                      <form class="inline" method="POST" action="/roster/assignments/<%= a.id %>/delete" style="margin:0">
+                        <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                        <button type="submit" title="Remove from weekly pattern" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;line-height:1;padding:0">&times;</button>
+                      </form>
+                    </div>
+                  <% }) %>
+                  <form class="inline" method="POST" action="/roster/assignments" style="display:flex;gap:2px">
+                    <input type="hidden" name="dayOfWeek" value="<%= dow %>">
+                    <input type="hidden" name="shiftTemplateId" value="<%= t.id %>">
+                    <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                    <select name="userId" style="font-size:11px;padding:2px;max-width:110px" required>
+                      <option value="">+ add</option>
+                      <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %>
+                    </select>
+                    <button class="btn small secondary" type="submit" style="padding:2px 8px;font-size:11px">Add</button>
+                  </form>
+                </td>
+              <% }) %>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">This week's schedule</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a class="btn small secondary" href="/roster?week=<%= prevWeek %>">&larr; Prev week</a>
+          <a class="btn small secondary" href="/roster?week=<%= thisWeek %>">This week</a>
+          <a class="btn small secondary" href="/roster?week=<%= nextWeek %>">Next week &rarr;</a>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:4px"><%= weekStart %> to <%= weekEnd %></p>
+
+      <% gridDays.forEach(dow => {
+           // find the date within this week matching this day-of-week
+           var dayEntry = Object.values(resolvedByDate).find(d => d.dayOfWeek === dow);
+      %>
+        <% if (dayEntry) { %>
+        <div style="border-top:1px solid var(--line);padding:12px 0">
+          <strong><%= dayNames[dow] %>, <%= dayEntry.date %></strong>
+          <% if (dayEntry.shifts.length === 0) { %>
+            <p class="muted" style="margin:6px 0">No one scheduled.</p>
+          <% } else { %>
+            <table style="margin-top:6px">
+              <tbody>
+              <% dayEntry.shifts.forEach(s => { %>
+                <tr>
+                  <td style="width:24px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= s.color %>"></span></td>
+                  <td><%= s.shiftName %> (<%= s.startTime %>–<%= s.endTime %>)</td>
+                  <td><%= s.userName %></td>
+                  <td><% if (s.fromOverride) { %><span class="badge status-skipped-no-smtp" style="font-size:10px">one-off add</span><% } %></td>
+                  <td>
+                    <% if (s.fromOverride) { %>
+                      <form class="inline" method="POST" action="/roster/overrides/<%= s.overrideId %>/delete">
+                        <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                        <button class="btn small danger" type="submit">Remove</button>
+                      </form>
+                    <% } else { %>
+                      <form class="inline" method="POST" action="/roster/overrides" onsubmit="return confirm('Remove <%= s.userName %> from this one date only? The weekly pattern stays the same for other weeks.')">
+                        <input type="hidden" name="date" value="<%= dayEntry.date %>">
+                        <input type="hidden" name="shiftTemplateId" value="<%= s.shiftTemplateId %>">
+                        <input type="hidden" name="userId" value="<%= s.userId %>">
+                        <input type="hidden" name="type" value="remove">
+                        <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                        <button class="btn small danger" type="submit">Remove for this date</button>
+                      </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+              </tbody>
+            </table>
+          <% } %>
+          <% if (shiftTemplates.length > 0 && users.length > 0) { %>
+            <form class="inline" method="POST" action="/roster/overrides" style="display:flex;gap:6px;margin-top:8px;align-items:center">
+              <input type="hidden" name="date" value="<%= dayEntry.date %>">
+              <input type="hidden" name="type" value="add">
+              <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+              <select name="shiftTemplateId" required style="font-size:12px">
+                <% shiftTemplates.forEach(t => { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+              </select>
+              <select name="userId" required style="font-size:12px">
+                <option value="">Staff member…</option>
+                <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %>
+              </select>
+              <button class="btn small secondary" type="submit">+ Add one-off cover for this date</button>
+            </form>
+          <% } %>
+        </div>
+        <% } %>
+      <% }) %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

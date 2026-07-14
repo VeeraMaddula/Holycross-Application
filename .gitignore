@@ -1,3 +1,8 @@
 node_modules/
 .env
 data/db.json
+google-service-account.json
+
+# Real staff/customer photos — not source code, shouldn't live in git history
+public/img/avatars/
+public/img/clock-selfies/

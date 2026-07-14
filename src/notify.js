@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const { readDb } = require('./db');
 const models = require('./models');
+const sms = require('./sms');
 
 let transporter = null;
 
@@ -56,6 +57,18 @@ function cancellationEmail(booking) {
   return { subject, text };
 }
 
+function shiftAssignedEmail(shift, userName) {
+  const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
+  const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
+  return { subject, text };
+}
+
+function shiftUpdatedEmail(shift, userName) {
+  const subject = `Shift updated: ${shift.date} ${shift.startTime}–${shift.endTime}`;
+  const text = `Hi ${userName},\n\nYour shift on ${shift.date} has been updated. It's now ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
+  return { subject, text };
+}
+
 async function notifyAdminNewBooking(booking, tableName) {
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!adminEmail) return;
@@ -74,34 +87,17 @@ async function runReminderSweep() {
   const hoursBefore = db.settings.reminderHoursBefore || 24;
   const now = new Date();
   for (const booking of db.bookings) {
-    if (booking.status !== 'confirmed' || booking.reminderSent || !booking.email) continue;
+    if (booking.status !== 'confirmed' || booking.reminderSent || (!booking.email && !booking.phone)) continue;
     const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
     const hoursUntil = (bookingDateTime - now) / (1000 * 60 * 60);
     if (hoursUntil > 0 && hoursUntil <= hoursBefore) {
       const table = db.tables.find(t => t.id === booking.tableId);
-      const { subject, text } = bookingReminderEmail(booking, table ? table.name : 'your table');
-      await sendEmail({ to: booking.email, subject, text, type: 'reminder', bookingId: booking.id });
-      models.updateBookingReminderFlag && models.updateBookingReminderFlag(booking.id);
-      // Mark reminderSent directly via models
-      const dbFresh = readDb();
-      const b = dbFresh.bookings.find(x => x.id === booking.id);
-      if (b) {
-        b.reminderSent = true;
-        require('./db').writeDb(dbFresh);
+      if (booking.email) {
+        const { subject, text } = bookingReminderEmail(booking, table ? table.name : 'your table');
+        await sendEmail({ to: booking.email, subject, text, type: 'reminder', bookingId: booking.id });
       }
-    }
-  }
-}
-
-function startScheduler() {
-  // Runs every 15 minutes to catch bookings entering the reminder window.
-  cron.schedule('*/15 * * * *', () => {
-    runReminderSweep().catch(err => console.error('Reminder sweep failed:', err.message));
-  });
-  console.log('Reminder scheduler started (checks every 15 minutes).');
-}
-
-module.exports = {
-  sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
-  notifyAdminNewBooking, runReminderSweep, startScheduler, getTransporter
-};
+      if (booking.phone) {
+        await sms.sendSms({ to: booking.phone, body: sms.bookingReminderSms(booking, table ? table.name : 'your table'), type: 'reminder', bookingId: booking.id });
+      }
+      models.updateBookingReminderFlag && models.updateBookingReminderFlag(booking.id);
+      // Mark reminderSent directly via mode

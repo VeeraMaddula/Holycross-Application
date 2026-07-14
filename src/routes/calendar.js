@@ -10,18 +10,30 @@ router.get('/', (req, res) => {
 router.get('/api/events', (req, res) => {
   const bookings = models.listBookings().filter(b => b.status !== 'cancelled');
   const tables = models.listTables();
-  const events = bookings.map(b => {
+  const bookingEvents = bookings.map(b => {
     const table = tables.find(t => t.id === b.tableId);
     const start = `${b.date}T${b.time}:00`;
     return {
-      id: b.id,
+      id: 'booking-' + b.id,
       title: `${b.customerName} (${b.partySize}) - ${table ? table.name : ''}`,
       start,
       url: `/bookings/${b.id}`,
       color: b.status === 'seated' ? '#2f9e44' : b.status === 'confirmed' ? '#1c7ed6' : '#868e96'
     };
   });
-  res.json(events);
+
+  // Events pulled in from Google Calendar that weren't created by this app
+  // (e.g. someone added "Closed for private function" directly on the calendar).
+  const externalEvents = models.listExternalCalendarEvents().map(e => ({
+    id: 'gcal-' + e.id,
+    title: `📅 ${e.title}`,
+    start: e.start,
+    end: e.end || undefined,
+    color: '#868e96',
+    editable: false
+  }));
+
+  res.json([...bookingEvents, ...externalEvents]);
 });
 
 module.exports = router;

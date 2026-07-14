@@ -51,12 +51,25 @@
             <button class="btn danger" type="submit">Cancel booking</button>
           </form>
         <% } %>
-        <form class="inline" method="POST" action="/bookings/<%= booking.id %>/delete" onsubmit="return confirm('Permanently delete this booking record?')">
-          <button class="btn secondary" type="submit">Delete record</button>
-        </form>
+        <% if (currentUser && currentUser.role === 'admin') { %>
+          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/delete" onsubmit="return confirm('Permanently delete this booking record?')">
+            <button class="btn secondary" type="submit">Delete record</button>
+          </form>
+        <% } %>
       </div>
     </div>
 
+    <% if (currentUser && currentUser.role === 'admin') { %>
+    <div class="card">
+      <h3 style="margin-top:0">Booking taken by <span class="muted" style="font-weight:400;font-size:12px">(admin only)</span></h3>
+      <dl class="detail-grid">
+        <div><dt>Staff member</dt><dd><%= booking.createdByName || 'Unknown (booked before this feature was added)' %></dd></div>
+        <div><dt>Date &amp; time taken</dt><dd><%= new Date(booking.createdAt).toLocaleString() %></dd></div>
+      </dl>
+    </div>
+    <% } %>
+
+    <% if (currentUser && currentUser.role === 'admin') { %>
     <div class="card">
       <h3 style="margin-top:0">Update payment</h3>
       <form method="POST" action="/bookings/<%= booking.id %>/payment" class="form-grid">
@@ -78,6 +91,7 @@
         </div>
       </form>
     </div>
+    <% } %>
 
     <div class="card">
       <h3 style="margin-top:0">Music</h3>
@@ -103,7 +117,7 @@
     <div class="card">
       <h3 style="margin-top:0">Food</h3>
       <% const food = booking.food || {}; %>
-      <% const foodPackageLabels = { two_course: 'Two course meal', three_course: 'Three course meal', four_course: 'Four course meal', soup_sandwiches: 'Soups & sandwiches', finger_food: 'Finger food', scone_tea: 'Scone & tea', other: food.packageOther || 'Other' }; %>
+      <% const foodPackageLabels = { two_course: 'Two course meal', three_course: 'Three course meal', four_course: 'Four course meal', soup_sandwiches: 'Soups & sandwiches', finger_food: 'Finger food', bbq: 'BBQ', scone_tea: 'Scone & tea', other: food.packageOther || 'Other' }; %>
       <dl class="detail-grid">
         <div><dt>Package</dt><dd><%= foodPackageLabels[food.package] || 'Not decided yet' %></dd></div>
         <div><dt>Price</dt><dd><%= food.price ? '€' + Number(food.price).toFixed(2) : (food.package === 'other' ? 'TBC / unknown' : '—') %></dd></div>

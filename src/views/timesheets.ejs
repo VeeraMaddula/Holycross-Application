@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head><title>Timesheets - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Timesheets</h2>
+    <p class="muted">Clock in/out and break history with selfie verification. Visible to Admin, Senior Manager, and anyone else individually granted access on the Users page.</p>
+
+    <form class="filters" method="GET" action="/timesheets">
+      <div class="field">
+        <label>Staff member</label>
+        <select name="userId">
+          <option value="">All staff</option>
+          <% users.forEach(u => { %>
+            <option value="<%= u.id %>" <%= String(filterUserId) === String(u.id) ? 'selected' : '' %>><%= u.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label>From</label>
+        <input type="date" name="from" value="<%= filterFrom %>">
+      </div>
+      <div class="field">
+        <label>To</label>
+        <input type="date" name="to" value="<%= filterTo %>">
+      </div>
+      <button class="btn secondary" type="submit">Filter</button>
+      <a class="btn secondary" href="/timesheets">Clear</a>
+    </form>
+
+    <div class="card">
+      <h3 style="margin-top:0"><%= isRangeCustom ? 'Summary for selected range' : "Today's summary" %></h3>
+      <% if (summary.length === 0) { %>
+        <p class="muted">No clock activity in this range yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Staff</th><th>Worked</th><th>Break</th></tr></thead>
+          <tbody>
+          <% summary.forEach(s => { %>
+            <tr>
+              <td><%= s.user.name %></td>
+              <td><%= Math.floor(s.workedMinutes / 60) %>h <%= s.workedMinutes % 60 %>m</td>
+              <td><%= Math.floor(s.breakMinutes / 60) %>h <%= s.breakMinutes % 60 %>m</td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Full log</h3>
+      <% if (entries.length === 0) { %>
+        <p class="muted">No entries match this filter.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>Date &amp; time</th></tr></thead>
+          <tbody>
+          <% entries.forEach(e => { %>
+            <tr>
+              <td>
+                <% if (e.selfiePath) { %>
+                  <a href="<%= e.selfiePath %>" target="_blank" rel="noopener">
+                    <img src="<%= e.selfiePath %>" alt="Selfie" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+                  </a>
+                <% } else { %>—<% } %>
+              </td>
+              <td><%= e.userName %></td>
+              <td>
+                <span class="badge <%= (e.action === 'clock_in' || e.action === 'break_end') ? 'confirmed' : (e.action === 'break_start' ? 'status-skipped-no-smtp' : 'cancelled') %>">
+                  <%= ({ clock_in: 'Clocked in', clock_out: 'Clocked out', break_start: 'Started break', break_end: 'Ended break' })[e.action] || e.action %>
+                </span>
+              </td>
+              <td><%= new Date(e.at).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

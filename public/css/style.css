@@ -146,10 +146,128 @@ textarea { resize: vertical; min-height: 70px; }
 .login-card h1 { font-size: 20px; margin-top: 0; }
 .login-logo { width: 100%; border-radius: 8px; display: block; margin-bottom: 12px; }
 
+/* Branded login page: full-bleed bar photo backdrop + a larger, glossier card. */
+.login-wrap--brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #1a1408;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.login-wrap--brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/img/bar-hero.png') center 60% / cover no-repeat;
+  filter: brightness(0.5) saturate(1.15);
+  transform: scale(1.06);
+}
+.login-wrap--brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15,11,5,0.78) 0%, rgba(15,11,5,0.4) 45%, rgba(15,11,5,0.85) 100%);
+}
+.login-card--brand {
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.97);
+  width: 460px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 52px 48px 44px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 6px 18px rgba(0,0,0,0.25);
+}
+.login-logo-full {
+  width: 100%;
+  max-width: 280px;
+  display: block;
+  margin: 0 auto 6px;
+}
+.login-tagline {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14.5px;
+  margin: 0 0 32px;
+}
+.login-card--brand .field { margin-bottom: 20px; }
+.login-card--brand label { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.login-card--brand input {
+  padding: 14px 15px;
+  font-size: 15.5px;
+  border-radius: 9px;
+  border-color: #ddd3c0;
+}
+.login-card--brand input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(31,77,60,0.15);
+}
+.login-card--brand .btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  border-radius: 9px;
+  margin-top: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 20px rgba(18,51,40,0.35);
+}
+.login-card--brand .btn:hover { background: var(--accent); }
+
+@media (max-width: 520px) {
+  .login-card--brand { padding: 38px 26px 32px; border-radius: 16px; }
+  .login-logo-full { max-width: 220px; }
+}
+
 .section-title { font-size: 16px; font-weight: 700; margin: 22px 0 10px; }
 .muted { color: var(--muted); font-size: 13px; }
 
 #calendar { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+
+/* ---- Roster: 24-hour colour-coded timeline grid ---- */
+.roster-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 4px; }
+.roster-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.roster-legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+
+.roster-hour-header { display: flex; margin-left: 138px; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.roster-hour-header span { flex: 1; text-align: left; border-left: 1px solid var(--line); padding-left: 3px; }
+
+.roster-timeline-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.roster-timeline-name { width: 128px; flex-shrink: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster-timeline-track {
+  position: relative; flex: 1; height: 34px; display: flex;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff;
+}
+.roster-hour-cell { flex: 1; border-right: 1px solid var(--line); }
+.roster-hour-cell:last-child { border-right: none; }
+.roster-timeline-bar {
+  position: absolute; top: 3px; bottom: 3px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 10.5px; font-weight: 700; overflow: hidden; white-space: nowrap; padding: 0 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+.roster-timeline-remove {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  color: var(--danger); font-size: 17px; line-height: 1; padding: 0 4px;
+}
+.roster-timeline-empty { flex: 1; color: var(--muted); font-size: 13px; padding: 8px 2px; }
+
+.roster-add-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 16px; }
+.roster-add-form .field { margin-bottom: 0; min-width: 140px; }
+.roster-add-form .field.narrow { min-width: 110px; }
+
+@media (max-width: 768px) {
+  .roster-hour-header { display: none; }
+  .roster-timeline-name { width: 92px; font-size: 12px; }
+  .roster-timeline-bar span { display: none; }
+}
 
 .menu-section { margin-bottom: 18px; }
 .item-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; margin-bottom: 6px; align-items: center; }
@@ -161,3 +279,9 @@ textarea { resize: vertical; min-height: 70px; }
 .music-tag { background: #eef3ee; color: var(--accent-dark); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
 
 .food-course-row { margin-top: 6px; padding: 10px; background: #fbf8f1; border-radius: 8px; border: 1px solid var(--line); }
+
+.menu-toggle { display: none; }
+
+.user-card {
+  display: flex;
+  align-items: center

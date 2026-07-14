@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Roster - Shift Templates - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Roster</h2>
+    <%- include('partials/roster-nav') %>
+
+    <p class="muted">Shifts you can reuse when building the weekly pattern (e.g. Morning, Evening, Night).</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card">
+      <% if (shiftTemplates.length === 0) { %>
+        <p class="muted">No shift templates yet — add one below.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Name</th><th>Start</th><th>End</th><th></th></tr></thead>
+          <tbody>
+          <% shiftTemplates.forEach(t => { %>
+            <tr>
+              <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= t.color %>;margin-right:6px;vertical-align:middle"></span><%= t.name %></td>
+              <td><%= t.startTime %></td>
+              <td><%= t.endTime %></td>
+              <td style="text-align:right">
+                <form class="inline" method="POST" action="/roster/shift-templates/<%= t.id %>/delete" onsubmit="return confirm('Remove this shift template? Any weekly assignments and one-off overrides using it will also be removed.')">
+                  <button class="btn small danger" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card" style="max-width:480px">
+      <h3 style="margin-top:0">Add a shift template</h3>
+      <form method="POST" action="/roster/shift-templates">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Morning">
+        </div>
+        <div class="field">
+          <label>Start time</label>
+          <input type="time" name="startTime" required>
+        </div>
+        <div class="field">
+          <label>End time</label>
+          <input type="time" name="endTime" required>
+        </div>
+        <div class="field">
+          <label>Colour</label>
+          <input type="color" name="color" value="#7a8f6b" style="width:60px;padding:2px">
+        </div>
+        <button class="btn" type="submit">Add shift</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>
