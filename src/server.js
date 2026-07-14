@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess } = require('./middleware');
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');
@@ -57,9 +57,11 @@ app.use((req, res, next) => {
           avatarPath: dbUser.avatarPath || '',
           canViewTimesheets: !!dbUser.canViewTimesheets,
           canManageRoster: !!dbUser.canManageRoster,
-          canMakeRequests: !!dbUser.canMakeRequests
+          canMakeRequests: !!dbUser.canMakeRequests,
+          canBookFunctions: !!dbUser.canBookFunctions,
+          canViewNotifications: !!dbUser.canViewNotifications
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false };
   } else {
     res.locals.currentUser = null;
   }
@@ -75,7 +77,7 @@ app.use('/bookings', requireAuth, require('./routes/bookings'));
 app.use('/tables', requireAuth, require('./routes/tables'));
 app.use('/menu', requireAuth, require('./routes/menu'));
 app.use('/calendar', requireAuth, require('./routes/calendar'));
-app.use('/notifications', requireAuth, require('./routes/notifications'));
+app.use('/notifications', requireAuth, requireNotificationsAccess, require('./routes/notifications'));
 app.use('/settings', requireAuth, requireAdmin, require('./routes/settings'));
 app.use('/users', requireAuth, requireAdmin, require('./routes/users'));
 app.use('/clock', requireAuth, require('./routes/clock'));

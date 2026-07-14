@@ -124,6 +124,24 @@ router.post('/:id/requests-access', (req, res) => {
   res.redirect('/users');
 });
 
+router.post('/:id/function-bookings-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserFunctionBookingAccess(req.params.id, !(target && target.canBookFunctions));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/notifications-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserNotificationsAccess(req.params.id, !(target && target.canViewNotifications));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
 router.post('/:id/color', (req, res) => {
   const result = models.setUserColor(req.params.id, req.body.color);
   if (result.error) {

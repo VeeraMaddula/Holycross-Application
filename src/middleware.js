@@ -35,4 +35,12 @@ function requireRequestsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess };
+// Notifications access = Admin, Senior Manager, or anyone individually
+// granted access via the Users page (same pattern as the other gates above).
+function requireNotificationsAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (u.role === 'admin' || u.role === 'senior_manager' || u.canViewNotifications)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess };

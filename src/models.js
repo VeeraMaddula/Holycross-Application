@@ -354,6 +354,8 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canViewTimesheets: false,
     canManageRoster: false,
     canMakeRequests: false,
+    canBookFunctions: false,
+    canViewNotifications: false,
     color: defaultColorForId(id),
     phone: phone || '',
     dob: dob || '',
@@ -426,6 +428,24 @@ function setUserRequestsAccess(id, allowed) {
   const u = (db.users || []).find(x => x.id === Number(id));
   if (!u) return { error: 'User not found.' };
   u.canMakeRequests = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserFunctionBookingAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canBookFunctions = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+function setUserNotificationsAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canViewNotifications = !!allowed;
   writeDb(db);
   return { user: u };
 }
@@ -723,7 +743,7 @@ module.exports = {
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications,
   getSettings, saveSettings,
-  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserColor,
+  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserColor,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,

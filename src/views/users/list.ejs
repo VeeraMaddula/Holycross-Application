@@ -10,7 +10,7 @@
 
     <div class="card">
       <table>
-        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Requests access</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Requests access</th><th>Function bookings</th><th>Notifications access</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <% users.forEach(u => { %>
           <tr>
@@ -61,6 +61,28 @@
                 <form class="inline" method="POST" action="/users/<%= u.id %>/requests-access">
                   <button class="btn small <%= u.canMakeRequests ? 'secondary' : '' %>" type="submit">
                     <%= u.canMakeRequests ? 'Revoke access' : 'Grant access' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (u.role === 'admin' || u.role === 'senior_manager') { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/function-bookings-access">
+                  <button class="btn small <%= u.canBookFunctions ? 'secondary' : '' %>" type="submit">
+                    <%= u.canBookFunctions ? 'Revoke access' : 'Grant access' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (u.role === 'admin' || u.role === 'senior_manager') { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/notifications-access">
+                  <button class="btn small <%= u.canViewNotifications ? 'secondary' : '' %>" type="submit">
+                    <%= u.canViewNotifications ? 'Revoke access' : 'Grant access' %>
                   </button>
                 </form>
               <% } %>
@@ -137,7 +159,7 @@
             <% }) %>
           </select>
         </div>
-        <p class="muted">Phone number is required so staff get text notifications when a shift is assigned or changed. Admins have full access, including Settings, payments, and deleting bookings. The other roles (Senior Manager, General Manager, Staff Manager, Staff) currently have the same access as Staff — specific permissions per role can be set up once you decide what each should be able to do.</p>
+        <p class="muted">Phone number is required so staff get text notifications when a shift is assigned or changed. Admins have full access, including Settings, Users, payments, and deleting bookings. Senior Managers also get Timesheets, Roster, Function bookings, and Notifications automatically. Everyone else (General Manager, Staff Manager, Floor Manager, Staff) can be individually granted any of those using the access toggles above.</p>
         <button class="btn" type="submit">Create user</button>
       </form>
     </div>

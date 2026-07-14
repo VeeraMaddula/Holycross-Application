@@ -22,7 +22,9 @@
       <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">Calendar</a>
       <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">Tables</a>
       <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">Menu &amp; Events</a>
-      <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">Notifications</a>
+      <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canViewNotifications)) { %>
+        <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">Notifications</a>
+      <% } %>
       <a href="/clock" class="<%= currentPath.startsWith('/clock') ? 'active' : '' %>">Clock In / Out</a>
       <a href="/staff-status" class="<%= currentPath.startsWith('/staff-status') ? 'active' : '' %>">Staff Status</a>
       <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canViewTimesheets)) { %>
