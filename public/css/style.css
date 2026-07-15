@@ -46,7 +46,9 @@ a:hover { text-decoration: underline; }
   letter-spacing: 0.03em;
 }
 .sidebar nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: #f4ece4;
   padding: 9px 10px;
   border-radius: 6px;
@@ -55,6 +57,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar nav a:hover { background: rgba(255,255,255,0.1); text-decoration: none; }
 .sidebar nav a.active { background: rgba(255,255,255,0.18); font-weight: 600; }
+.nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
 .sidebar .logout-form { margin-top: 24px; }
 .sidebar button.linklike {
   background: none; border: none; color: #f4ece4; opacity: 0.8;
