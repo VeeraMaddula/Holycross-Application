@@ -56,7 +56,7 @@
         <p class="muted">No entries match this filter.</p>
       <% } else { %>
         <table>
-          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>Date &amp; time</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>Date &amp; time</th><th>Hours worked</th><th>Break time</th></tr></thead>
           <tbody>
           <% entries.forEach(e => { %>
             <tr>
@@ -74,6 +74,8 @@
                 </span>
               </td>
               <td><%= new Date(e.at).toLocaleString() %></td>
+              <td><%= e.shiftTotals ? (Math.floor(e.shiftTotals.workedMinutes / 60) + 'h ' + (e.shiftTotals.workedMinutes % 60) + 'm') : '—' %></td>
+              <td><%= e.shiftTotals ? (Math.floor(e.shiftTotals.breakMinutes / 60) + 'h ' + (e.shiftTotals.breakMinutes % 60) + 'm') : '—' %></td>
             </tr>
           <% }) %>
           </tbody>
