@@ -71,6 +71,7 @@ a:hover { text-decoration: underline; }
   border-radius: 10px;
   padding: 18px 20px;
   margin-bottom: 18px;
+  overflow-x: auto;
 }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
@@ -97,7 +98,27 @@ tr:hover td { background: #fbf6ee; }
 .btn.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
 .btn.secondary:hover { background: #fdf3ee; }
 .btn.danger { background: var(--danger); }
-.btn.small { padding: 5px 10px; font-size: 12px; }
+.btn.small { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+
+/* Access-grant toggle buttons (Users page) — soft pill style matching the
+   badge language used elsewhere in the table, instead of a solid block
+   button, so a row of several of these side by side reads as a set of
+   small consistent controls rather than clashing, unevenly-wrapping buttons. */
+.btn-toggle {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+.btn-toggle.grant { background: #ebfbee; color: var(--success); border-color: #b2f2bb; }
+.btn-toggle.grant:hover { background: #d3f9d8; }
+.btn-toggle.revoke { background: #fff5f5; color: var(--danger); border-color: #ffc9c9; }
+.btn-toggle.revoke:hover { background: #ffe3e3; }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .badge.confirmed { background: #e7f5ff; color: #1c7ed6; }
@@ -115,6 +136,11 @@ tr:hover td { background: #fbf6ee; }
 .badge.payment-refunded { background: #f1f3f5; color: #868e96; }
 
 form.inline { display: inline; }
+/* A <select> inside a form.inline (display:inline) has no defined
+   containing-block width to resolve its own width:100% against, so
+   browsers collapse it down to just the dropdown arrow — this undoes
+   that for the Role select specifically. */
+.role-select { width: auto; min-width: 150px; }
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-grid .full { grid-column: 1 / -1; }

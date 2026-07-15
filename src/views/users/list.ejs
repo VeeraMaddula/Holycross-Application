@@ -24,7 +24,7 @@
             <td><%= u.email %></td>
             <td>
               <form class="inline" method="POST" action="/users/<%= u.id %>/role">
-                <select name="role" onchange="this.form.submit()" <%= u.id === currentUserId ? 'disabled' : '' %>>
+                <select name="role" class="role-select" onchange="this.form.submit()" <%= u.id === currentUserId ? 'disabled' : '' %>>
                   <% roles.forEach(r => { %>
                     <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>><%= r.label %></option>
                   <% }) %>
@@ -37,8 +37,8 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/timesheet-access">
-                  <button class="btn small <%= u.canViewTimesheets ? 'secondary' : '' %>" type="submit">
-                    <%= u.canViewTimesheets ? 'Revoke access' : 'Grant access' %>
+                  <button class="btn-toggle <%= u.canViewTimesheets ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canViewTimesheets ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>
@@ -48,8 +48,8 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/roster-access">
-                  <button class="btn small <%= u.canManageRoster ? 'secondary' : '' %>" type="submit">
-                    <%= u.canManageRoster ? 'Revoke access' : 'Grant access' %>
+                  <button class="btn-toggle <%= u.canManageRoster ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canManageRoster ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>
@@ -59,8 +59,8 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/requests-access">
-                  <button class="btn small <%= u.canMakeRequests ? 'secondary' : '' %>" type="submit">
-                    <%= u.canMakeRequests ? 'Revoke access' : 'Grant access' %>
+                  <button class="btn-toggle <%= u.canMakeRequests ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canMakeRequests ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>
@@ -70,8 +70,8 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/function-bookings-access">
-                  <button class="btn small <%= u.canBookFunctions ? 'secondary' : '' %>" type="submit">
-                    <%= u.canBookFunctions ? 'Revoke access' : 'Grant access' %>
+                  <button class="btn-toggle <%= u.canBookFunctions ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canBookFunctions ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>
@@ -81,8 +81,8 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/notifications-access">
-                  <button class="btn small <%= u.canViewNotifications ? 'secondary' : '' %>" type="submit">
-                    <%= u.canViewNotifications ? 'Revoke access' : 'Grant access' %>
+                  <button class="btn-toggle <%= u.canViewNotifications ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canViewNotifications ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>
