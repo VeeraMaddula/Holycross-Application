@@ -58,7 +58,7 @@ router.post('/', (req, res) => {
 router.get('/:id/edit', (req, res) => {
   const user = models.getUserById(req.params.id);
   if (!user) return res.status(404).render('404');
-  res.render('users/edit', { user, error: null });
+  res.render('users/edit', { user, error: null, pinError: null, pinSaved: false });
 });
 
 router.post('/:id', (req, res) => {
@@ -67,17 +67,29 @@ router.post('/:id', (req, res) => {
     const user = models.getUserById(req.params.id);
     return res.status(400).render('users/edit', {
       user: { ...user, name, username, email, phone, dob, sex, location },
-      error: 'Name, username, email and phone are all required.'
+      error: 'Name, username, email and phone are all required.',
+      pinError: null, pinSaved: false
     });
   }
   const result = models.updateUserProfile(req.params.id, { name, username, email, phone, dob, sex, location });
   if (result.error) {
     return res.status(400).render('users/edit', {
       user: { ...models.getUserById(req.params.id), name, username, email, phone, dob, sex, location },
-      error: result.error
+      error: result.error,
+      pinError: null, pinSaved: false
     });
   }
   res.redirect('/users');
+});
+
+router.post('/:id/pin', (req, res) => {
+  const user = models.getUserById(req.params.id);
+  if (!user) return res.status(404).render('404');
+  const result = models.setUserPin(req.params.id, req.body.pin);
+  if (result.error) {
+    return res.status(400).render('users/edit', { user, error: null, pinError: result.error, pinSaved: false });
+  }
+  res.render('users/edit', { user: models.getUserById(req.params.id), error: null, pinError: null, pinSaved: true });
 });
 
 router.post('/:id/toggle-active', (req, res) => {

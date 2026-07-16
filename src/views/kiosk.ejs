@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head><title>Staff Clock In / Out - The Holy Cross</title><%- include('partials/head') %></head>
+<body>
+<div class="kiosk-shell">
+  <div class="kiosk-header">
+    <div>
+      <img src="/img/logo.jpeg" alt="The Holy Cross" class="kiosk-logo">
+      <div class="kiosk-title">
+        <div class="kiosk-brand">The Holy Cross</div>
+        <div class="kiosk-sub">Tap your photo to clock in or out</div>
+      </div>
+    </div>
+    <div class="kiosk-header-right">
+      <div class="kiosk-clock" id="kioskClock"></div>
+      <% if (currentUser && currentUser.role !== 'kiosk') { %>
+        <a href="/" class="kiosk-exit">Exit kiosk</a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="kiosk-grid" id="kioskGrid">
+    <% staff.forEach(s => { %>
+      <div class="kiosk-tile" data-user-id="<%= s.id %>" data-user-name="<%= s.name %>" data-color="<%= s.color %>">
+        <% if (s.avatarPath) { %>
+          <img class="kiosk-tile-avatar" src="<%= s.avatarPath %>" alt="<%= s.name %>">
+        <% } else { %>
+          <div class="kiosk-tile-avatar kiosk-tile-initials" style="background:<%= s.color %>">
+            <%= s.name.split(' ').map(p => p[0]).join('').toUpperCase() %>
+          </div>
+        <% } %>
+        <div class="kiosk-tile-name"><%= s.name %></div>
+        <span class="badge kiosk-status-badge <%= 'kiosk-status-' + s.status %>" data-status><%=
+          s.status === 'clocked_in' ? 'Present' : (s.status === 'on_break' ? 'On break' : 'Clocked out')
+        %></span>
+      </div>
+    <% }) %>
+  </div>
+  <% if (!staff.length) { %>
+    <p class="muted" style="text-align:center">No staff accounts yet — add staff on the Users page.</p>
+  <% } %>
+</div>
+
+<div class="kiosk-modal-overlay" id="kioskModal">
+  <div class="kiosk-modal">
+
+    <div id="kioskPinStage">
+      <div class="kiosk-modal-avatar" id="pinAvatar"></div>
+      <div class="kiosk-modal-name" id="pinName"></div>
+      <div class="muted" style="margin-bottom:16px">Enter your 4-digit PIN</div>
+      <div class="kiosk-pin-dots" id="pinDots"></div>
+      <div class="kiosk-pin-error" id="pinError"></div>
+      <div class="kiosk-keypad" id="pinPad"></div>
+      <button type="button" class="btn secondary" id="pinCancel">Cancel</button>
+    </div>
+
+    <div id="kioskActionStage" style="display:none">
+      <div class="kiosk-modal-avatar" id="actionAvatar"></div>
+      <div class="kiosk-modal-name" id="actionName"></div>
+      <span class="badge" id="actionBadge" style="margin-bottom:18px"></span>
+      <div class="kiosk-action-buttons" id="actionButtons"></div>
+      <button type="button" class="btn secondary" id="actionCancel">Cancel</button>
+    </div>
+
+    <div id="kioskSuccessStage" style="display:none">
+      <div class="kiosk-success-check">&#10003;</div>
+      <div class="kiosk-modal-name" id="successText"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  var ACTION_META = {
+    clock_in: { label: 'Clock in', cls: 'kiosk-btn-in' },
+    clock_out: { label: 'Clock out', cls: 'kiosk-btn-out' },
+    break_start: { label: 'Start break', cls: 'kiosk-btn-break' },
+    break_end: { label: 'End break', cls: 'kiosk-btn-in' }
+  };
+  var STATUS_LABEL = { clocked_out: 'Clocked out', clocked_in: 'Present', on_break: 'On break' };
+  var NEXT_ACTIONS = {
+    clocked_out: ['clock_in'],
+    clocked_in: ['clock_out', 'break_start'],
+    on_break: ['break_end']
+  };
+
+  var modal = document.getElementById('kioskModal');
+  var pinStage = document.getElementById('kioskPinStage');
+  var actionStage = document.getElementById('kioskActionStage');
+  var successStage = document.getElementById('kioskSuccessStage');
+  var pinDots = document.getElementById('pinDots');
+  var pinError = document.getElementById('pinError');
+  var pinPad = document.getElementById('pinPad');
+
+  var activeUserId = null, activeName = null, activeColor = null, entered = '';
+
+  function initials(name) { return name.split(' ').map(function(p) { return p[0]; }).join('').toUpperCase(); }
+
+  function renderDots() {
+    pinDots.innerHTML = '';
+    for (var i = 0; i < 4; i++) {
+      var d = document.createElement('span');
+      d.className = 'kiosk-pin-dot' + (i < entered.length ? ' filled' : '');
+      pinDots.appendChild(d);
+    }
+  }
+
+  function renderPad() {
+    pinPad.innerHTML = '';
+    ['1','2','3','4','5','6','7','8','9','','0','del'].forEach(function(k) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      if (k === '') { btn.style.visibility = 'hidden'; pinPad.appendChild(btn); return; }
+      btn.className = 'kiosk-key';
+      btn.textContent = k === 'del' ? String.fromCharCode(9003) : k;
+      btn.addEventListener('click', function() { pressKey(k); });
+      pinPad.appendChild(btn);
+    });
+  }
+
+  function pressKey(k) {
+    if (k === 'del') { entered = entered.slice(0, -1); renderDots(); return; }
+    if (entered.length >= 4) return;
+    entered += k;
+    renderDots();
+    if (entered.length === 4) setTimeout(verifyPin, 150);
+  }
+
+  function openModal(id, name, color) {
+    activeUserId = id; activeName = name; activeColor = color; entered = '';
+    document.getElementById('pinAvatar').textContent = initials(name);
+    document.getElementById('pinAvatar').style.background = color;
+    document.getElementById('pinName').textContent = name;
+    pinError.textContent = '';
+    renderDots();
+    renderPad();
+    pinStage.style.display = 'block';
+    actionStage.style.display = 'none';
+    successStage.style.display = 'none';
+    modal.classList.add('open');
+  }
+
+  function closeModal() {
+    modal.classList.remove('open');
+    activeUserId = null;
+  }
+  document.getElementById('pinCancel').addEventListener('click', closeModal);
+  document.getElementById('actionCancel').addEventListener('click', closeModal);
+
+  document.getElementById('kioskGrid').addEventListener('click', function(e) {
+    var tile = e.target.closest('.kiosk-tile');
+    if (!tile) return;
+    openModal(tile.getAttribute('data-user-id'), tile.getAttribute('data-user-name'), tile.getAttribute('data-color'));
+  });
+
+  function verifyPin() {
+    fetch('/kiosk/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: activeUserId, pin: entered })
+    }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+      .then(function(result) {
+        if (!result.ok) {
+          pinError.textContent = result.data.error || 'Something went wrong.';
+          entered = '';
+          renderDots();
+          return;
+        }
+        showActions(result.data.status);
+      }).catch(function() {
+        pinError.textContent = 'Could not reach the server — check the connection.';
+        entered = '';
+        renderDots();
+      });
+  }
+
+  function showActions(status) {
+    pinStage.style.display = 'none';
+    actionStage.style.display = 'block';
+    document.getElementById('actionAvatar').textContent = initials(activeName);
+    document.getElementById('actionAvatar').style.background = activeColor;
+    document.getElementById('actionName').textContent = activeName;
+    var badge = document.getElementById('actionBadge');
+    badge.className = 'badge kiosk-status-badge kiosk-status-' + status;
+    badge.textContent = STATUS_LABEL[status];
+    var wrap = document.getElementById('actionButtons');
+    wrap.innerHTML = '';
+    (NEXT_ACTIONS[status] || []).forEach(function(action) {
+      var meta = ACTION_META[action];
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'kiosk-action-btn ' + meta.cls;
+      b.textContent = meta.label;
+      b.addEventListener('click', function() { doAction(action); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function doAction(action) {
+    var pinAtVerify = entered;
+    fetch('/kiosk/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: activeUserId, pin: pinAtVerify, action: action })
+    }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+      .then(function(result) {
+        if (!result.ok) {
+          showActionError(result.data.error || 'Something went wrong.');
+          return;
+        }
+        actionStage.style.display = 'none';
+        successStage.style.display = 'block';
+        var label = action === 'clock_in' ? 'Clocked in' : action === 'clock_out' ? 'Clocked out' : action === 'break_start' ? 'Break started' : 'Break ended';
+        document.getElementById('successText').textContent = label + ' — ' + activeName;
+        refreshTiles();
+        setTimeout(closeModal, 1400);
+      }).catch(function() {
+        showActionError('Could not reach the server — check the connection.');
+      });
+  }
+
+  function showActionError(message) {
+    pinStage.style.display = 'block';
+    actionStage.style.display = 'none';
+    entered = '';
+    pinError.textContent = message;
+    renderDots();
+  }
+
+  function refreshTiles() {
+    fetch('/kiosk/status').then(function(r) { return r.json(); }).then(function(list) {
+      list.forEach(function(s) {
+        var tile = document.querySelector('.kiosk-tile[data-user-id="' + s.id + '"]');
+        if (!tile) return;
+        var badge = tile.querySelector('[data-status]');
+        if (!badge) return;
+        badge.className = 'badge kiosk-status-badge kiosk-status-' + s.status;
+        badge.textContent = STATUS_LABEL[s.status];
+      });
+    }).catch(function() {});
+  }
+  setInterval(refreshTiles, 30000);
+
+  function tickClock() {
+    document.getElementById('kioskClock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+})();
+</script>
+</body>
+</html>

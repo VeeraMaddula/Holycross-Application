@@ -2,6 +2,7 @@ const { readDb, writeDb } = require('./db');
 const { ROLE_VALUES } = require('./roles');
 const { toDateStr, todayStr } = require('./dateUtils');
 const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
+const { hashPassword, verifyPassword } = require('./password');
 
 function normalizeRole(role) {
   return ROLE_VALUES.includes(role) ? role : 'staff';
@@ -407,6 +408,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     role: normalizeRole(role),
     active: true,
     avatarPath: '',
+    pinHash: '',
     canViewTimesheets: false,
     canManageRoster: false,
     canMakeRequests: false,
@@ -630,6 +632,47 @@ function listAllStaffStatus() {
   });
 }
 
+// ---- Kiosk clock-in PIN (separate from the login password — a short code
+// staff punch in on the shared tablet) ----
+function isValidPin(pin) {
+  return typeof pin === 'string' && /^\d{4}$/.test(pin);
+}
+
+function setUserPin(id, pin) {
+  if (!isValidPin(pin)) return { error: 'PIN must be exactly 4 digits.' };
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.pinHash = hashPassword(pin);
+  writeDb(db);
+  return { ok: true };
+}
+
+function verifyUserPin(id, pin) {
+  if (!isValidPin(pin)) return false;
+  const u = getUserById(id);
+  if (!u || !u.pinHash) return false;
+  return verifyPassword(pin, u.pinHash);
+}
+
+// Everyone who can appear as a tile on the kiosk screen — every active user
+// except the kiosk/Bot account itself (it shouldn't be able to clock itself
+// in). Includes live status so tiles can show Present / On break / Clocked
+// out without a separate request.
+function getKioskRoster() {
+  return listUsers().filter(u => u.active && u.role !== 'kiosk').map(u => {
+    const status = getStaffStatus(u.id);
+    return {
+      id: u.id,
+      name: u.name,
+      avatarPath: u.avatarPath || '',
+      color: u.color || '#7a8f6b',
+      hasPin: !!u.pinHash,
+      status: status.status
+    };
+  });
+}
+
 function addClockEntry({ userId, userName, action, selfiePath }) {
   const db = readDb();
   if (!db.timeEntries) db.timeEntries = [];
@@ -802,6 +845,7 @@ module.exports = {
   listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserColor,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
+  setUserPin, verifyUserPin, getKioskRoster,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
   REQUEST_TYPES, createRequest, listRequestsForUser,

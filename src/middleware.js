@@ -43,4 +43,14 @@ function requireNotificationsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess };
+// Kiosk page access = everyone except plain Staff (Admin, all manager roles,
+// and the Kiosk/Bot account itself). Staff never open this page directly —
+// they only interact with it by tapping their tile while the Bot account is
+// the one signed in on the tablet.
+function requireKioskPageAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && u.role !== 'staff') return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess };

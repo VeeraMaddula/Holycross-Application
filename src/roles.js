@@ -9,7 +9,8 @@ const ROLES = [
   { value: 'general_manager', label: 'General Manager' },
   { value: 'staff_manager', label: 'Staff Manager' },
   { value: 'floor_manager', label: 'Floor Manager' },
-  { value: 'staff', label: 'Staff' }
+  { value: 'staff', label: 'Staff' },
+  { value: 'kiosk', label: 'Kiosk (Bot)' }
 ];
 
 const ROLE_VALUES = ROLES.map(r => r.value);

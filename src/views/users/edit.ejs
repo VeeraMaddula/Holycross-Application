@@ -51,6 +51,22 @@
         </div>
       </form>
     </div>
+
+    <% if (user.role !== 'kiosk') { %>
+      <div class="card" style="max-width:480px">
+        <h3 style="margin-top:0">Clock-in kiosk PIN</h3>
+        <p class="muted">A separate 4-digit code used only on the shared clock-in tablet — not the login password.</p>
+        <% if (pinError) { %><div class="error-box"><%= pinError %></div><% } %>
+        <% if (pinSaved) { %><div class="card" style="background:#ebfbee;border-color:#b2f2bb;color:#2b8a3e;margin-bottom:16px">PIN updated.</div><% } %>
+        <form method="POST" action="/users/<%= user.id %>/pin" class="inline" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+          <div class="field" style="margin-bottom:0">
+            <label>New PIN</label>
+            <input type="text" name="pin" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="1234" style="width:100px" required>
+          </div>
+          <button class="btn" type="submit">Save PIN</button>
+        </form>
+      </div>
+    <% } %>
   </div>
 </div>
 </body>

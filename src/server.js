@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess } = require('./middleware');
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');
@@ -69,6 +69,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// The Kiosk/Bot account is locked to the /kiosk page only — if it's ever
+// pointed at any other URL (typed by hand, a stale bookmark, etc.) it gets
+// bounced straight back. This is what keeps the tablet mounted in the
+// restaurant from ever exposing the rest of the admin app.
+app.use((req, res, next) => {
+  const u = res.locals.currentUser;
+  if (u && u.role === 'kiosk' && !req.path.startsWith('/kiosk') && req.path !== '/logout') {
+    return res.redirect('/kiosk');
+  }
+  next();
+});
+
 app.use('/', require('./routes/auth'));
 
 app.use('/profile', requireAuth, require('./routes/profile'));
@@ -81,6 +93,7 @@ app.use('/notifications', requireAuth, requireNotificationsAccess, require('./ro
 app.use('/settings', requireAuth, requireAdmin, require('./routes/settings'));
 app.use('/users', requireAuth, requireAdmin, require('./routes/users'));
 app.use('/clock', requireAuth, require('./routes/clock'));
+app.use('/kiosk', requireAuth, requireKioskPageAccess, require('./routes/kiosk'));
 app.use('/staff-status', requireAuth, require('./routes/staffStatus'));
 app.use('/timesheets', requireAuth, requireTimesheetAccess, require('./routes/timesheets'));
 app.use('/roster', requireAuth, requireRosterAccess, require('./routes/roster'));

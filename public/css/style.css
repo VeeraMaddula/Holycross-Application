@@ -524,3 +524,56 @@ textarea { resize: vertical; min-height: 70px; }
   .dash-stat, .live-dot { animation: none; }
   .dash-stat:hover { transform: none; }
 }
+
+/* ---- Kiosk clock-in/out page (shared tablet, no sidebar) ---- */
+.kiosk-shell { min-height: 100vh; padding: 28px 32px 40px; }
+.kiosk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.kiosk-header > div:first-child { display: flex; align-items: center; gap: 14px; }
+.kiosk-logo { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+.kiosk-brand { font-size: 21px; font-weight: 700; color: var(--accent-dark); }
+.kiosk-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.kiosk-header-right { display: flex; align-items: center; gap: 18px; }
+.kiosk-clock { font-size: 17px; font-weight: 700; color: var(--muted); }
+.kiosk-exit { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+.kiosk-exit:hover { color: var(--accent-dark); border-color: var(--accent); }
+
+.kiosk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+.kiosk-tile { background: var(--card); border-radius: 14px; padding: 18px 10px; text-align: center; cursor: pointer; border: 1px solid var(--line); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.kiosk-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(18,51,40,0.08); }
+.kiosk-tile-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px; }
+.kiosk-tile-initials { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; }
+.kiosk-tile-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.kiosk-status-badge.kiosk-status-clocked_out { background: #f1efe8; color: var(--muted); }
+.kiosk-status-badge.kiosk-status-clocked_in { background: #ebfbee; color: var(--success); }
+.kiosk-status-badge.kiosk-status-on_break { background: #fff9db; color: var(--warn); }
+
+.kiosk-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(18,51,40,0.55); align-items: center; justify-content: center; z-index: 300; padding: 20px; }
+.kiosk-modal-overlay.open { display: flex; }
+.kiosk-modal { background: var(--card); border-radius: 16px; padding: 32px 28px; max-width: 340px; width: 100%; text-align: center; }
+.kiosk-modal-avatar { width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; }
+.kiosk-modal-name { font-size: 17px; font-weight: 700; color: var(--accent-dark); margin-bottom: 4px; }
+
+.kiosk-pin-dots { display: flex; gap: 12px; justify-content: center; margin: 6px 0 8px; }
+.kiosk-pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.kiosk-pin-dot.filled { background: var(--accent); }
+.kiosk-pin-error { font-size: 12px; color: var(--danger); min-height: 16px; margin-bottom: 6px; }
+
+.kiosk-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 18px; }
+.kiosk-key { padding: 16px 0; font-size: 19px; font-weight: 600; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--accent-dark); cursor: pointer; }
+.kiosk-key:hover { background: #eef3ee; }
+
+.kiosk-action-buttons { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 18px; }
+.kiosk-action-btn { padding: 15px; font-size: 16px; font-weight: 600; border: none; border-radius: 10px; color: #fff; cursor: pointer; }
+.kiosk-btn-in { background: var(--accent); }
+.kiosk-btn-in:hover { background: var(--accent-dark); }
+.kiosk-btn-out { background: var(--danger); }
+.kiosk-btn-break { background: var(--warn); }
+
+.kiosk-success-check { width: 60px; height: 60px; border-radius: 50%; background: #ebfbee; color: var(--success); display: flex; align-items: center; justify-content: center; margin: 4px auto 14px; font-size: 28px; }
+
+@media (max-width: 640px) {
+  .kiosk-shell { padding: 18px 16px 30px; }
+  .kiosk-header { flex-wrap: wrap; gap: 12px; }
+  .kiosk-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+}
