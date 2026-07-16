@@ -572,6 +572,8 @@ textarea { resize: vertical; min-height: 70px; }
 
 .kiosk-success-check { width: 60px; height: 60px; border-radius: 50%; background: #ebfbee; color: var(--success); display: flex; align-items: center; justify-content: center; margin: 4px auto 14px; font-size: 28px; }
 
+.kiosk-camera-video { width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; background: #000; display: block; margin: 0 auto; }
+
 @media (max-width: 640px) {
   .kiosk-shell { padding: 18px 16px 30px; }
   .kiosk-header { flex-wrap: wrap; gap: 12px; }
