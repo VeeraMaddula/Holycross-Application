@@ -54,7 +54,7 @@ app.use((req, res, next) => {
           firstName: (dbUser.name || '').trim().split(/\s+/)[0] || dbUser.name,
           role: dbUser.role,
           roleLabel: ROLE_LABELS[dbUser.role] || dbUser.role,
-          avatarPath: dbUser.avatarPath || '',
+          avatarPath: dbUser.liveShiftAvatarPath || dbUser.avatarPath || '',
           canViewTimesheets: !!dbUser.canViewTimesheets,
           canManageRoster: !!dbUser.canManageRoster,
           canMakeRequests: !!dbUser.canMakeRequests,

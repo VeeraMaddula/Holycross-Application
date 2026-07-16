@@ -408,6 +408,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     role: normalizeRole(role),
     active: true,
     avatarPath: '',
+    liveShiftAvatarPath: '',
     pinHash: '',
     canViewTimesheets: false,
     canManageRoster: false,
@@ -625,7 +626,7 @@ function listAllStaffStatus() {
       ? getCurrentShiftStart(u.id)
       : null;
     return {
-      user: { id: u.id, name: u.name, role: u.role, avatarPath: u.avatarPath || '' },
+      user: { id: u.id, name: u.name, role: u.role, avatarPath: u.liveShiftAvatarPath || u.avatarPath || '' },
       ...status,
       clockInAt
     };
@@ -655,20 +656,36 @@ function verifyUserPin(id, pin) {
   return verifyPassword(pin, u.pinHash);
 }
 
+// The "live" photo taken at clock-in / break-start / break-end — shown in
+// place of the person's saved profile picture for the rest of their shift,
+// separate from (and never overwriting) their actual avatarPath. Cleared
+// back to '' on clock-out so their saved picture reappears everywhere.
+function setUserLiveShiftAvatar(id, avatarPath) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.liveShiftAvatarPath = avatarPath || '';
+  writeDb(db);
+  return { ok: true };
+}
+
 // Everyone who can appear as a tile on the kiosk screen — every active user
 // except the kiosk/Bot account itself (it shouldn't be able to clock itself
-// in). Includes live status so tiles can show Present / On break / Clocked
-// out without a separate request.
+// in). Includes live status + since (for the running clocked-in/break timer
+// on each tile) and the effective avatar (live shift photo if there is one,
+// otherwise their saved profile picture).
 function getKioskRoster() {
   return listUsers().filter(u => u.active && u.role !== 'kiosk').map(u => {
     const status = getStaffStatus(u.id);
     return {
       id: u.id,
       name: u.name,
-      avatarPath: u.avatarPath || '',
+      avatarPath: u.liveShiftAvatarPath || u.avatarPath || '',
+      baseAvatarPath: u.avatarPath || '',
       color: u.color || '#7a8f6b',
       hasPin: !!u.pinHash,
-      status: status.status
+      status: status.status,
+      since: status.since
     };
   });
 }
@@ -845,7 +862,7 @@ module.exports = {
   listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserColor,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
-  setUserPin, verifyUserPin, getKioskRoster,
+  setUserPin, verifyUserPin, getKioskRoster, setUserLiveShiftAvatar,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
   REQUEST_TYPES, createRequest, listRequestsForUser,

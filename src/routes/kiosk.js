@@ -40,7 +40,7 @@ router.get('/', (req, res) => {
 // on the Tables page, so a tile flips from "Clocked out" to "Present"
 // automatically if someone clocks in on another device.
 router.get('/status', (req, res) => {
-  const roster = models.getKioskRoster().map(s => ({ id: s.id, status: s.status, avatarPath: s.avatarPath }));
+  const roster = models.getKioskRoster().map(s => ({ id: s.id, status: s.status, avatarPath: s.avatarPath, since: s.since }));
   res.json(roster);
 });
 
@@ -62,14 +62,18 @@ router.post('/verify', (req, res) => {
   res.json({ ok: true, status: status.status });
 });
 
+// clock_in / break_start / break_end all capture a fresh photo — it becomes
+// the person's "live" picture for the rest of their shift (liveShiftAvatarPath),
+// shown everywhere in place of their saved profile picture without ever
+// touching that saved picture. clock_out needs no photo and clears the live
+// photo, so their normal profile picture reappears everywhere.
+const PHOTO_ACTIONS = ['clock_in', 'break_start', 'break_end'];
+
 // Step 2: tap Clock In / Clock Out / Start Break / End Break. The PIN is
 // re-checked server-side rather than trusting the client's earlier /verify
 // call, so a tampered request can't skip straight to logging an action.
-// Sent as multipart/form-data from the client for every action (simplest to
-// have one shape); only "clock_in" actually requires the "photo" field —
-// that photo becomes the person's profile picture app-wide, not just a
-// kiosk record, so a fresh face shows up on the Dashboard, Staff Status,
-// Roster, etc. right after they clock in.
+// Always sent as multipart/form-data from the client (simplest to have one
+// shape); only the PHOTO_ACTIONS above actually include a "photo" field.
 router.post('/action', (req, res) => {
   upload.single('photo')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
@@ -89,19 +93,34 @@ router.post('/action', (req, res) => {
       return res.status(400).json({ error: 'That action is no longer available — please try again.' });
     }
 
-    let newAvatarPath = null;
-    if (action === 'clock_in') {
-      if (!req.file) return res.status(400).json({ error: 'A photo is required to clock in.' });
-      if (user.avatarPath) {
-        const oldFile = path.join(AVATAR_DIR, path.basename(user.avatarPath));
-        fs.unlink(oldFile, () => {});
+    // Only ever deletes the temporary live-shift photo file — never the
+    // person's actual saved profile picture (public/img/avatars/user-*).
+    function dropLiveShiftFile() {
+      if (user.liveShiftAvatarPath) {
+        fs.unlink(path.join(AVATAR_DIR, path.basename(user.liveShiftAvatarPath)), () => {});
       }
-      newAvatarPath = `/img/avatars/${req.file.filename}`;
-      models.setUserAvatar(user.id, newAvatarPath);
     }
 
-    models.addClockEntry({ userId: user.id, userName: user.name, action, selfiePath: newAvatarPath || '' });
-    res.json({ ok: true, avatarPath: newAvatarPath });
+    let effectiveAvatarPath;
+    if (PHOTO_ACTIONS.includes(action)) {
+      if (!req.file) return res.status(400).json({ error: 'A photo is required for this step.' });
+      dropLiveShiftFile();
+      effectiveAvatarPath = `/img/avatars/${req.file.filename}`;
+      models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
+    } else {
+      // clock_out — revert to their saved profile picture (may be '').
+      dropLiveShiftFile();
+      models.setUserLiveShiftAvatar(user.id, '');
+      effectiveAvatarPath = user.avatarPath || '';
+    }
+
+    models.addClockEntry({
+      userId: user.id,
+      userName: user.name,
+      action,
+      selfiePath: PHOTO_ACTIONS.includes(action) ? effectiveAvatarPath : ''
+    });
+    res.json({ ok: true, avatarPath: effectiveAvatarPath });
   });
 });
 

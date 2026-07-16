@@ -543,6 +543,7 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-tile-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px; }
 .kiosk-tile-initials { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; }
 .kiosk-tile-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kiosk-tile-timer { font-size: 11px; color: var(--muted); margin-top: 5px; min-height: 14px; }
 
 .kiosk-status-badge.kiosk-status-clocked_out { background: #f1efe8; color: var(--muted); }
 .kiosk-status-badge.kiosk-status-clocked_in { background: #ebfbee; color: var(--success); }

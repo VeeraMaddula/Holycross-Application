@@ -21,11 +21,11 @@
 
   <div class="kiosk-grid" id="kioskGrid">
     <% staff.forEach(s => { %>
-      <div class="kiosk-tile" data-user-id="<%= s.id %>" data-user-name="<%= s.name %>" data-color="<%= s.color %>">
+      <div class="kiosk-tile" data-user-id="<%= s.id %>" data-user-name="<%= s.name %>" data-color="<%= s.color %>" data-live-status="<%= s.status %>" data-since="<%= s.since || '' %>">
         <% if (s.avatarPath) { %>
-          <img class="kiosk-tile-avatar" src="<%= s.avatarPath %>" alt="<%= s.name %>">
+          <img class="kiosk-tile-avatar" data-path="<%= s.avatarPath %>" src="<%= s.avatarPath %>" alt="<%= s.name %>">
         <% } else { %>
-          <div class="kiosk-tile-avatar kiosk-tile-initials" style="background:<%= s.color %>">
+          <div class="kiosk-tile-avatar kiosk-tile-initials" data-path="" style="background:<%= s.color %>">
             <%= s.name.split(' ').map(p => p[0]).join('').toUpperCase() %>
           </div>
         <% } %>
@@ -33,6 +33,7 @@
         <span class="badge kiosk-status-badge <%= 'kiosk-status-' + s.status %>" data-status><%=
           s.status === 'clocked_in' ? 'Present' : (s.status === 'on_break' ? 'On break' : 'Clocked out')
         %></span>
+        <div class="kiosk-tile-timer"></div>
       </div>
     <% }) %>
   </div>
@@ -84,10 +85,10 @@
 <script>
 (function() {
   var ACTION_META = {
-    clock_in: { label: 'Clock in', cls: 'kiosk-btn-in' },
-    clock_out: { label: 'Clock out', cls: 'kiosk-btn-out' },
-    break_start: { label: 'Start break', cls: 'kiosk-btn-break' },
-    break_end: { label: 'End break', cls: 'kiosk-btn-in' }
+    clock_in: { label: 'Clock in', cls: 'kiosk-btn-in', camera: true },
+    clock_out: { label: 'Clock out', cls: 'kiosk-btn-out', camera: false },
+    break_start: { label: 'Start break', cls: 'kiosk-btn-break', camera: true },
+    break_end: { label: 'End break', cls: 'kiosk-btn-in', camera: true }
   };
   var STATUS_LABEL = { clocked_out: 'Clocked out', clocked_in: 'Present', on_break: 'On break' };
   var NEXT_ACTIONS = {
@@ -104,7 +105,7 @@
   var pinError = document.getElementById('pinError');
   var pinPad = document.getElementById('pinPad');
 
-  var activeUserId = null, activeName = null, activeColor = null, entered = '';
+  var activeUserId = null, activeName = null, activeColor = null, entered = '', pendingAction = null;
 
   function initials(name) { return name.split(' ').map(function(p) { return p[0]; }).join('').toUpperCase(); }
 
@@ -205,10 +206,12 @@
 
   function showActions(status) {
     pinStage.style.display = 'none';
-    // Clocking in captures a fresh photo (it becomes the person's profile
-    // picture), so that's a dedicated camera step. Clock out / break
-    // in-out don't need a photo — plain buttons, same as before.
-    if (status === 'clocked_out') {
+    var actions = NEXT_ACTIONS[status] || [];
+    // Clock in / start break / end break all capture a fresh photo, so when
+    // there's only one possible next action and it needs a photo, skip
+    // straight to the camera step. Clock out never needs a photo.
+    if (actions.length === 1 && ACTION_META[actions[0]].camera) {
+      pendingAction = actions[0];
       showCameraStage();
       return;
     }
@@ -221,13 +224,16 @@
     badge.textContent = STATUS_LABEL[status];
     var wrap = document.getElementById('actionButtons');
     wrap.innerHTML = '';
-    (NEXT_ACTIONS[status] || []).forEach(function(action) {
+    actions.forEach(function(action) {
       var meta = ACTION_META[action];
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'kiosk-action-btn ' + meta.cls;
       b.textContent = meta.label;
-      b.addEventListener('click', function() { doAction(action, null); });
+      b.addEventListener('click', function() {
+        if (meta.camera) { pendingAction = action; showCameraStage(); }
+        else { doAction(action, null); }
+      });
       wrap.appendChild(b);
     });
   }
@@ -238,8 +244,8 @@
     document.getElementById('cameraName').textContent = activeName;
     cameraStatus.textContent = 'Starting camera…';
     captureBtn.disabled = true;
-    captureBtn.textContent = 'Take photo & clock in';
-    captureBtn.onclick = function() { captureAndClockIn(); };
+    captureBtn.textContent = 'Take photo & ' + ACTION_META[pendingAction].label.toLowerCase();
+    captureBtn.onclick = function() { captureAndSubmit(); };
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       cameraStatus.textContent = 'Camera not supported on this device/browser.';
@@ -249,7 +255,7 @@
       .then(function(stream) {
         cameraStream = stream;
         cameraVideo.srcObject = stream;
-        cameraStatus.textContent = 'Look at the camera, then tap to clock in.';
+        cameraStatus.textContent = 'Look at the camera, then tap to continue.';
         captureBtn.disabled = false;
       })
       .catch(function(err) {
@@ -257,7 +263,7 @@
       });
   }
 
-  function captureAndClockIn() {
+  function captureAndSubmit() {
     if (!cameraStream) return;
     captureBtn.disabled = true;
     captureBtn.textContent = 'Saving…';
@@ -265,7 +271,7 @@
     cameraCanvas.height = cameraVideo.videoHeight || 480;
     cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
     cameraCanvas.toBlob(function(blob) {
-      doAction('clock_in', blob);
+      doAction(pendingAction, blob);
     }, 'image/jpeg', 0.85);
   }
 
@@ -289,7 +295,10 @@
         successStage.style.display = 'block';
         var label = action === 'clock_in' ? 'Clocked in' : action === 'clock_out' ? 'Clocked out' : action === 'break_start' ? 'Break started' : 'Break ended';
         document.getElementById('successText').textContent = label + ' — ' + activeName;
-        if (result.data.avatarPath) updateTileAvatar(activeUserId, result.data.avatarPath, activeColor, activeName);
+        // avatarPath is always present in the response — either a fresh
+        // shift photo, or (on clock_out) the reverted saved profile picture,
+        // which may be '' if the person never uploaded one.
+        updateTileAvatar(activeUserId, result.data.avatarPath, activeColor, activeName);
         refreshTiles();
         setTimeout(closeModal, 1400);
       }).catch(function() {
@@ -301,12 +310,21 @@
     var tile = document.querySelector('.kiosk-tile[data-user-id="' + userId + '"]');
     if (!tile) return;
     var oldAvatar = tile.querySelector('.kiosk-tile-avatar');
-    var img = document.createElement('img');
-    img.className = 'kiosk-tile-avatar';
-    img.alt = name;
-    img.setAttribute('data-path', avatarPath);
-    img.src = avatarPath + '?t=' + Date.now();
-    if (oldAvatar) oldAvatar.replaceWith(img);
+    var el;
+    if (avatarPath) {
+      el = document.createElement('img');
+      el.className = 'kiosk-tile-avatar';
+      el.alt = name;
+      el.setAttribute('data-path', avatarPath);
+      el.src = avatarPath + '?t=' + Date.now();
+    } else {
+      el = document.createElement('div');
+      el.className = 'kiosk-tile-avatar kiosk-tile-initials';
+      el.setAttribute('data-path', '');
+      el.style.background = color;
+      el.textContent = initials(name);
+    }
+    if (oldAvatar) oldAvatar.replaceWith(el);
   }
 
   function showActionError(message) {
@@ -324,19 +342,45 @@
       list.forEach(function(s) {
         var tile = document.querySelector('.kiosk-tile[data-user-id="' + s.id + '"]');
         if (!tile) return;
+        tile.setAttribute('data-live-status', s.status);
+        tile.setAttribute('data-since', s.since || '');
         var badge = tile.querySelector('[data-status]');
         if (badge) {
           badge.className = 'badge kiosk-status-badge kiosk-status-' + s.status;
           badge.textContent = STATUS_LABEL[s.status];
         }
-        var img = tile.querySelector('img.kiosk-tile-avatar');
-        if (s.avatarPath && (!img || img.getAttribute('data-path') !== s.avatarPath)) {
+        var avatarEl = tile.querySelector('.kiosk-tile-avatar');
+        var currentPath = avatarEl ? (avatarEl.getAttribute('data-path') || '') : '';
+        if (currentPath !== (s.avatarPath || '')) {
           updateTileAvatar(s.id, s.avatarPath, tile.getAttribute('data-color'), tile.getAttribute('data-user-name'));
         }
       });
+      tickTileTimers();
     }).catch(function() {});
   }
   setInterval(refreshTiles, 30000);
+
+  // Running "clocked in for Xh Ym" / "On break Xh Ym" label under each
+  // tile's status badge — reads the since timestamp refreshTiles keeps in
+  // sync, so it stays accurate even across a shift change on another device.
+  function tickTileTimers() {
+    document.querySelectorAll('.kiosk-tile').forEach(function(tile) {
+      var timerEl = tile.querySelector('.kiosk-tile-timer');
+      if (!timerEl) return;
+      var since = tile.getAttribute('data-since');
+      var status = tile.getAttribute('data-live-status');
+      if (!since || status === 'clocked_out') { timerEl.textContent = ''; return; }
+      var ms = Date.now() - new Date(since).getTime();
+      if (ms < 0) ms = 0;
+      var totalMin = Math.floor(ms / 60000);
+      var h = Math.floor(totalMin / 60);
+      var m = totalMin % 60;
+      var dur = h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
+      timerEl.textContent = (status === 'on_break' ? 'On break ' : 'In ') + dur;
+    });
+  }
+  tickTileTimers();
+  setInterval(tickTileTimers, 30000);
 
   function tickClock() {
     document.getElementById('kioskClock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
