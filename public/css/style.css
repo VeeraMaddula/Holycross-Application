@@ -125,6 +125,7 @@ tr:hover td { background: #fbf6ee; }
 
 .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .badge.confirmed { background: #e7f5ff; color: #1c7ed6; }
+.badge.pending_approval { background: #fff9db; color: #e8590c; }
 .badge.seated { background: #ebfbee; color: #2f9e44; }
 .badge.cancelled { background: #f1f3f5; color: #868e96; }
 .badge.completed { background: #f3f0ff; color: #7048e8; }
@@ -539,7 +540,7 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .kiosk-header-right { display: flex; align-items: center; gap: 18px; }
 .kiosk-clock { font-size: 17px; font-weight: 700; color: var(--muted); }
-.kiosk-exit { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+.kiosk-exit { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; background: none; font-family: inherit; cursor: pointer; }
 .kiosk-exit:hover { color: var(--accent-dark); border-color: var(--accent); }
 
 .kiosk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }

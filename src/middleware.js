@@ -1,7 +1,6 @@
-// Both front-line staff types — bar and kitchen — get identical access
-// everywhere in the app; the split is just so shifts/rosters can categorize
-// who's on bar duty vs kitchen duty. Any check that used to say "role is
-// staff" now means "role is one of these".
+// Bar Staff and Kitchen Staff — both get Requests access automatically.
+// (Page access otherwise differs between them; see server.js for Kitchen
+// Staff's narrower allow-list.)
 const STAFF_ROLES = ['bar_staff', 'kitchen_staff'];
 
 function requireAuth(req, res, next) {
@@ -49,13 +48,14 @@ function requireNotificationsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-// Kiosk page access = everyone except front-line Bar/Kitchen Staff (Admin,
-// all manager roles, and the Kiosk/Bot account itself). Staff never open
-// this page directly — they only interact with it by tapping their tile
-// while the Bot account is the one signed in on the tablet.
+// Kiosk page access = the Kiosk/Bot account only. Nobody else — not admin,
+// not managers, not Bar or Kitchen Staff — opens this page directly under
+// their own login. Everyone still uses the physical tablet the normal way:
+// tap your photo tile and enter your PIN while the Bot account is the one
+// signed in on the shared device.
 function requireKioskPageAccess(req, res, next) {
   const u = res.locals.currentUser;
-  if (u && !STAFF_ROLES.includes(u.role)) return next();
+  if (u && u.role === 'kiosk') return next();
   return res.status(403).render('403');
 }
 

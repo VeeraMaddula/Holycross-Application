@@ -19,6 +19,7 @@
         <label>Status</label>
         <select name="status">
           <option value="">All</option>
+          <option value="pending_approval" <%= filterStatus==='pending_approval'?'selected':'' %>>Pending approval</option>
           <option value="confirmed" <%= filterStatus==='confirmed'?'selected':'' %>>Confirmed</option>
           <option value="seated" <%= filterStatus==='seated'?'selected':'' %>>Seated</option>
           <option value="completed" <%= filterStatus==='completed'?'selected':'' %>>Completed</option>
@@ -36,6 +37,7 @@
         <table>
           <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Party</th><th>Table</th><th>Status</th><th>Payment</th><th></th></tr></thead>
           <tbody>
+          <% const statusLabels = { pending_approval: 'Pending approval', confirmed: 'Confirmed', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled' }; %>
           <% bookings.forEach(b => { const t = tables.find(x => x.id === b.tableId); %>
             <tr>
               <td><%= b.date %></td>
@@ -43,7 +45,7 @@
               <td><a href="/bookings/<%= b.id %>"><%= b.customerName %></a></td>
               <td><%= b.partySize %></td>
               <td><%= t ? t.name : '-' %></td>
-              <td><span class="badge <%= b.status %>"><%= b.status %></span></td>
+              <td><span class="badge <%= b.status %>"><%= statusLabels[b.status] || b.status %></span></td>
               <td>
                 <span class="badge payment-<%= b.paymentStatus || 'unpaid' %>"><%= (b.paymentStatus || 'unpaid').replace('_', ' ') %></span>
                 <% if (b.depositAmount) { %><div class="muted" style="margin-top:2px">€<%= Number(b.depositAmount).toFixed(2) %></div><% } %>

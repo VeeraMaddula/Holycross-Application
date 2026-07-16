@@ -167,7 +167,13 @@ function findConflict(db, candidate, excludeId) {
   });
 }
 
-function createBooking(input, createdBy) {
+// `options.autoOverrideConflict` — true for Manager-or-above roles. If a
+// conflict is found: managers still get their booking created and confirmed
+// (the overlap is just noted in the history log); anyone else (Bar Staff)
+// gets the booking created as 'pending_approval' instead of being rejected
+// outright — a Manager/Floor Manager/Senior Manager then approves or
+// declines it, and the customer isn't told anything is confirmed until then.
+function createBooking(input, createdBy, options = {}) {
   const db = readDb();
   const candidate = {
     date: input.date,
@@ -185,8 +191,15 @@ function createBooking(input, createdBy) {
   }
 
   const conflict = findConflict(db, candidate);
+  let status = 'confirmed';
+  let historyEvent = `Booking created${createdBy ? ' by ' + createdBy.name : ''}`;
   if (conflict) {
-    return { error: `${table.name} is already booked for ${conflict.customerName} at ${conflict.time} on ${conflict.date}.` };
+    if (options.autoOverrideConflict) {
+      historyEvent += ` — overlaps booking #${conflict.id} for ${conflict.customerName}, created anyway (Manager)`;
+    } else {
+      status = 'pending_approval';
+      historyEvent += ` — overlaps booking #${conflict.id} for ${conflict.customerName}; awaiting Manager approval`;
+    }
   }
 
   const booking = {
@@ -205,15 +218,29 @@ function createBooking(input, createdBy) {
     depositAmount: input.depositAmount ? Number(input.depositAmount) : 0,
     music: buildMusic(input),
     food: buildFood(input),
-    status: 'confirmed',
+    status,
     reminderSent: false,
     googleEventId: '',
     createdAt: new Date().toISOString(),
     createdByUserId: createdBy ? createdBy.id : null,
     createdByName: createdBy ? createdBy.name : '',
-    history: [{ at: new Date().toISOString(), event: `Booking created${createdBy ? ' by ' + createdBy.name : ''}` }]
+    history: [{ at: new Date().toISOString(), event: historyEvent }]
   };
   db.bookings.push(booking);
+  writeDb(db);
+  return { booking, conflict: conflict || null };
+}
+
+// Manager approves a Bar Staff booking that was held for a scheduling
+// conflict. Only valid from 'pending_approval' — flips it to 'confirmed' so
+// the usual confirmation email/SMS can go out to the customer.
+function approveBooking(id, approvedBy) {
+  const db = readDb();
+  const booking = db.bookings.find(b => b.id === Number(id));
+  if (!booking) return { error: 'Booking not found.' };
+  if (booking.status !== 'pending_approval') return { error: 'This booking is not awaiting approval.' };
+  booking.status = 'confirmed';
+  booking.history.push({ at: new Date().toISOString(), event: `Approved by ${approvedBy ? approvedBy.name : 'a manager'}` });
   writeDb(db);
   return { booking };
 }
@@ -855,7 +882,7 @@ function listRequestsForUser(userId) {
 
 module.exports = {
   listTables, getTablesWithStatus, createTable, deleteTable,
-  listBookings, getBooking, createBooking, updateBooking, setStatus, updatePayment, deleteBooking,
+  listBookings, getBooking, createBooking, approveBooking, updateBooking, setStatus, updatePayment, deleteBooking,
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,
   getSettings, saveSettings,

@@ -3,6 +3,9 @@ const cron = require('node-cron');
 const { readDb } = require('./db');
 const models = require('./models');
 const sms = require('./sms');
+const { MANAGER_ROLES } = require('./roles');
+
+const CONTACT_PHONE = '+353 51 353087';
 
 let transporter = null;
 
@@ -39,21 +42,59 @@ async function sendEmail({ to, subject, text, html, type, bookingId }) {
   }
 }
 
-function bookingConfirmationEmail(booking, tableName) {
-  const subject = `Booking confirmed: ${booking.date} at ${booking.time}`;
-  const text = `Hi ${booking.customerName},\n\nYour booking is confirmed for ${booking.partySize} people on ${booking.date} at ${booking.time} (${tableName}).\n\nSee you soon!`;
+// Booking details for the customer, in a fixed order. We deliberately never
+// mention which specific table a booking is on — that's an internal seating
+// detail. The exception is a Function Room (Whitefield Room / Butlerstone
+// Room): the customer picked that room on purpose, so it's worth confirming.
+function bookingDetailLines(booking, table) {
+  const lines = [
+    `Date: ${booking.date}`,
+    `Time: ${booking.time}`,
+    `Party size: ${booking.partySize} guest${booking.partySize === 1 ? '' : 's'}`
+  ];
+  if (table && table.area === 'Function Room') lines.push(`Room: ${table.name}`);
+  if (booking.occasion) lines.push(`Occasion: ${booking.occasion}`);
+  return lines;
+}
+
+function bookingConfirmationEmail(booking, table) {
+  const subject = `Booking confirmed - The Holy Cross, ${booking.date} at ${booking.time}`;
+  const details = bookingDetailLines(booking, table).map(l => `  - ${l}`).join('\n');
+  const text = `Hi ${booking.customerName},\n\n`
+    + `A warm welcome from all of us at The Holy Cross, and thank you for booking with us!\n\n`
+    + `Here are your booking details:\n${details}\n\n`
+    + `We'll be in touch nearer your booking, and we'll send you a reminder again by both text and email closer to the date.\n\n`
+    + `For more information, please contact us on ${CONTACT_PHONE}.\n\n`
+    + `Follow us on Facebook for more news and updates from The Holy Cross.\n\n`
+    + `Thanks again for booking with us - we can't wait to welcome you!\n\nThe Holy Cross`;
   return { subject, text };
 }
 
-function bookingReminderEmail(booking, tableName) {
-  const subject = `Reminder: your booking is coming up (${booking.date} at ${booking.time})`;
-  const text = `Hi ${booking.customerName},\n\nJust a reminder that your table for ${booking.partySize} is booked for ${booking.date} at ${booking.time} (${tableName}).\n\nWe look forward to seeing you!`;
+function bookingReminderEmail(booking, table) {
+  const subject = `Reminder: your booking at The Holy Cross is coming up`;
+  const details = bookingDetailLines(booking, table).map(l => `  - ${l}`).join('\n');
+  const text = `Hi ${booking.customerName},\n\n`
+    + `Just a reminder that your booking with us is coming up:\n${details}\n\n`
+    + `For more information, please contact us on ${CONTACT_PHONE}.\n\n`
+    + `We look forward to seeing you!\n\nThe Holy Cross`;
   return { subject, text };
 }
 
 function cancellationEmail(booking) {
   const subject = `Booking cancelled: ${booking.date} at ${booking.time}`;
-  const text = `Hi ${booking.customerName},\n\nYour booking for ${booking.date} at ${booking.time} has been cancelled. Contact us if this wasn't expected.`;
+  const text = `Hi ${booking.customerName},\n\nYour booking for ${booking.date} at ${booking.time} has been cancelled. If this wasn't expected, please contact us on ${CONTACT_PHONE}.`;
+  return { subject, text };
+}
+
+// Sent to Manager / Floor Manager / Senior Manager (and Admin) when a Bar
+// Staff booking overlaps an existing one — the customer is NOT told it's
+// confirmed until one of these roles reviews and approves it in the app.
+function pendingApprovalEmail(booking, table, conflict) {
+  const subject = `Approval needed: booking conflict for ${booking.date} at ${booking.time}`;
+  const text = `${booking.createdByName || 'A staff member'} tried to book ${table ? table.name : 'a table'} `
+    + `for ${booking.customerName} (${booking.partySize} guests) on ${booking.date} at ${booking.time}.\n\n`
+    + `This overlaps with an existing booking for ${conflict.customerName} at ${conflict.time} on ${conflict.date}.\n\n`
+    + `The customer has NOT been sent a confirmation yet. Review booking #${booking.id} in the app to approve or decline it.`;
   return { subject, text };
 }
 
@@ -87,6 +128,18 @@ async function notifyAdminNewBooking(booking, tableName) {
   });
 }
 
+// Emails every Manager / Floor Manager / Senior Manager / General Manager /
+// Admin who has an email on file — a Bar Staff booking hit a scheduling
+// conflict and needs one of them to approve it before the customer hears
+// anything.
+async function notifyManagersPendingApproval(booking, table, conflict) {
+  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const { subject, text } = pendingApprovalEmail(booking, table, conflict);
+  for (const m of managers) {
+    await sendEmail({ to: m.email, subject, text, type: 'pending-approval', bookingId: booking.id });
+  }
+}
+
 // Checks for bookings starting within the reminder window and sends a reminder once.
 async function runReminderSweep() {
   const db = readDb();
@@ -99,11 +152,11 @@ async function runReminderSweep() {
     if (hoursUntil > 0 && hoursUntil <= hoursBefore) {
       const table = db.tables.find(t => t.id === booking.tableId);
       if (booking.email) {
-        const { subject, text } = bookingReminderEmail(booking, table ? table.name : 'your table');
+        const { subject, text } = bookingReminderEmail(booking, table);
         await sendEmail({ to: booking.email, subject, text, type: 'reminder', bookingId: booking.id });
       }
       if (booking.phone) {
-        await sms.sendSms({ to: booking.phone, body: sms.bookingReminderSms(booking, table ? table.name : 'your table'), type: 'reminder', bookingId: booking.id });
+        await sms.sendSms({ to: booking.phone, body: sms.bookingReminderSms(booking, table), type: 'reminder', bookingId: booking.id });
       }
       models.updateBookingReminderFlag && models.updateBookingReminderFlag(booking.id);
       // Mark reminderSent directly via models
@@ -127,6 +180,6 @@ function startScheduler() {
 
 module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
-  shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail,
-  notifyAdminNewBooking, runReminderSweep, startScheduler, getTransporter
+  shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
+  notifyAdminNewBooking, notifyManagersPendingApproval, runReminderSweep, startScheduler, getTransporter
 };

@@ -6,14 +6,28 @@
   <%- include('../partials/sidebar') %>
   <div class="main">
     <div style="display:flex;justify-content:space-between;align-items:center;">
+      <% const statusLabels = { pending_approval: 'Pending approval', confirmed: 'Confirmed', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled' }; %>
+      <% const isManagerRole = currentUser && ['admin','senior_manager','general_manager','floor_manager','staff_manager'].includes(currentUser.role); %>
       <h2>Booking #<%= booking.id %>
-        <span class="badge <%= booking.status %>"><%= booking.status %></span>
+        <span class="badge <%= booking.status %>"><%= statusLabels[booking.status] || booking.status %></span>
         <span class="badge payment-<%= booking.paymentStatus || 'unpaid' %>"><%= (booking.paymentStatus || 'unpaid').replace('_', ' ') %></span>
       </h2>
       <div class="actions-row" style="margin-top:0">
         <a class="btn secondary" href="/bookings/<%= booking.id %>/edit">Edit</a>
       </div>
     </div>
+
+    <% if (booking.status === 'pending_approval') { %>
+    <div class="card" style="border-left:3px solid #e8590c;">
+      <h3 style="margin-top:0">Awaiting approval</h3>
+      <p class="muted">This booking overlaps an existing booking on the same table, so it hasn't been confirmed to the customer yet. <% if (isManagerRole) { %>Approve it to send the confirmation, or cancel it to decline.<% } else { %>A Manager, Floor Manager or Senior Manager needs to review it.<% } %></p>
+      <% if (isManagerRole) { %>
+        <form class="inline" method="POST" action="/bookings/<%= booking.id %>/approve">
+          <button class="btn" type="submit">Approve booking</button>
+        </form>
+      <% } %>
+    </div>
+    <% } %>
 
     <div class="card">
       <dl class="detail-grid">
@@ -33,22 +47,22 @@
       </dl>
 
       <div class="actions-row">
-        <% if (booking.status !== 'seated' && booking.status !== 'cancelled' && booking.status !== 'completed') { %>
+        <% if (booking.status !== 'seated' && booking.status !== 'cancelled' && booking.status !== 'completed' && booking.status !== 'pending_approval') { %>
           <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status">
             <input type="hidden" name="status" value="seated">
             <button class="btn" type="submit">Mark seated</button>
           </form>
         <% } %>
-        <% if (booking.status !== 'completed' && booking.status !== 'cancelled') { %>
+        <% if (booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'pending_approval') { %>
           <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status">
             <input type="hidden" name="status" value="completed">
             <button class="btn secondary" type="submit">Mark completed</button>
           </form>
         <% } %>
         <% if (booking.status !== 'cancelled') { %>
-          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status" onsubmit="return confirm('Cancel this booking? An email will be sent if an address is on file.')">
+          <form class="inline" method="POST" action="/bookings/<%= booking.id %>/status" onsubmit="return confirm('<%= booking.status === 'pending_approval' ? 'Decline this booking? A cancellation email will be sent if an address is on file.' : 'Cancel this booking? An email will be sent if an address is on file.' %>')">
             <input type="hidden" name="status" value="cancelled">
-            <button class="btn danger" type="submit">Cancel booking</button>
+            <button class="btn danger" type="submit"><%= booking.status === 'pending_approval' ? 'Decline booking' : 'Cancel booking' %></button>
           </form>
         <% } %>
         <% if (currentUser && currentUser.role === 'admin') { %>

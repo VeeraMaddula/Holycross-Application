@@ -39,14 +39,21 @@ async function sendSms({ to, body, type, bookingId }) {
   }
 }
 
-function bookingConfirmationSms(booking, tableName) {
-  return `The Holy Cross: Booking confirmed for ${booking.partySize} on ${booking.date} at ${booking.time} (${tableName}). See you soon!`;
+// Never names the specific table — that's an internal seating detail — but
+// does name the room for a Function Room booking, since the customer chose
+// that on purpose.
+function roomSuffix(table) {
+  return (table && table.area === 'Function Room') ? ` (${table.name})` : '';
 }
-function bookingReminderSms(booking, tableName) {
-  return `The Holy Cross: Reminder - your table for ${booking.partySize} is booked for ${booking.date} at ${booking.time} (${tableName}).`;
+
+function bookingConfirmationSms(booking, table) {
+  return `The Holy Cross: Booking confirmed for ${booking.partySize} on ${booking.date} at ${booking.time}${roomSuffix(table)}. We'll be in touch nearer the time - info: +353 51 353087. See you soon!`;
+}
+function bookingReminderSms(booking, table) {
+  return `The Holy Cross: Reminder - your booking for ${booking.partySize} is on ${booking.date} at ${booking.time}${roomSuffix(table)}. Info: +353 51 353087.`;
 }
 function cancellationSms(booking) {
-  return `The Holy Cross: Your booking for ${booking.date} at ${booking.time} has been cancelled. Contact us if this wasn't expected.`;
+  return `The Holy Cross: Your booking for ${booking.date} at ${booking.time} has been cancelled. Contact us on +353 51 353087 if this wasn't expected.`;
 }
 
 function shiftAssignedSms(shift) {

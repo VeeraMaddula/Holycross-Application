@@ -7,6 +7,16 @@
   <div class="main">
     <h2>Dashboard</h2>
 
+    <% if (pendingApprovalBookings && pendingApprovalBookings.length > 0) { %>
+      <div class="card" style="border-left:3px solid #e8590c;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+          <strong><%= pendingApprovalBookings.length %> booking<%= pendingApprovalBookings.length === 1 ? '' : 's' %> awaiting approval</strong>
+          <div class="muted" style="margin-top:2px">A Bar Staff booking overlapped an existing one and hasn't been confirmed to the customer yet.</div>
+        </div>
+        <a class="btn small" href="/bookings?status=pending_approval">Review now</a>
+      </div>
+    <% } %>
+
     <div class="dash-stats">
       <div class="dash-stat"><div class="num"><%= stats.todayCount %></div><div class="label">Bookings today</div></div>
       <div class="dash-stat c-blue"><div class="num"><%= stats.todayGuests %></div><div class="label">Guests today</div></div>
@@ -59,13 +69,14 @@
         <table>
           <thead><tr><th>Time</th><th>Customer</th><th>Party</th><th>Table</th><th>Status</th></tr></thead>
           <tbody>
+          <% const dashStatusLabels = { pending_approval: 'Pending approval', confirmed: 'Confirmed', seated: 'Seated', completed: 'Completed', cancelled: 'Cancelled' }; %>
           <% todayBookings.forEach(b => { const t = tables.find(x => x.id === b.tableId); %>
             <tr class="clickable" onclick="window.location='/bookings/<%= b.id %>'">
               <td><%= b.time %></td>
               <td><%= b.customerName %></td>
               <td><%= b.partySize %></td>
               <td><%= t ? t.name : '-' %></td>
-              <td><span class="badge <%= b.status %>"><%= b.status %></span></td>
+              <td><span class="badge <%= b.status %>"><%= dashStatusLabels[b.status] || b.status %></span></td>
             </tr>
           <% }) %>
           </tbody>

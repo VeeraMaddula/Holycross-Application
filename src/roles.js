@@ -17,4 +17,10 @@ const ROLES = [
 const ROLE_VALUES = ROLES.map(r => r.value);
 const ROLE_LABELS = Object.fromEntries(ROLES.map(r => [r.value, r.label]));
 
-module.exports = { ROLES, ROLE_VALUES, ROLE_LABELS };
+// "Manager or above" — used for the booking-approval workflow (a booking
+// created by any of these roles never needs approval, even if it overlaps
+// an existing one) and for who receives the "approval needed" notification
+// when Bar Staff hits a double-booked slot.
+const MANAGER_ROLES = ['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff_manager'];
+
+module.exports = { ROLES, ROLE_VALUES, ROLE_LABELS, MANAGER_ROLES };

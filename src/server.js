@@ -69,14 +69,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// The Kiosk/Bot account is locked to the /kiosk page only — if it's ever
+// The Kiosk/Bot account is locked to Dashboard + Kiosk only — if it's ever
 // pointed at any other URL (typed by hand, a stale bookmark, etc.) it gets
-// bounced straight back. This is what keeps the tablet mounted in the
-// restaurant from ever exposing the rest of the admin app.
+// bounced straight back to the Kiosk. This is what keeps the tablet mounted
+// in the restaurant from ever exposing the rest of the admin app. Nobody
+// else — not admin, not managers, not Bar/Kitchen Staff — can open /kiosk
+// directly; everyone still clocks in the normal way, tapping their tile on
+// the shared tablet while the Bot account is the one signed in.
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
-  if (u && u.role === 'kiosk' && !req.path.startsWith('/kiosk') && req.path !== '/logout') {
-    return res.redirect('/kiosk');
+  if (u && u.role === 'kiosk') {
+    const allowed = req.path === '/' || req.path.startsWith('/kiosk') || req.path === '/logout';
+    if (!allowed) return res.redirect('/kiosk');
+  }
+  next();
+});
+
+// Kitchen Staff get a deliberately narrow slice of the app — Dashboard,
+// My Shifts (incl. the team week-at-a-glance), Requests, and their own
+// Profile. Everything else (Bookings, Tables, Menu, Calendar, Staff Status,
+// their own /clock page, the Kiosk page, etc.) bounces back to the
+// Dashboard. Like everyone else, they clock in/out by tapping their tile on
+// the shared kiosk tablet — not by opening /kiosk under their own login.
+// Bar Staff keep the full staff-level access they've always had — this
+// only applies to the kitchen_staff role.
+const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/profile'];
+app.use((req, res, next) => {
+  const u = res.locals.currentUser;
+  if (u && u.role === 'kitchen_staff') {
+    const allowed = req.path === '/' || req.path === '/logout' || KITCHEN_STAFF_ALLOWED_PATHS.some(p => req.path.startsWith(p));
+    if (!allowed) return res.redirect('/');
   }
   next();
 });

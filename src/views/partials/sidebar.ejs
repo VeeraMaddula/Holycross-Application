@@ -21,37 +21,41 @@
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         Dashboard
       </a>
-      <a href="/bookings" class="<%= currentPath.startsWith('/bookings') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><path d="m8.5 14 2 2 4-4"/></svg>
-        Bookings
-      </a>
-      <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><path d="M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
-        Calendar
-      </a>
-      <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
-        Tables
-      </a>
-      <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7a2 2 0 0 0 4 0V2"/><path d="M9 9v13"/><path d="M17 2c-1.5 0-2.5 1.5-2.5 4s1 4 2.5 4v11"/></svg>
-        Menu &amp; Events
-      </a>
+      <% if (!currentUser || !['kitchen_staff', 'kiosk'].includes(currentUser.role)) { %>
+        <a href="/bookings" class="<%= currentPath.startsWith('/bookings') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><path d="m8.5 14 2 2 4-4"/></svg>
+          Bookings
+        </a>
+        <a href="/calendar" class="<%= currentPath.startsWith('/calendar') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><path d="M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+          Calendar
+        </a>
+        <a href="/tables" class="<%= currentPath.startsWith('/tables') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          Tables
+        </a>
+        <a href="/menu" class="<%= currentPath.startsWith('/menu') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7a2 2 0 0 0 4 0V2"/><path d="M9 9v13"/><path d="M17 2c-1.5 0-2.5 1.5-2.5 4s1 4 2.5 4v11"/></svg>
+          Menu &amp; Events
+        </a>
+      <% } %>
       <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canViewNotifications)) { %>
         <a href="/notifications" class="<%= currentPath.startsWith('/notifications') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
           Notifications
         </a>
       <% } %>
-      <a href="/clock" class="<%= currentPath.startsWith('/clock') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        Clock In / Out
-      </a>
-      <a href="/staff-status" class="<%= currentPath.startsWith('/staff-status') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/><path d="m16 14 2 2 3-3"/></svg>
-        Staff Status
-      </a>
-      <% if (currentUser && !['bar_staff', 'kitchen_staff'].includes(currentUser.role)) { %>
+      <% if (!currentUser || !['kitchen_staff', 'kiosk'].includes(currentUser.role)) { %>
+        <a href="/clock" class="<%= currentPath.startsWith('/clock') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Clock In / Out
+        </a>
+        <a href="/staff-status" class="<%= currentPath.startsWith('/staff-status') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/><path d="m16 14 2 2 3-3"/></svg>
+          Staff Status
+        </a>
+      <% } %>
+      <% if (currentUser && currentUser.role === 'kiosk') { %>
         <a href="/kiosk" class="<%= currentPath.startsWith('/kiosk') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M10 18h4"/></svg>
           Clock-in Kiosk
@@ -63,10 +67,12 @@
           Timesheets
         </a>
       <% } %>
-      <a href="/my-shifts" class="<%= currentPath.startsWith('/my-shifts') ? 'active' : '' %>">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><circle cx="12" cy="15" r="2.3"/></svg>
-        My Shifts
-      </a>
+      <% if (currentUser && currentUser.role !== 'kiosk') { %>
+        <a href="/my-shifts" class="<%= currentPath.startsWith('/my-shifts') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><circle cx="12" cy="15" r="2.3"/></svg>
+          My Shifts
+        </a>
+      <% } %>
       <% if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager' || currentUser.canManageRoster)) { %>
         <a href="/roster" class="<%= currentPath.startsWith('/roster') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>

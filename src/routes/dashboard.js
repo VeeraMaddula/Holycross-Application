@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const { todayStr } = require('../dateUtils');
+const { MANAGER_ROLES } = require('../roles');
 
 router.get('/', (req, res) => {
   const today = todayStr();
   const todayBookings = models.listBookings({ date: today }).filter(b => b.status !== 'cancelled');
+  const pendingApprovalBookings = MANAGER_ROLES.includes((res.locals.currentUser || {}).role)
+    ? models.listBookings({ status: 'pending_approval' })
+    : [];
 
   const now = new Date();
   const upcoming = models.listBookings()
@@ -30,7 +34,7 @@ router.get('/', (req, res) => {
     onBreakCount: workingNow.filter(s => s.status === 'on_break').length
   };
 
-  res.render('dashboard', { todayBookings, upcoming, stats, tables, workingNow });
+  res.render('dashboard', { todayBookings, upcoming, stats, tables, workingNow, pendingApprovalBookings });
 });
 
 module.exports = router;

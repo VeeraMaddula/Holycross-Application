@@ -13,7 +13,11 @@
     </div>
     <div class="kiosk-header-right">
       <div class="kiosk-clock" id="kioskClock"></div>
-      <% if (currentUser && currentUser.role !== 'kiosk') { %>
+      <% if (currentUser && currentUser.role === 'kiosk') { %>
+        <form method="POST" action="/logout" onsubmit="return confirm('Log the Bot account out of this tablet?')">
+          <button type="submit" class="kiosk-exit">Exit</button>
+        </form>
+      <% } else if (currentUser) { %>
         <a href="/" class="kiosk-exit">Exit kiosk</a>
       <% } %>
     </div>
