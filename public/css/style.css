@@ -462,3 +462,61 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 420px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Dashboard — flat, borderless layout. Sections are separated by
+   whitespace instead of boxed cards, stat tiles use a soft colour tint
+   instead of a hard border, and live-updating sections get a pulsing dot
+   so it reads as "live" rather than static. Scoped to dash- classes so it
+   doesn't touch .card/.stat-card used elsewhere in the app. */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 40px;
+}
+.dash-stat {
+  background: var(--dash-tint, rgba(31,77,60,0.07));
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: dashFadeUp 0.35s ease both;
+}
+.dash-stat:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(18,51,40,0.08); }
+.dash-stat .num { font-size: 30px; font-weight: 700; color: var(--accent-dark); line-height: 1.15; display: flex; align-items: center; gap: 8px; }
+.dash-stat .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.dash-stat.c-blue { --dash-tint: rgba(28,126,214,0.09); }
+.dash-stat.c-blue .num { color: #1c5d96; }
+.dash-stat.c-purple { --dash-tint: rgba(112,72,232,0.09); }
+.dash-stat.c-purple .num { color: #5638b0; }
+.dash-stat.c-amber { --dash-tint: rgba(232,89,12,0.09); }
+.dash-stat.c-amber .num { color: #b3560c; }
+.dash-stat.c-live { --dash-tint: rgba(47,158,68,0.11); }
+.dash-stat.c-live .num { color: var(--success); }
+.dash-stat:nth-child(1) { animation-delay: 0s; }
+.dash-stat:nth-child(2) { animation-delay: 0.05s; }
+.dash-stat:nth-child(3) { animation-delay: 0.1s; }
+.dash-stat:nth-child(4) { animation-delay: 0.15s; }
+.dash-stat:nth-child(5) { animation-delay: 0.2s; }
+@keyframes dashFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.dash-section { margin-bottom: 40px; }
+.dash-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.dash-section-head h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 9px; }
+.dash-section-head .hint { font-size: 12px; color: var(--muted); }
+
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; flex-shrink: 0; animation: dashPulse 1.8s infinite; }
+@keyframes dashPulse {
+  0% { box-shadow: 0 0 0 0 rgba(47,158,68,0.45); }
+  70% { box-shadow: 0 0 0 7px rgba(47,158,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(47,158,68,0); }
+}
+
+.dash-table-wrap table { width: 100%; }
+.dash-table-wrap th { border-bottom: 2px solid var(--line); }
+.dash-table-wrap tr:hover td { background: rgba(31,77,60,0.045); }
+.dash-table-wrap tr.clickable:hover td { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-stat, .live-dot { animation: none; }
+  .dash-stat:hover { transform: none; }
+}

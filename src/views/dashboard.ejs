@@ -7,22 +7,23 @@
   <div class="main">
     <h2>Dashboard</h2>
 
-    <div class="stat-grid">
-      <div class="stat-card"><div class="num"><%= stats.todayCount %></div><div class="label">Bookings today</div></div>
-      <div class="stat-card"><div class="num"><%= stats.todayGuests %></div><div class="label">Guests today</div></div>
-      <div class="stat-card"><div class="num"><%= stats.confirmedCount %></div><div class="label">Confirmed (all time)</div></div>
-      <div class="stat-card"><div class="num"><%= stats.totalTables %></div><div class="label">Tables set up</div></div>
-      <div class="stat-card"><div class="num"><%= stats.workingNowCount %></div><div class="label">Clocked in now<% if (stats.onBreakCount > 0) { %> (<%= stats.onBreakCount %> on break)<% } %></div></div>
+    <div class="dash-stats">
+      <div class="dash-stat"><div class="num"><%= stats.todayCount %></div><div class="label">Bookings today</div></div>
+      <div class="dash-stat c-blue"><div class="num"><%= stats.todayGuests %></div><div class="label">Guests today</div></div>
+      <div class="dash-stat c-purple"><div class="num"><%= stats.confirmedCount %></div><div class="label">Confirmed (all time)</div></div>
+      <div class="dash-stat c-amber"><div class="num"><%= stats.totalTables %></div><div class="label">Tables set up</div></div>
+      <div class="dash-stat c-live"><div class="num"><span class="live-dot"></span><%= stats.workingNowCount %></div><div class="label">Clocked in now<% if (stats.onBreakCount > 0) { %> (<%= stats.onBreakCount %> on break)<% } %></div></div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0">Who's working now</h3>
+    <div class="dash-section">
+      <div class="dash-section-head">
+        <h3><span class="live-dot"></span>Who's working now</h3>
         <a class="btn small secondary" href="/staff-status">Full staff status</a>
       </div>
       <% if (workingNow.length === 0) { %>
         <p class="muted">No one's clocked in right now.</p>
       <% } else { %>
+        <div class="dash-table-wrap">
         <table>
           <thead><tr><th>Name</th><th>Clocked in at</th><th>Status</th><th>Break time</th></tr></thead>
           <tbody id="workingNowBody">
@@ -42,22 +43,24 @@
           <% }) %>
           </tbody>
         </table>
+        </div>
       <% } %>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0">Today's bookings</h3>
+    <div class="dash-section">
+      <div class="dash-section-head">
+        <h3>Today's bookings</h3>
         <a class="btn small" href="/bookings/new">+ New booking</a>
       </div>
       <% if (todayBookings.length === 0) { %>
         <p class="muted">No bookings for today yet.</p>
       <% } else { %>
+        <div class="dash-table-wrap">
         <table>
           <thead><tr><th>Time</th><th>Customer</th><th>Party</th><th>Table</th><th>Status</th></tr></thead>
           <tbody>
           <% todayBookings.forEach(b => { const t = tables.find(x => x.id === b.tableId); %>
-            <tr onclick="window.location='/bookings/<%= b.id %>'" style="cursor:pointer">
+            <tr class="clickable" onclick="window.location='/bookings/<%= b.id %>'">
               <td><%= b.time %></td>
               <td><%= b.customerName %></td>
               <td><%= b.partySize %></td>
@@ -67,19 +70,23 @@
           <% }) %>
           </tbody>
         </table>
+        </div>
       <% } %>
     </div>
 
-    <div class="card">
-      <h3 style="margin-top:0">Upcoming bookings</h3>
+    <div class="dash-section">
+      <div class="dash-section-head">
+        <h3>Upcoming bookings</h3>
+      </div>
       <% if (upcoming.length === 0) { %>
         <p class="muted">Nothing upcoming.</p>
       <% } else { %>
+        <div class="dash-table-wrap">
         <table>
           <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Party</th></tr></thead>
           <tbody>
           <% upcoming.forEach(b => { %>
-            <tr onclick="window.location='/bookings/<%= b.id %>'" style="cursor:pointer">
+            <tr class="clickable" onclick="window.location='/bookings/<%= b.id %>'">
               <td><%= b.date %></td>
               <td><%= b.time %></td>
               <td><%= b.customerName %></td>
@@ -88,6 +95,7 @@
           <% }) %>
           </tbody>
         </table>
+        </div>
       <% } %>
     </div>
   </div>
