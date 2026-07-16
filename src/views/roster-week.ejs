@@ -23,8 +23,43 @@
       <div class="card"><p class="muted" style="margin:0">No active staff accounts yet — add staff from the Users page first.</p></div>
     <% } else { %>
 
+      <div class="card roster-table-card">
+        <h3 style="margin-top:0">Week at a glance</h3>
+        <p class="muted" style="margin-top:-6px">Tap a shift to jump to that day. Refreshes automatically — no need to reload.</p>
+        <div class="roster-table-wrap">
+          <table class="roster-table" id="rosterOverviewTable">
+            <thead>
+              <tr>
+                <th class="roster-table-corner">Staff</th>
+                <% days.forEach(day => { %>
+                  <th><a href="#day-<%= day.date %>" title="<%= dayNames[day.dayOfWeek] %>, <%= day.date %>"><%= dayNames[day.dayOfWeek].slice(0, 3) %><br><span class="muted" style="font-weight:400"><%= day.date.slice(8) %></span></a></th>
+                <% }) %>
+              </tr>
+            </thead>
+            <tbody>
+              <% users.forEach(u => { %>
+                <tr>
+                  <td class="roster-table-name"><%= u.name %></td>
+                  <% days.forEach(day => { const cellShifts = day.shifts.filter(s => s.userId === u.id); %>
+                    <td class="roster-table-cell" data-user-id="<%= u.id %>" data-date="<%= day.date %>">
+                      <% if (cellShifts.length === 0) { %>
+                        <span class="roster-table-off">—</span>
+                      <% } else { %>
+                        <% cellShifts.forEach(s => { %>
+                          <a class="roster-pill" href="#day-<%= day.date %>" style="background:<%= s.color %>"><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></a>
+                        <% }) %>
+                      <% } %>
+                    </td>
+                  <% }) %>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <% days.forEach(day => { %>
-        <div class="card">
+        <div class="card" id="day-<%= day.date %>">
           <h3 style="margin-top:0"><%= dayNames[day.dayOfWeek] %>, <%= day.date %></h3>
 
           <form class="roster-add-form" method="POST" action="/roster/shifts">
@@ -52,7 +87,7 @@
             <p class="muted" style="margin:0">Nothing scheduled.</p>
           <% } else { %>
             <div class="roster-hour-header">
-              <% for (let h = 0; h < 24; h += 2) { %><span><%= String(h).padStart(2,'0') %></span><span></span><% } %>
+              <% for (let h = 0; h < 24; h += 2) { %><span><%= formatTime12(String(h).padStart(2,'0') + ':00') %></span><span></span><% } %>
             </div>
             <% day.shifts.forEach(s => { %>
               <div class="roster-timeline-row">
@@ -60,7 +95,7 @@
                 <div class="roster-timeline-track">
                   <% for (let h = 0; h < 24; h++) { %><div class="roster-hour-cell"></div><% } %>
                   <div class="roster-timeline-bar" style="left:<%= s.leftPct %>%;width:<%= s.widthPct %>%;background:<%= s.color %>">
-                    <span><%= s.startTime %>–<%= s.endTime %></span>
+                    <span><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
                   </div>
                 </div>
                 <button type="button" class="roster-timeline-remove" title="Edit this shift" style="font-size:15px"
@@ -87,5 +122,42 @@
     <% } %>
   </div>
 </div>
+<script>
+  // "Week at a glance" table stays in sync on its own — polls the same data
+  // every 30s and rebuilds just the shift pills, so a shift added/edited
+  // from another device (or by another manager) shows up without a reload.
+  (function() {
+    var table = document.getElementById('rosterOverviewTable');
+    if (!table) return;
+
+    function renderRosterCells(shifts) {
+      var byCell = {};
+      shifts.forEach(function(s) {
+        var key = s.userId + '|' + s.date;
+        if (!byCell[key]) byCell[key] = [];
+        byCell[key].push(s);
+      });
+      table.querySelectorAll('.roster-table-cell').forEach(function(td) {
+        var key = td.getAttribute('data-user-id') + '|' + td.getAttribute('data-date');
+        var list = byCell[key] || [];
+        var date = td.getAttribute('data-date');
+        if (!list.length) {
+          td.innerHTML = '<span class="roster-table-off">—</span>';
+          return;
+        }
+        td.innerHTML = list.map(function(s) {
+          return '<a class="roster-pill" href="#day-' + date + '" style="background:' + s.color + '">' + s.startLabel + '–' + s.endLabel + '</a>';
+        }).join('');
+      });
+    }
+
+    setInterval(function() {
+      fetch('/roster/week/data?week=<%= weekStart %>', { headers: { Accept: 'application/json' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderRosterCells(data.shifts); })
+        .catch(function() { /* silent — keep showing the last known state */ });
+    }, 30000);
+  })();
+</script>
 </body>
 </html>

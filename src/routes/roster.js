@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const models = require('../models');
-const { toDateStr, todayStr } = require('../dateUtils');
+const { toDateStr, todayStr, formatTime12 } = require('../dateUtils');
 const notify = require('../notify');
 const sms = require('../sms');
 
@@ -77,8 +77,28 @@ router.get('/week', (req, res) => {
     weekStart, weekEnd,
     prevWeek: addDays(weekStart, -7),
     nextWeek: addDays(weekStart, 7),
-    thisWeek: mondayOf(todayStr())
+    thisWeek: mondayOf(todayStr()),
+    formatTime12
   });
+});
+
+// Lightweight refresh for the weekly overview table — same live-poll pattern
+// used on the Dashboard/Tables/Kiosk pages, so if a shift is added or edited
+// from another device the table catches up without a manual reload.
+router.get('/week/data', (req, res) => {
+  const weekStart = mondayOf(req.query.week || todayStr());
+  const weekEnd = addDays(weekStart, 6);
+  const days = models.getResolvedScheduleForRange(weekStart, weekEnd);
+  const shifts = [];
+  days.forEach(day => {
+    day.shifts.forEach(s => {
+      shifts.push({
+        id: s.id, userId: s.userId, date: day.date, startTime: s.startTime, endTime: s.endTime, color: s.color,
+        startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime)
+      });
+    });
+  });
+  res.json({ shifts });
 });
 
 router.post('/shifts', (req, res) => {

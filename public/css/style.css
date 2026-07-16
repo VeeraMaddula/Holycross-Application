@@ -486,6 +486,8 @@ textarea { resize: vertical; min-height: 70px; }
   animation: dashFadeUp 0.35s ease both;
 }
 .dash-stat:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(18,51,40,0.08); }
+.dash-stat.clickable { cursor: pointer; }
+.dash-stat.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dash-stat .num { font-size: 30px; font-weight: 700; color: var(--accent-dark); line-height: 1.15; display: flex; align-items: center; gap: 8px; }
 .dash-stat .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .dash-stat.c-blue { --dash-tint: rgba(28,126,214,0.09); }
@@ -577,6 +579,61 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-success-check { width: 60px; height: 60px; border-radius: 50%; background: #ebfbee; color: var(--success); display: flex; align-items: center; justify-content: center; margin: 4px auto 14px; font-size: 28px; }
 
 .kiosk-camera-video { width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; background: #000; display: block; margin: 0 auto; }
+
+/* ---- "Who's clocked in now" slide-in drawer (opened from the Dashboard
+   stat tile) ---- */
+.drawer-overlay {
+  position: fixed; inset: 0; background: rgba(18,51,40,0.35);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 400;
+}
+.drawer-overlay.open { opacity: 1; pointer-events: auto; }
+.drawer-panel {
+  position: fixed; top: 0; right: -380px; width: 340px; max-width: 88vw; height: 100vh;
+  background: var(--card); box-shadow: -8px 0 24px rgba(18,51,40,0.15); z-index: 401;
+  transition: right 0.25s ease; display: flex; flex-direction: column;
+}
+.drawer-panel.open { right: 0; }
+.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.drawer-header h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.drawer-close { background: none; border: none; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.drawer-close:hover { color: var(--accent-dark); }
+.drawer-body { flex: 1; overflow-y: auto; padding: 8px 20px; }
+.drawer-person { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.drawer-person:last-child { border-bottom: none; }
+.drawer-person-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.drawer-person-initials { display: flex; align-items: center; justify-content: center; background: #eef3ee; color: var(--accent-dark); font-weight: 700; font-size: 13px; }
+.drawer-person-info { min-width: 0; flex: 1; }
+.drawer-person-name { font-weight: 600; font-size: 14px; }
+.drawer-person-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; font-size: 12px; }
+
+@media (max-width: 480px) {
+  .drawer-panel { width: 100%; max-width: 100%; right: -100%; }
+}
+
+/* ---- Roster "week at a glance" table — rows are staff, columns are days,
+   sticky header row + sticky staff-name column so both stay in view while
+   scrolling horizontally on a narrow screen. ---- */
+.roster-table-card { overflow: hidden; }
+.roster-table-wrap { overflow-x: auto; max-width: 100%; }
+.roster-table { border-collapse: collapse; width: 100%; min-width: 620px; }
+.roster-table th, .roster-table td { padding: 9px 8px; text-align: center; border-bottom: 1px solid var(--line); font-size: 13px; }
+.roster-table thead th {
+  position: sticky; top: 0; z-index: 2; background: var(--card);
+  font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--line);
+}
+.roster-table thead th a { color: var(--accent-dark); font-weight: 600; }
+.roster-table-corner { position: sticky; left: 0; top: 0; z-index: 3; background: var(--card); text-align: left; }
+.roster-table-name {
+  position: sticky; left: 0; z-index: 1; background: var(--card);
+  text-align: left; font-weight: 600; white-space: nowrap; border-right: 1px solid var(--line);
+}
+.roster-table-cell { min-width: 88px; }
+.roster-table-off { color: var(--line); }
+.roster-pill {
+  display: inline-block; color: #fff; font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 20px; margin: 2px; white-space: nowrap;
+}
+.roster-pill:hover { opacity: 0.85; }
 
 @media (max-width: 640px) {
   .kiosk-shell { padding: 18px 16px 30px; }

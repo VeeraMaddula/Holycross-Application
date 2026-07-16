@@ -23,4 +23,18 @@ function todayStr() {
   return toDateStr(new Date());
 }
 
-module.exports = { toDateStr, todayStr };
+// "HH:MM" (24hr, how shift/booking times are stored) -> "9 AM" / "5:30 PM" /
+// "12 PM" for display. Minutes are only shown when non-zero, so times stay
+// compact on the roster's timeline bars and table pills.
+function formatTime12(hhmm) {
+  if (!hhmm || typeof hhmm !== 'string' || !hhmm.includes(':')) return hhmm || '';
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  if (Number.isNaN(h)) return hhmm;
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return mStr && mStr !== '00' ? `${h}:${mStr} ${period}` : `${h} ${period}`;
+}
+
+module.exports = { toDateStr, todayStr, formatTime12 };

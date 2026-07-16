@@ -19,7 +19,7 @@
             <% day.shifts.forEach(s => { %>
               <tr>
                 <td><%= dayNames[day.dayOfWeek] %>, <%= new Date(day.date + 'T00:00:00').toLocaleDateString() %></td>
-                <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= s.color %>;margin-right:6px;vertical-align:middle"></span><%= s.startTime %>–<%= s.endTime %></td>
+                <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= s.color %>;margin-right:6px;vertical-align:middle"></span><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></td>
               </tr>
             <% }) %>
           <% }) %>
