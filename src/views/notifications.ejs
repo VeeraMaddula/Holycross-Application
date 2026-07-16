@@ -19,6 +19,11 @@
         in your .env file to enable confirmation, reminder, and cancellation texts. Until then, sends are logged as "skipped". See README for Twilio setup steps.
       </div>
     <% } %>
+    <% if (retryResult === 'sent') { %>
+      <div class="card" style="background:#ebfbee;border-color:#b2f2bb;color:#2b8a3e;">Notification resent — check the log below for the result.</div>
+    <% } else if (retryResult === 'unavailable') { %>
+      <div class="card" style="background:#fff5f5;border-color:#ffc9c9;color:#c92a2a;">Couldn't retry that one — it's too old to have its original message on file. It'll go out fine next time it's triggered automatically.</div>
+    <% } %>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -29,7 +34,7 @@
       </div>
       <p class="muted">Reminders run automatically every 15 minutes for confirmed bookings inside the reminder window (see Settings).</p>
       <table>
-        <thead><tr><th>Sent</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th></tr></thead>
+        <thead><tr><th>Sent</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th></th></tr></thead>
         <tbody>
         <% notifications.forEach(n => { %>
           <tr>
@@ -38,11 +43,18 @@
             <td><%= n.recipient %></td>
             <td><%= n.subject %></td>
             <td><span class="badge status-<%= n.status %>"><%= n.status %></span></td>
+            <td>
+              <% if (n.status === 'failed') { %>
+                <form method="POST" action="/notifications/<%= n.id %>/retry" style="margin:0;">
+                  <button class="btn-toggle grant" type="submit">Retry</button>
+                </form>
+              <% } %>
+            </td>
           </tr>
           <% if (n.error) { %>
             <tr>
               <td></td>
-              <td colspan="4" style="color:var(--danger);font-size:12px;padding-top:0;padding-bottom:12px;"><%= n.error %></td>
+              <td colspan="5" style="color:var(--danger);font-size:12px;padding-top:0;padding-bottom:12px;"><%= n.error %></td>
             </tr>
           <% } %>
         <% }) %>

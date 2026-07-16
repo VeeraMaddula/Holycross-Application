@@ -25,7 +25,7 @@ async function sendEmail({ to, subject, text, html, type, bookingId }) {
   if (!to) return;
   const t = getTransporter();
   if (!t) {
-    models.logNotification({ type, bookingId, recipient: to, subject, status: 'skipped-no-smtp' });
+    models.logNotification({ type, bookingId, recipient: to, subject, text, status: 'skipped-no-smtp' });
     return;
   }
   try {
@@ -33,9 +33,9 @@ async function sendEmail({ to, subject, text, html, type, bookingId }) {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to, subject, text, html
     });
-    models.logNotification({ type, bookingId, recipient: to, subject, status: 'sent' });
+    models.logNotification({ type, bookingId, recipient: to, subject, text, status: 'sent' });
   } catch (err) {
-    models.logNotification({ type, bookingId, recipient: to, subject, status: 'failed', error: err.message });
+    models.logNotification({ type, bookingId, recipient: to, subject, text, status: 'failed', error: err.message });
   }
 }
 

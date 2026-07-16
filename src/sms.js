@@ -12,7 +12,7 @@ async function sendSms({ to, body, type, bookingId }) {
   if (!recipient) return;
 
   if (!isConfigured()) {
-    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), status: 'skipped-no-twilio' });
+    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'skipped-no-twilio' });
     return;
   }
 
@@ -33,9 +33,9 @@ async function sendSms({ to, body, type, bookingId }) {
     if (!res.ok) {
       throw new Error((data && data.message) || `Twilio error ${res.status}`);
     }
-    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), status: 'sent' });
+    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'sent' });
   } catch (err) {
-    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), status: 'failed', error: err.message });
+    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'failed', error: err.message });
   }
 }
 
