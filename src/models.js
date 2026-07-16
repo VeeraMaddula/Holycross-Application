@@ -1,6 +1,6 @@
 const { readDb, writeDb } = require('./db');
 const { ROLE_VALUES } = require('./roles');
-const { toDateStr } = require('./dateUtils');
+const { toDateStr, todayStr } = require('./dateUtils');
 const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
 
 function normalizeRole(role) {
@@ -31,6 +31,13 @@ function bookingRange(booking, slotDuration) {
 
 function overlaps(a, b) {
   return a.start < b.end && b.start < a.end;
+}
+
+function minutesToHHMM(mins) {
+  const wrapped = ((mins % 1440) + 1440) % 1440; // clip overnight overflow back onto a 24h clock for display
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function buildMusic(input) {
@@ -71,6 +78,51 @@ function buildFood(input) {
 // ---- Tables ----
 function listTables() {
   return readDb().tables;
+}
+
+// Live occupancy for the Tables page: for each table, checks today's
+// non-cancelled bookings against the current time. A table is "occupied"
+// if right now falls inside a booking's start-to-start+duration window
+// (same window logic booking conflict-detection already uses), "reserved"
+// if nothing's active now but something's coming up later today, otherwise
+// "available". This reads straight off existing booking data — no new
+// fields, no external system, so it's accurate for anything booked through
+// this app; it doesn't know about walk-ins that never got a booking record.
+function getTablesWithStatus() {
+  const db = readDb();
+  const today = todayStr();
+  const slotDuration = db.settings.slotDurationMinutes;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const todaysByTable = new Map();
+  db.bookings.forEach(b => {
+    if (b.date !== today || b.status === 'cancelled') return;
+    if (!todaysByTable.has(b.tableId)) todaysByTable.set(b.tableId, []);
+    todaysByTable.get(b.tableId).push(b);
+  });
+
+  return db.tables.map(t => {
+    const todaysBookings = (todaysByTable.get(t.id) || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+    const current = todaysBookings.find(b => {
+      const r = bookingRange(b, slotDuration);
+      return nowMinutes >= r.start && nowMinutes < r.end;
+    });
+    if (current) {
+      const r = bookingRange(current, slotDuration);
+      return {
+        ...t,
+        status: 'occupied',
+        statusLabel: `Occupied · ${current.time}–${minutesToHHMM(r.end)}`,
+        booking: current
+      };
+    }
+    const upcoming = todaysBookings.find(b => bookingRange(b, slotDuration).start > nowMinutes);
+    if (upcoming) {
+      return { ...t, status: 'reserved', statusLabel: `Reserved · ${upcoming.time}`, booking: upcoming };
+    }
+    return { ...t, status: 'available', statusLabel: 'Available', booking: null };
+  });
 }
 
 function createTable({ name, seats, area }) {
@@ -742,7 +794,7 @@ function listRequestsForUser(userId) {
 }
 
 module.exports = {
-  listTables, createTable, deleteTable,
+  listTables, getTablesWithStatus, createTable, deleteTable,
   listBookings, getBooking, createBooking, updateBooking, setStatus, updatePayment, deleteBooking,
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,

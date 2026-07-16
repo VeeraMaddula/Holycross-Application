@@ -138,6 +138,10 @@ tr:hover td { background: #fbf6ee; }
 .badge.payment-paid_full { background: #ebfbee; color: #2f9e44; }
 .badge.payment-refunded { background: #f1f3f5; color: #868e96; }
 
+.badge.table-status-occupied { background: #fff5f5; color: var(--danger); }
+.badge.table-status-reserved { background: #fff9db; color: #e8590c; }
+.badge.table-status-available { background: #ebfbee; color: var(--success); }
+
 form.inline { display: inline; }
 /* A <select> inside a form.inline (display:inline) has no defined
    containing-block width to resolve its own width:100% against, so

@@ -9,13 +9,14 @@
 
     <div class="card">
       <table>
-        <thead><tr><th>Name</th><th>Seats</th><th>Area</th><th></th></tr></thead>
-        <tbody>
+        <thead><tr><th>Name</th><th>Seats</th><th>Area</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tablesStatusBody">
         <% tables.forEach(t => { %>
-          <tr>
+          <tr data-table-id="<%= t.id %>">
             <td><%= t.name %></td>
             <td><%= t.seats %></td>
             <td><%= t.area %></td>
+            <td><span class="badge table-status-<%= t.status %>" data-status-label><%= t.statusLabel %></span></td>
             <td>
               <form class="inline" method="POST" action="/tables/<%= t.id %>/delete" onsubmit="return confirm('Remove this table?')">
                 <button class="btn small danger" type="submit">Remove</button>
@@ -25,6 +26,7 @@
         <% }) %>
         </tbody>
       </table>
+      <p class="muted" style="margin-bottom:0">Status is based on today's bookings in this app and updates automatically.</p>
     </div>
 
     <div class="card" style="max-width:420px">
@@ -47,5 +49,26 @@
     </div>
   </div>
 </div>
+<script>
+  // Refreshes just the Status badges every 30s so a table flips from
+  // "Occupied" to "Available" (or picks up a new booking) without anyone
+  // needing to reload the page — same live-refresh pattern as the dashboard.
+  function refreshTableStatuses() {
+    fetch('/tables/status', { headers: { Accept: 'application/json' } })
+      .then(function(res) { return res.json(); })
+      .then(function(statuses) {
+        statuses.forEach(function(s) {
+          var row = document.querySelector('tr[data-table-id="' + s.id + '"]');
+          if (!row) return;
+          var badge = row.querySelector('[data-status-label]');
+          if (!badge) return;
+          badge.textContent = s.statusLabel;
+          badge.className = 'badge table-status-' + s.status;
+        });
+      })
+      .catch(function() { /* silent — keep showing the last known state */ });
+  }
+  setInterval(refreshTableStatuses, 30000);
+</script>
 </body>
 </html>
