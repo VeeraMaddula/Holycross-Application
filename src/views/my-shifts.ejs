@@ -6,9 +6,59 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>My Shifts</h2>
-    <p class="muted">Your upcoming shifts for the next 4 weeks.</p>
+
+    <div class="card roster-table-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div>
+          <h3 style="margin:0">Week at a glance</h3>
+          <p class="muted" style="margin:2px 0 0">Everyone on shift this week. Refreshes automatically — no need to reload.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <a class="btn small secondary" href="/my-shifts?week=<%= prevWeek %>">&larr; Prev</a>
+          <a class="btn small secondary" href="/my-shifts?week=<%= thisWeek %>">This week</a>
+          <a class="btn small secondary" href="/my-shifts?week=<%= nextWeek %>">Next &rarr;</a>
+        </div>
+      </div>
+
+      <% if (teamUsers.length === 0) { %>
+        <p class="muted" style="margin:0">No active staff accounts yet.</p>
+      <% } else { %>
+        <div class="roster-table-wrap">
+          <table class="roster-table" id="teamOverviewTable">
+            <thead>
+              <tr>
+                <th class="roster-table-corner">Staff</th>
+                <% teamDays.forEach(day => { %>
+                  <th title="<%= dayNames[day.dayOfWeek] %>, <%= day.date %>"><%= dayNames[day.dayOfWeek].slice(0, 3) %><br><span class="muted" style="font-weight:400"><%= day.date.slice(8) %></span></th>
+                <% }) %>
+              </tr>
+            </thead>
+            <tbody>
+              <% teamUsers.forEach(u => { %>
+                <tr>
+                  <td class="roster-table-name"><%= u.name %><% if (u.id === currentUser.id) { %> <span class="muted">(you)</span><% } %></td>
+                  <% teamDays.forEach(day => { const cellShifts = day.shifts.filter(s => s.userId === u.id); %>
+                    <td class="roster-table-cell" data-user-id="<%= u.id %>" data-date="<%= day.date %>">
+                      <% if (cellShifts.length === 0) { %>
+                        <span class="roster-table-off">—</span>
+                      <% } else { %>
+                        <% cellShifts.forEach(s => { %>
+                          <span class="roster-pill" style="background:<%= s.color %>"><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
+                        <% }) %>
+                      <% } %>
+                    </td>
+                  <% }) %>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
 
     <div class="card">
+      <h3 style="margin-top:0">Your upcoming shifts</h3>
+      <p class="muted" style="margin-top:-6px">Next 4 weeks.</p>
       <% if (days.length === 0) { %>
         <p class="muted">No upcoming shifts scheduled for you right now.</p>
       <% } else { %>
@@ -29,5 +79,38 @@
     </div>
   </div>
 </div>
+<script>
+  (function() {
+    var table = document.getElementById('teamOverviewTable');
+    if (!table) return;
+
+    function renderCells(shifts) {
+      var byCell = {};
+      shifts.forEach(function(s) {
+        var key = s.userId + '|' + s.date;
+        if (!byCell[key]) byCell[key] = [];
+        byCell[key].push(s);
+      });
+      table.querySelectorAll('.roster-table-cell').forEach(function(td) {
+        var key = td.getAttribute('data-user-id') + '|' + td.getAttribute('data-date');
+        var list = byCell[key] || [];
+        if (!list.length) {
+          td.innerHTML = '<span class="roster-table-off">—</span>';
+          return;
+        }
+        td.innerHTML = list.map(function(s) {
+          return '<span class="roster-pill" style="background:' + s.color + '">' + s.startLabel + '–' + s.endLabel + '</span>';
+        }).join('');
+      });
+    }
+
+    setInterval(function() {
+      fetch('/my-shifts/week/data?week=<%= weekStart %>', { headers: { Accept: 'application/json' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderCells(data.shifts); })
+        .catch(function() { /* silent — keep showing the last known state */ });
+    }, 30000);
+  })();
+</script>
 </body>
 </html>
