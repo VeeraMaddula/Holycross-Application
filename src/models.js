@@ -5,7 +5,7 @@ const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils'
 const { hashPassword, verifyPassword } = require('./password');
 
 function normalizeRole(role) {
-  return ROLE_VALUES.includes(role) ? role : 'staff';
+  return ROLE_VALUES.includes(role) ? role : 'bar_staff';
 }
 
 // Default colour a new staff member gets on the roster grid (admin can change

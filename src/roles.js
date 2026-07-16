@@ -9,7 +9,8 @@ const ROLES = [
   { value: 'general_manager', label: 'General Manager' },
   { value: 'staff_manager', label: 'Staff Manager' },
   { value: 'floor_manager', label: 'Floor Manager' },
-  { value: 'staff', label: 'Staff' },
+  { value: 'bar_staff', label: 'Bar Staff' },
+  { value: 'kitchen_staff', label: 'Kitchen Staff' },
   { value: 'kiosk', label: 'Kiosk (Bot)' }
 ];
 
