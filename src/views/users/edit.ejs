@@ -54,6 +54,30 @@
 
     <% if (user.role !== 'kiosk') { %>
       <div class="card" style="max-width:480px">
+        <h3 style="margin-top:0">Profile picture</h3>
+        <p class="muted">This is what shows up everywhere for this person — Dashboard, Staff Status, and their kiosk tile whenever they're clocked out. Photos taken during a shift on the kiosk are temporary and always revert back to this one.</p>
+        <% if (avatarError) { %><div class="error-box"><%= avatarError %></div><% } %>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <% if (user.avatarPath) { %>
+            <img src="<%= user.avatarPath %>" alt="<%= user.name %>" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+          <% } else { %>
+            <span style="width:64px;height:64px;border-radius:50%;background:#eef3ee;color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">
+              <%= user.name.split(' ').map(p => p[0]).join('').toUpperCase() %>
+            </span>
+          <% } %>
+          <form method="POST" action="/users/<%= user.id %>/avatar" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required>
+            <button class="btn small" type="submit">Upload</button>
+          </form>
+          <% if (user.avatarPath) { %>
+            <form method="POST" action="/users/<%= user.id %>/avatar/remove" onsubmit="return confirm('Remove this profile picture?')">
+              <button class="btn small secondary" type="submit">Remove</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:480px">
         <h3 style="margin-top:0">Clock-in kiosk PIN</h3>
         <p class="muted">A separate 4-digit code used only on the shared clock-in tablet — not the login password.</p>
         <% if (pinError) { %><div class="error-box"><%= pinError %></div><% } %>

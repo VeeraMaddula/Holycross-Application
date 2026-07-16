@@ -529,7 +529,10 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-shell { min-height: 100vh; padding: 28px 32px 40px; }
 .kiosk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 .kiosk-header > div:first-child { display: flex; align-items: center; gap: 14px; }
-.kiosk-logo { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+/* The Holy Cross logo is a wide signage graphic (900x550), not a square
+   crest — forcing it into a 50x50 square with object-fit:cover cropped it
+   down to an illegible sliver. Keep its natural aspect ratio instead. */
+.kiosk-logo { height: 54px; width: auto; border-radius: 6px; display: block; }
 .kiosk-brand { font-size: 21px; font-weight: 700; color: var(--accent-dark); }
 .kiosk-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .kiosk-header-right { display: flex; align-items: center; gap: 18px; }
