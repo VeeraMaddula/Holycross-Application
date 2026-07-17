@@ -51,7 +51,7 @@
           Staff Status
         </a>
       <% } %>
-      <% if (currentUser && currentUser.role === 'kiosk') { %>
+      <% if (currentUser && ['kiosk', 'admin', 'senior_manager'].includes(currentUser.role)) { %>
         <a href="/kiosk" class="<%= currentPath.startsWith('/kiosk') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M10 18h4"/></svg>
           Clock-in Kiosk

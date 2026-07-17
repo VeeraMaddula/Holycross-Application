@@ -48,14 +48,14 @@ function requireNotificationsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-// Kiosk page access = the Kiosk/Bot account only. Nobody else — not admin,
-// not managers, not Bar or Kitchen Staff — opens this page directly under
-// their own login. Everyone still uses the physical tablet the normal way:
-// tap your photo tile and enter your PIN while the Bot account is the one
-// signed in on the shared device.
+// Kiosk page access = the Kiosk/Bot account, plus Admin and Senior Manager
+// (so they can preview/test the tablet screen without logging out of their
+// own account into Bot). Everyone else — Bar/Kitchen Staff, Floor/General/
+// Staff Manager — still only ever sees this by tapping their photo tile on
+// the shared tablet while the Bot account is the one signed in.
 function requireKioskPageAccess(req, res, next) {
   const u = res.locals.currentUser;
-  if (u && u.role === 'kiosk') return next();
+  if (u && (u.role === 'kiosk' || u.role === 'admin' || u.role === 'senior_manager')) return next();
   return res.status(403).render('403');
 }
 
