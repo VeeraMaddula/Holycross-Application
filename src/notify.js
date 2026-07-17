@@ -98,6 +98,30 @@ function pendingApprovalEmail(booking, table, conflict) {
   return { subject, text };
 }
 
+// Forgot-password reset link. The token in the link is one-time-use and
+// expires after 1 hour (see models.createPasswordResetToken).
+function passwordResetEmail(user, resetLink) {
+  const subject = `Reset your password - The Holy Cross`;
+  const text = `Hi ${user.name},\n\n`
+    + `We received a request to reset your password for The Holy Cross booking admin.\n\n`
+    + `Reset it here (this link expires in 1 hour):\n${resetLink}\n\n`
+    + `If you didn't request this, you can safely ignore this email — your password won't change.\n\n`
+    + `For more information, please contact us on ${CONTACT_PHONE}.\n\nThe Holy Cross`;
+  return { subject, text };
+}
+
+// Sent to Manager/Floor Manager/Senior Manager/General Manager/Admin when
+// someone taps "Forgot PIN?" on the kiosk. There's no self-service PIN
+// reset by design — that would defeat the point of a PIN-gated clock-in —
+// so this just routes the request to whoever can set a new one from the
+// Users page.
+function pinResetRequestEmail(user) {
+  const subject = `PIN reset needed: ${user.name}`;
+  const text = `${user.name} tapped "Forgot PIN?" on the kiosk and needs their clock-in PIN reset.\n\n`
+    + `Set a new PIN for them from Users → ${user.name} → Clock-in kiosk PIN.`;
+  return { subject, text };
+}
+
 function shiftAssignedEmail(shift, userName) {
   const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
   const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
@@ -137,6 +161,15 @@ async function notifyManagersPendingApproval(booking, table, conflict) {
   const { subject, text } = pendingApprovalEmail(booking, table, conflict);
   for (const m of managers) {
     await sendEmail({ to: m.email, subject, text, type: 'pending-approval', bookingId: booking.id });
+  }
+}
+
+// Kiosk "Forgot PIN?" — same manager audience as the booking-approval alert.
+async function notifyManagersPinResetRequest(user) {
+  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const { subject, text } = pinResetRequestEmail(user);
+  for (const m of managers) {
+    await sendEmail({ to: m.email, subject, text, type: 'pin-reset-request' });
   }
 }
 
@@ -181,5 +214,7 @@ function startScheduler() {
 module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
-  notifyAdminNewBooking, notifyManagersPendingApproval, runReminderSweep, startScheduler, getTransporter
+  passwordResetEmail, pinResetRequestEmail,
+  notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
+  runReminderSweep, startScheduler, getTransporter
 };

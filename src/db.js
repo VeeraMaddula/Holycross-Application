@@ -4,7 +4,14 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DEFAULT_DB_FILE = path.join(DATA_DIR, 'db.json');
+// Tests point this at a throwaway temp file (via DB_FILE_PATH) so they never
+// touch the real restaurant data. Resolved on every call (not cached at
+// module load) so it works no matter how the test runner shares processes
+// between test files.
+function getDbFile() {
+  return process.env.DB_FILE_PATH || DEFAULT_DB_FILE;
+}
 
 const DEFAULT_DATA = {
   tables: [
@@ -98,22 +105,25 @@ const DEFAULT_DATA = {
 };
 
 function ensureDb() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DATA, null, 2));
+  const dbFile = getDbFile();
+  const dir = path.dirname(dbFile);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dbFile)) {
+    fs.writeFileSync(dbFile, JSON.stringify(DEFAULT_DATA, null, 2));
   }
 }
 
 function readDb() {
   ensureDb();
-  const raw = fs.readFileSync(DB_FILE, 'utf-8');
+  const raw = fs.readFileSync(getDbFile(), 'utf-8');
   return JSON.parse(raw);
 }
 
 function writeDb(data) {
-  const tmp = DB_FILE + '.tmp';
+  const dbFile = getDbFile();
+  const tmp = dbFile + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-  fs.renameSync(tmp, DB_FILE);
+  fs.renameSync(tmp, dbFile);
 }
 
-module.exports = { readDb, writeDb, ensureDb, DATA_DIR, DB_FILE };
+module.exports = { readDb, writeDb, ensureDb, DATA_DIR, DEFAULT_DATA, get DB_FILE() { return getDbFile(); } };

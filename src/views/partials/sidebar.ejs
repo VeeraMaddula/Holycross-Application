@@ -46,10 +46,6 @@
         </a>
       <% } %>
       <% if (!currentUser || !['kitchen_staff', 'kiosk'].includes(currentUser.role)) { %>
-        <a href="/clock" class="<%= currentPath.startsWith('/clock') ? 'active' : '' %>">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-          Clock In / Out
-        </a>
         <a href="/staff-status" class="<%= currentPath.startsWith('/staff-status') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/><path d="m16 14 2 2 3-3"/></svg>
           Staff Status
@@ -96,6 +92,17 @@
         </a>
       <% } %>
     </nav>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <div class="sidebar-danger-zone">
+        <div class="sidebar-danger-label">Danger zone</div>
+        <form method="POST" action="/settings/clear-data" onsubmit="return confirm('Clear all bookings, notifications, timesheets, roster shifts, and requests?\n\nStaff accounts, tables, and the menu are kept. This cannot be undone.')">
+          <button type="submit" class="sidebar-danger-btn">Clear data</button>
+        </form>
+        <form method="POST" action="/settings/factory-reset" onsubmit="return confirm('This deletes EVERY booking, staff account, table, and menu item, and logs you out.\n\nThis cannot be undone.') &amp;&amp; confirm('Really factory reset? This is your last chance to cancel.')">
+          <button type="submit" class="sidebar-danger-btn sidebar-danger-btn-strong">Factory reset</button>
+        </form>
+      </div>
+    <% } %>
     <% if (currentUser) { %>
       <a href="/profile" class="user-card">
         <% if (currentUser.avatarPath) { %>

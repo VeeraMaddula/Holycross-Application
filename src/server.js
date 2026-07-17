@@ -88,9 +88,9 @@ app.use((req, res, next) => {
 // Kitchen Staff get a deliberately narrow slice of the app — Dashboard,
 // My Shifts (incl. the team week-at-a-glance), Requests, and their own
 // Profile. Everything else (Bookings, Tables, Menu, Calendar, Staff Status,
-// their own /clock page, the Kiosk page, etc.) bounces back to the
-// Dashboard. Like everyone else, they clock in/out by tapping their tile on
-// the shared kiosk tablet — not by opening /kiosk under their own login.
+// the Kiosk page, etc.) bounces back to the Dashboard. Like everyone else,
+// they clock in/out by tapping their tile on the shared kiosk tablet — not
+// by opening /kiosk under their own login.
 // Bar Staff keep the full staff-level access they've always had — this
 // only applies to the kitchen_staff role.
 const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/profile'];
@@ -114,7 +114,6 @@ app.use('/calendar', requireAuth, require('./routes/calendar'));
 app.use('/notifications', requireAuth, requireNotificationsAccess, require('./routes/notifications'));
 app.use('/settings', requireAuth, requireAdmin, require('./routes/settings'));
 app.use('/users', requireAuth, requireAdmin, require('./routes/users'));
-app.use('/clock', requireAuth, require('./routes/clock'));
 app.use('/kiosk', requireAuth, requireKioskPageAccess, require('./routes/kiosk'));
 app.use('/staff-status', requireAuth, require('./routes/staffStatus'));
 app.use('/timesheets', requireAuth, requireTimesheetAccess, require('./routes/timesheets'));

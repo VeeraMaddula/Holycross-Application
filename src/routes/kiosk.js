@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const router = express.Router();
 const models = require('../models');
+const notify = require('../notify');
 
 // Shares the same folder as the profile-page avatar upload (src/routes/profile.js)
 // since a kiosk clock-in photo becomes that person's profile picture — same
@@ -60,6 +61,20 @@ router.post('/verify', (req, res) => {
   }
   const status = models.getStaffStatus(user.id);
   res.json({ ok: true, status: status.status });
+});
+
+// There's no self-service PIN reset from the tablet — that would defeat the
+// point of a PIN gate on clock-in — so "Forgot PIN?" just alerts whoever can
+// set a new one from the Users page (Manager/Floor Manager/Senior
+// Manager/General Manager/Admin).
+router.post('/forgot-pin', async (req, res) => {
+  const { userId } = req.body;
+  const user = models.getUserById(userId);
+  if (!user || !user.active || user.role === 'kiosk') {
+    return res.status(400).json({ error: 'Staff member not found.' });
+  }
+  await notify.notifyManagersPinResetRequest(user);
+  res.json({ ok: true });
 });
 
 // clock_in / break_start / break_end all capture a fresh photo — it becomes

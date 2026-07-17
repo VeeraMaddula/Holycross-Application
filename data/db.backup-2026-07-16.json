@@ -1,0 +1,698 @@
+{
+  "tables": [
+    {
+      "id": 1,
+      "name": "Table 1",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 2,
+      "name": "Table 2",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 3,
+      "name": "Table 3",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 4,
+      "name": "Table 4",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 5,
+      "name": "Table 5",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 6,
+      "name": "Table 6",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 7,
+      "name": "Table 7",
+      "seats": 4,
+      "area": "Snug"
+    },
+    {
+      "id": 8,
+      "name": "Table 8",
+      "seats": 2,
+      "area": "Snug"
+    },
+    {
+      "id": 9,
+      "name": "Table 9",
+      "seats": 2,
+      "area": "Snug"
+    },
+    {
+      "id": 10,
+      "name": "Table 10",
+      "seats": 10,
+      "area": "Front Bar"
+    },
+    {
+      "id": 11,
+      "name": "Table 11",
+      "seats": 2,
+      "area": "Main Floor"
+    },
+    {
+      "id": 12,
+      "name": "Table 12",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 13,
+      "name": "Table 13",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 14,
+      "name": "Table 14",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 15,
+      "name": "Table 15",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 16,
+      "name": "Table 16",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 17,
+      "name": "Table 17",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 18,
+      "name": "Table 18",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 19,
+      "name": "Table 19",
+      "seats": 4,
+      "area": "Main Floor"
+    },
+    {
+      "id": 20,
+      "name": "Table 20",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 21,
+      "name": "Table 21",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 22,
+      "name": "Table 22",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 23,
+      "name": "Table 23",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 24,
+      "name": "Table 24",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 25,
+      "name": "Table 25",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 26,
+      "name": "Table 26",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 27,
+      "name": "Table 27",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 28,
+      "name": "Table 28",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 29,
+      "name": "Table 29",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 30,
+      "name": "Table 30",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 31,
+      "name": "Table 31",
+      "seats": 2,
+      "area": "Side Bar"
+    },
+    {
+      "id": 32,
+      "name": "Table 32",
+      "seats": 2,
+      "area": "Side Bar"
+    },
+    {
+      "id": 33,
+      "name": "Table 33",
+      "seats": 4,
+      "area": "Side Bar"
+    },
+    {
+      "id": 34,
+      "name": "Whitefield Room",
+      "seats": 100,
+      "area": "Function Room"
+    },
+    {
+      "id": 35,
+      "name": "Butlerstone Room",
+      "seats": 50,
+      "area": "Function Room"
+    },
+    {
+      "id": 36,
+      "name": "table9",
+      "seats": 5,
+      "area": "sung"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1,
+      "customerName": "Veera Durga Jagannad Maddula",
+      "phone": "0894338657",
+      "email": "jagannadham.ireland.edu@gmail.com",
+      "partySize": 2,
+      "date": "2026-07-15",
+      "time": "10:33",
+      "durationMinutes": 90,
+      "tableId": 6,
+      "notes": "",
+      "occasion": "Birhtday",
+      "paymentStatus": "deposit_paid",
+      "depositAmount": 50,
+      "music": {
+        "providedBy": "holy_cross",
+        "providedByOther": "",
+        "startTime": "10:35",
+        "endTime": "12:37",
+        "types": [
+          "Jazz"
+        ],
+        "typesOther": "",
+        "artistName": "Veera Durga Jagannad Maddula",
+        "price": 50
+      },
+      "food": {
+        "package": "",
+        "packageOther": "",
+        "price": 10,
+        "courses": []
+      },
+      "status": "confirmed",
+      "reminderSent": true,
+      "googleEventId": "",
+      "createdAt": "2026-07-14T07:33:59.794Z",
+      "history": [
+        {
+          "at": "2026-07-14T07:33:59.794Z",
+          "event": "Booking created"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "customerName": "Mega",
+      "phone": "0894338657",
+      "email": "waterfordholycross@gmail.com",
+      "partySize": 10,
+      "date": "2026-07-16",
+      "time": "16:42",
+      "durationMinutes": 90,
+      "tableId": 10,
+      "notes": "",
+      "occasion": "Birhtday",
+      "paymentStatus": "deposit_paid",
+      "depositAmount": 1000,
+      "music": {
+        "providedBy": "self",
+        "providedByOther": "",
+        "startTime": "16:40",
+        "endTime": "18:40",
+        "types": [
+          "Blues"
+        ],
+        "typesOther": "",
+        "artistName": "srinivasaro",
+        "price": 1000
+      },
+      "food": {
+        "package": "bbq",
+        "packageOther": "",
+        "price": 22,
+        "courses": []
+      },
+      "status": "confirmed",
+      "reminderSent": true,
+      "googleEventId": "",
+      "createdAt": "2026-07-14T12:40:34.747Z",
+      "createdByUserId": 2,
+      "createdByName": "Venkata Satya ",
+      "history": [
+        {
+          "at": "2026-07-14T12:40:34.747Z",
+          "event": "Booking created by Venkata Satya "
+        },
+        {
+          "at": "2026-07-14T12:49:22.609Z",
+          "event": "Booking updated"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "customerName": "Veera Maddula",
+      "phone": "0894338657",
+      "email": "veerajagannadham112@gmail.com",
+      "partySize": 4,
+      "date": "2026-07-17",
+      "time": "04:37",
+      "durationMinutes": 90,
+      "tableId": 2,
+      "notes": "",
+      "occasion": "Birhtday",
+      "paymentStatus": "unpaid",
+      "depositAmount": 0,
+      "music": {
+        "providedBy": "self",
+        "providedByOther": "",
+        "startTime": "",
+        "endTime": "",
+        "types": [],
+        "typesOther": "",
+        "artistName": "",
+        "price": 0
+      },
+      "food": {
+        "package": "",
+        "packageOther": "",
+        "price": 0,
+        "courses": []
+      },
+      "status": "confirmed",
+      "reminderSent": true,
+      "googleEventId": "",
+      "createdAt": "2026-07-15T23:33:52.983Z",
+      "createdByUserId": 1,
+      "createdByName": "Admin",
+      "history": [
+        {
+          "at": "2026-07-15T23:33:52.983Z",
+          "event": "Booking created by Admin"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "customerName": "Carlos",
+      "phone": "0896156516",
+      "email": "joiacfl@gmail.com",
+      "partySize": 4,
+      "date": "2026-07-17",
+      "time": "14:47",
+      "durationMinutes": 90,
+      "tableId": 1,
+      "notes": "",
+      "occasion": "Birhtday",
+      "paymentStatus": "unpaid",
+      "depositAmount": 0,
+      "music": {
+        "providedBy": "",
+        "providedByOther": "",
+        "startTime": "",
+        "endTime": "",
+        "types": [],
+        "typesOther": "",
+        "artistName": "",
+        "price": 0
+      },
+      "food": {
+        "package": "two_course",
+        "packageOther": "",
+        "price": 26,
+        "courses": []
+      },
+      "status": "confirmed",
+      "reminderSent": true,
+      "googleEventId": "",
+      "createdAt": "2026-07-16T12:47:33.789Z",
+      "createdByUserId": 1,
+      "createdByName": "Admin",
+      "history": [
+        {
+          "at": "2026-07-16T12:47:33.789Z",
+          "event": "Booking created by Admin"
+        }
+      ]
+    }
+  ],
+  "menu": {
+    "intro": "Great food, good company — that's what it's all about. Allergen key: 1 Cereals, 2 Crustaceans, 3 Eggs, 4 Fish, 5 Peanuts, 6 Soybeans, 7 Milk, 8 Nuts, 9 Celery, 10 Mustard, 11 Sesame Seeds, 12 Sulphur Dioxide & Sulphates, 13 Lupin, 14 Molluscs.",
+    "sections": [
+      {
+        "title": "Tapas",
+        "items": [
+          { "name": "Patatas Bravas", "price": "9.00", "desc": "Sauté potatoes with spicy tomato sauce (1,9,3,6)" },
+          { "name": "Kansas Wings", "price": "14.00", "desc": "Crispy wings tossed in sauce of your choice (1,3,6,7,8,9,10)" },
+          { "name": "Fish Goujons", "price": "10.00", "desc": "With tartar or sweet chilli sauce" },
+          { "name": "Pan Fried Prawns", "price": "12.50", "desc": "Pan fried fresh prawns in garlic butter & romesco sauce (2,9,7)" },
+          { "name": "Meat Balls", "price": "13.00", "desc": "100% beef meat balls with spicy tomato sauce (1,3,6,7,9,10)" },
+          { "name": "Prawn or Monk Scampi", "price": "12.95", "desc": "Fresh scampi with taste of sweet chilli (1,2,3,4,7,6)" },
+          { "name": "Chicken Satay Skewers", "price": "10.00", "desc": "Marinated chicken with satay sauce (1,5,6,8,10)" },
+          { "name": "Garlic Mushrooms", "price": "9.00", "desc": "Golden crispy mushrooms with garlic dip (1,3,6,7,10)" },
+          { "name": "Croquettes of the Week", "price": "14.00", "desc": "Meat or fish croquettes with chorizo mayo (1,2,3,4,7,10)" },
+          { "name": "Kilmore Quay Fish Chowder", "price": "12.95", "desc": "(2,4,7,9,10)" }
+        ]
+      },
+      {
+        "title": "Salads",
+        "items": [
+          { "name": "Warm Chicken & Bacon Salad", "price": "15.95", "desc": "Mixed leaves, tomatoes, sweetcorn, red onion, croutons and Caesar dressing topped with marinated chicken and crispy bacon (1,6,11,12)" },
+          { "name": "King Prawn Salad", "price": "16.95", "desc": "Perfectly poached prawns on house salad with marie rose sauce, served with brown bread (1,2,3,10)" },
+          { "name": "Egg Mayonnaise Salad", "price": "8.95", "desc": "Boiled eggs served on tossed salad with mayonnaise (1,2,3,6,10)" },
+          { "name": "Bruleed Goats Cheese Salad", "price": "15.95", "desc": "Oven baked goats cheese on house salad with caramelised walnuts, roasted beetroot and balsamic glaze (1,6,7,8,10)" },
+          { "name": "Ploughman's Salad", "price": "16.95", "desc": "Roast of the day with mixed salad (1,3,4,6,12)" },
+          { "name": "Crispy Duck Salad — Full €20.95 / Half €11.95", "price": "20.95", "desc": "Crispy duck on house salad served with raspberry & orange sauce or plum sauce (8,9,10,12)" }
+        ]
+      },
+      {
+        "title": "Steak",
+        "items": [
+          { "name": "12oz Prime Sirloin Steak", "price": "38.00", "desc": "Cooked to your liking, served with onion rings, mushrooms, choice of pepper sauce, red wine jus or garlic butter, and skin-on fries (7,9)" },
+          { "name": "8oz Ribeye Steak", "price": "23.95", "desc": "Tender ribeye steak grilled to your liking, served with creamy mash or chips, mushrooms and onion. Choice of pepper sauce or garlic butter (7,9)" },
+          { "name": "6oz Steak Sandwich", "price": "19.95", "desc": "Sirloin steak on grilled sourdough with onions and mushrooms, served with fries and pepper sauce or garlic butter (1,3,6,9,10)" }
+        ]
+      },
+      {
+        "title": "Burgers",
+        "items": [
+          { "name": "8oz Beef Burger", "price": "18.95", "desc": "Grilled burger served on a toasted bun with cheese, bacon, lettuce, onion, tomato and homemade burger sauce. Served with fries (1,3,6,7,8,9,10,12)" },
+          { "name": "Southern Fried Chicken Burger", "price": "17.95", "desc": "Buttermilk brined chicken breast in house blend coating with garlic mayo, lettuce and tomato. Served with fries (1,3,10)" },
+          { "name": "Vegetarian Burger", "price": "16.95", "desc": "Veg based burger with lettuce, cheese, tomato, red onion and burger sauce on brioche bun. Served with fries (1,3,6,9,10)" }
+        ]
+      },
+      {
+        "title": "Chinese Style Curry",
+        "items": [
+          { "name": "Chicken Curry", "price": "18.95", "desc": "Chinese style curry sauce served with rice or fries and a poppadom (1,7,8,9,10)" },
+          { "name": "Prawn Curry", "price": "19.95", "desc": "Chinese style curry sauce served with rice or fries and a poppadom (1,7,8,9,10)" },
+          { "name": "Beef Curry", "price": "21.95", "desc": "Chinese style curry sauce served with rice or fries and a poppadom (1,7,8,9,10)" },
+          { "name": "Vegetable Curry", "price": "16.95", "desc": "Chinese style curry sauce served with rice or fries and a poppadom (1,7,8,9,10)" }
+        ]
+      },
+      {
+        "title": "Sizzling Dishes",
+        "items": [
+          { "name": "Beef Sizzler", "price": "22.95", "desc": "Tender strips of beef with onions and peppers in your choice of sweet chilli, black bean or soy ginger sauce. Served with fries or rice (1,4,5,6,9,10,11,14)" },
+          { "name": "Chicken Sizzler", "price": "18.95", "desc": "Marinated chicken strips with onions and peppers in your choice of sweet chilli, black bean or soy ginger sauce. Served with fries or rice (1,4,5,6,9,10,11,14)" },
+          { "name": "Vegetable Sizzler", "price": "16.95", "desc": "Seasonal vegetables tossed with onions and peppers in your choice of sweet chilli, black bean or soy ginger sauce. Served with fries or rice (1,4,5,6,9,10,11,14)" },
+          { "name": "Prawn Sizzler", "price": "18.95", "desc": "Prawns tossed with onions and peppers in your choice of sweet chilli, black bean or soy ginger sauce. Served with fries or rice (1,4,5,6,9,10,11,14)" }
+        ]
+      },
+      {
+        "title": "Fish",
+        "items": [
+          { "name": "Beer Battered Fish & Chips", "price": "19.95", "desc": "Served with fries, salad and tartar sauce (1,3,4,6,10)" },
+          { "name": "Scampi & Chips", "price": "19.95", "desc": "" },
+          { "name": "Fish of the Day", "price": "21.50", "desc": "Please ask your server." }
+        ]
+      },
+      {
+        "title": "Lasagne",
+        "items": [
+          { "name": "Baked Lasagne", "price": "16.95", "desc": "Layers of pasta, bolognese and béchamel sauce. Served with garlic bread and fries (1,3,6,7,8,9,10)" }
+        ]
+      },
+      {
+        "title": "Wings",
+        "items": [
+          { "name": "Kansas Style Chicken Wings", "price": "21.95", "desc": "Crispy wings tossed in Korean style BBQ, hot or soy ginger. Served with fries and blue cheese dip (1,3,6,7,8,9,10)" }
+        ]
+      },
+      {
+        "title": "Sides",
+        "items": [
+          { "name": "Fries", "price": "3.95", "desc": "(1,6)" },
+          { "name": "Parmesan & Truffle Fries", "price": "4.95", "desc": "(1,3,6,7,9,10)" },
+          { "name": "Pepper Topped Fries", "price": "4.50", "desc": "(1,6,7)" },
+          { "name": "Gravy Fries", "price": "4.50", "desc": "(1,6,7)" },
+          { "name": "Garlic Fries", "price": "4.50", "desc": "(1,6,7)" },
+          { "name": "Onion Rings", "price": "5.50", "desc": "(1,3,6)" },
+          { "name": "Garlic Bread", "price": "4.50", "desc": "(1,3,6,7)" },
+          { "name": "Seasonal Vegetables", "price": "4.00", "desc": "" },
+          { "name": "Wedges", "price": "3.95", "desc": "(1,6)" },
+          { "name": "Side Salad", "price": "2.95", "desc": "(6,10)" }
+        ]
+      }
+    ]
+  },
+  "events": [],
+  "notifications": [
+    { "id": 36, "type": "confirmation", "bookingId": 1, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Booking confirmed: 2026-07-15 at 10:33", "text": "Hi Veera Durga Jagannad Maddula,\n\nYour booking is confirmed for 2 people on 2026-07-15 at 10:33 (Table 6).\n\nSee you soon!", "status": "sent", "error": null, "sentAt": "2026-07-16T19:31:43.404Z" },
+    { "id": 35, "type": "admin-new-booking", "bookingId": 2, "recipient": "owner@example.com", "subject": "New booking: Mega - 2026-07-16 16:42", "text": "Mega (0894338657) booked Table 10 for 10 on 2026-07-16 at 16:42.", "status": "sent", "error": null, "sentAt": "2026-07-16T19:31:36.588Z" },
+    { "id": 34, "type": "shift-assigned", "recipient": "jagannadham.int.edu@gmail.com", "subject": "New shift: 2026-07-13 11:34–14:35", "text": "Hi Veera Durga Jagannad Maddula,\n\nYou've been scheduled for a shift on 2026-07-13 from 11:34 to 14:35.\n\nCheck My Shifts in the app for your full schedule.", "status": "sent", "error": null, "sentAt": "2026-07-16T19:30:46.957Z" },
+    { "id": 33, "type": "shift-assigned-sms", "recipient": "+353894338657", "subject": "The Holy Cross: New shift on 2026-07-13 from 11:34 to 14:35.", "text": "The Holy Cross: New shift on 2026-07-13 from 11:34 to 14:35.", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T19:30:45.723Z" },
+    { "id": 32, "type": "shift-updated", "recipient": "karpenkonikita789@gmail.com", "subject": "Shift updated: 2026-07-17 15:32–21:33", "text": "Hi Nikita Karpenko,\n\nYour shift on 2026-07-17 has been updated. It's now 15:32 to 21:33.\n\nCheck My Shifts in the app for your full schedule.", "status": "sent", "error": null, "sentAt": "2026-07-16T19:30:02.460Z" },
+    { "id": 31, "type": "shift-updated-sms", "recipient": "+353892152875", "subject": "The Holy Cross: Your shift on 2026-07-17 was updated - now 1", "text": "The Holy Cross: Your shift on 2026-07-17 was updated - now 15:32 to 21:33.", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T19:30:01.103Z" },
+    { "id": 30, "type": "reminder-sms", "bookingId": 4, "recipient": "+353896156516", "subject": "The Holy Cross: Reminder - your table for 4 is booked for 20", "text": "The Holy Cross: Reminder - your table for 4 is booked for 2026-07-17 at 14:47 (Table 1).", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T14:00:03.590Z" },
+    { "id": 29, "type": "reminder", "bookingId": 4, "recipient": "joiacfl@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-17 at 14:47)", "text": "Hi Carlos,\n\nJust a reminder that your table for 4 is booked for 2026-07-17 at 14:47 (Table 1).\n\nWe look forward to seeing you!", "status": "sent", "error": null, "sentAt": "2026-07-16T14:00:03.582Z" },
+    { "id": 28, "type": "confirmation", "bookingId": 4, "recipient": "joiacfl@gmail.com", "subject": "Booking confirmed: 2026-07-17 at 14:47", "text": "Hi Carlos,\n\nYour booking is confirmed for 4 people on 2026-07-17 at 14:47 (Table 1).\n\nSee you soon!", "status": "sent", "error": null, "sentAt": "2026-07-16T12:47:37.550Z" },
+    { "id": 27, "type": "admin-new-booking", "bookingId": 4, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "New booking: Carlos - 2026-07-17 14:47", "text": "Carlos (0896156516) booked Table 1 for 4 on 2026-07-17 at 14:47.", "status": "sent", "error": null, "sentAt": "2026-07-16T12:47:37.064Z" },
+    { "id": 26, "type": "confirmation-sms", "bookingId": 4, "recipient": "+353896156516", "subject": "The Holy Cross: Booking confirmed for 4 on 2026-07-17 at 14:", "text": "The Holy Cross: Booking confirmed for 4 on 2026-07-17 at 14:47 (Table 1). See you soon!", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T12:47:33.792Z" },
+    { "id": 25, "type": "shift-assigned", "recipient": "karpenkonikita789@gmail.com", "subject": "New shift: 2026-07-17 15:32–21:33", "text": "Hi Nikita Karpenko,\n\nYou've been scheduled for a shift on 2026-07-17 from 15:32 to 21:33.\n\nCheck My Shifts in the app for your full schedule.", "status": "sent", "error": null, "sentAt": "2026-07-16T12:30:58.039Z" },
+    { "id": 24, "type": "shift-assigned-sms", "recipient": "+353892152875", "subject": "The Holy Cross: New shift on 2026-07-17 from 15:32 to 21:33.", "text": "The Holy Cross: New shift on 2026-07-17 from 15:32 to 21:33.", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T12:30:56.775Z" },
+    { "id": 23, "type": "shift-assigned", "recipient": "karpenkonikita789@gmail.com", "subject": "New shift: 2026-07-13 08:30–17:33", "text": "Hi Nikita Karpenko,\n\nYou've been scheduled for a shift on 2026-07-13 from 08:30 to 17:33.\n\nCheck My Shifts in the app for your full schedule.", "status": "sent", "error": null, "sentAt": "2026-07-16T12:29:39.333Z" },
+    { "id": 22, "type": "shift-assigned-sms", "recipient": "+353892152875", "subject": "The Holy Cross: New shift on 2026-07-13 from 08:30 to 17:33.", "text": "The Holy Cross: New shift on 2026-07-13 from 08:30 to 17:33.", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T12:29:37.944Z" },
+    { "id": 21, "type": "reminder-sms", "bookingId": 3, "recipient": "+353894338657", "subject": "The Holy Cross: Reminder - your table for 4 is booked for 20", "text": "The Holy Cross: Reminder - your table for 4 is booked for 2026-07-17 at 04:37 (Table 2).", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-16T03:45:01.743Z" },
+    { "id": 20, "type": "reminder", "bookingId": 3, "recipient": "veerajagannadham112@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-17 at 04:37)", "text": "Hi Veera Maddula,\n\nJust a reminder that your table for 4 is booked for 2026-07-17 at 04:37 (Table 2).\n\nWe look forward to seeing you!", "status": "sent", "error": null, "sentAt": "2026-07-16T03:45:01.735Z" },
+    { "id": 19, "type": "confirmation", "bookingId": 1, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Booking confirmed: 2026-07-15 at 10:33", "text": "Hi Veera Durga Jagannad Maddula,\n\nYour booking is confirmed for 2 people on 2026-07-15 at 10:33 (Table 6).\n\nSee you soon!", "status": "sent", "error": null, "sentAt": "2026-07-16T00:05:29.547Z" },
+    { "id": 18, "type": "confirmation", "bookingId": 1, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Booking confirmed: 2026-07-15 at 10:33", "text": "Hi Veera Durga Jagannad Maddula,\n\nYour booking is confirmed for 2 people on 2026-07-15 at 10:33 (Table 6).\n\nSee you soon!", "status": "sent", "error": null, "sentAt": "2026-07-16T00:05:25.714Z" },
+    { "id": 17, "type": "reminder", "bookingId": 2, "recipient": "waterfordholycross@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-16 at 16:42)", "text": "Hi Mega,\n\nJust a reminder that your table for 10 is booked for 2026-07-16 at 16:42 (Table 10).\n\nWe look forward to seeing you!", "status": "sent", "error": null, "sentAt": "2026-07-16T00:04:52.554Z" },
+    { "id": 16, "type": "reminder", "bookingId": 2, "recipient": "waterfordholycross@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-16 at 16:42)", "text": "Hi Mega,\n\nJust a reminder that your table for 10 is booked for 2026-07-16 at 16:42 (Table 10).\n\nWe look forward to seeing you!", "status": "sent", "error": null, "sentAt": "2026-07-16T00:04:51.406Z" },
+    { "id": 15, "type": "admin-new-booking", "bookingId": 3, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "New booking: Veera Maddula - 2026-07-17 04:37", "status": "sent", "error": null, "sentAt": "2026-07-15T23:33:54.327Z" },
+    { "id": 14, "type": "confirmation", "bookingId": 3, "recipient": "veerajagannadham112@gmail.com", "subject": "Booking confirmed: 2026-07-17 at 04:37", "status": "sent", "error": null, "sentAt": "2026-07-15T23:33:54.316Z" },
+    { "id": 13, "type": "confirmation-sms", "bookingId": 3, "recipient": "+353894338657", "subject": "The Holy Cross: Booking confirmed for 4 on 2026-07-17 at 04:", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-15T23:33:52.990Z" },
+    { "id": 12, "type": "reminder-sms", "bookingId": 2, "recipient": "+353894338657", "subject": "The Holy Cross: Reminder - your table for 10 is booked for 2", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-15T22:45:02.213Z" },
+    { "id": 11, "type": "reminder", "bookingId": 2, "recipient": "waterfordholycross@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-16 at 16:42)", "status": "failed", "error": "Message failed: 550 You can only send testing emails to your own email address (jagannadham.ireland.edu@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.", "sentAt": "2026-07-15T22:45:02.210Z" },
+    { "id": 10, "type": "staff-request", "recipient": "admin@holycross.local", "subject": "New Stock request from Nikita Karpenko", "status": "failed", "error": "Message failed: 550 You can only send testing emails to your own email address (jagannadham.ireland.edu@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.", "sentAt": "2026-07-14T19:33:26.312Z" },
+    { "id": 9, "type": "shift-assigned", "recipient": "karpenkonikita789@gmail.com", "subject": "New shift: 2026-07-14 22:41–23:41", "status": "failed", "error": "Message failed: 550 You can only send testing emails to your own email address (jagannadham.ireland.edu@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.", "sentAt": "2026-07-14T18:41:31.862Z" },
+    { "id": 8, "type": "shift-assigned-sms", "recipient": "+353892152875", "subject": "The Holy Cross: New shift on 2026-07-14 from 22:41 to 23:41.", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-14T18:41:29.885Z" },
+    { "id": 7, "type": "reminder-sms", "bookingId": 1, "recipient": "+353894338657", "subject": "The Holy Cross: Reminder - your table for 2 is booked for 20", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-14T12:45:01.871Z" },
+    { "id": 6, "type": "reminder", "bookingId": 1, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Reminder: your booking is coming up (2026-07-15 at 10:33)", "status": "sent", "error": null, "sentAt": "2026-07-14T12:45:01.867Z" },
+    { "id": 5, "type": "confirmation", "bookingId": 2, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Booking confirmed: 2026-07-16 at 16:42", "status": "sent", "error": null, "sentAt": "2026-07-14T12:40:36.139Z" },
+    { "id": 4, "type": "admin-new-booking", "bookingId": 2, "recipient": "owner@example.com", "subject": "New booking: Mega - 2026-07-16 16:42", "status": "failed", "error": "Message failed: 550 You can only send testing emails to your own email address (jagannadham.ireland.edu@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.", "sentAt": "2026-07-14T12:40:36.120Z" },
+    { "id": 3, "type": "confirmation-sms", "bookingId": 2, "recipient": "+353894338657", "subject": "The Holy Cross: Booking confirmed for 10 on 2026-07-16 at 16", "status": "skipped-no-twilio", "error": null, "sentAt": "2026-07-14T12:40:34.762Z" },
+    { "id": 2, "type": "confirmation", "bookingId": 1, "recipient": "jagannadham.ireland.edu@gmail.com", "subject": "Booking confirmed: 2026-07-15 at 10:33", "status": "failed", "error": "Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-47f464c1f84sm6214743f8f.29 - gsmtp", "sentAt": "2026-07-14T07:34:00.233Z" },
+    { "id": 1, "type": "admin-new-booking", "bookingId": 1, "recipient": "owner@example.com", "subject": "New booking: Veera Durga Jagannad Maddula - 2026-07-15 10:33", "status": "failed", "error": "Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-47f4635a9cesm6008528f8f.14 - gsmtp", "sentAt": "2026-07-14T07:34:00.223Z" }
+  ],
+  "settings": {
+    "slotDurationMinutes": 90,
+    "reminderHoursBefore": 24,
+    "openHour": 11,
+    "closeHour": 23
+  },
+  "meta": {
+    "nextBookingId": 5,
+    "nextTableId": 37,
+    "nextEventId": 1,
+    "nextNotificationId": 37,
+    "nextUserId": 6,
+    "nextTimeEntryId": 43,
+    "nextRosterShiftId": 9,
+    "nextRequestId": 2
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin",
+      "email": "admin@holycross.local",
+      "passwordHash": "5c8e86914197ee8fc0590e8bcce449ff:f603bd528258029d0081637feb37bcc916787fbfce95e68cc9a11efe33b47bcc8163184ca9be62522e2a7d57544437969fa693d5f4ea56522130fb387be58693",
+      "role": "admin",
+      "active": true,
+      "createdAt": "2026-07-13T23:41:58.433Z",
+      "avatarPath": "/img/avatars/user-1-1784016576195.jpg",
+      "color": "#c9a24b"
+    },
+    {
+      "id": 2,
+      "name": "Venkata Satya ",
+      "email": "jagannadham.ireland.edu@gmail.com",
+      "passwordHash": "9a273f9b11ad7f966e64523b8f3e4b1f:d11871cb0f724bce4c03fbe2a20c059c4f8bb2d266da71e20cc3dea09acba12efff36d244e39f3fada18b68b3b75210338fbe3d38be70ee434e21bbcabc84a2c",
+      "role": "bar_staff",
+      "active": true,
+      "createdAt": "2026-07-14T07:39:36.656Z",
+      "color": "#7a8f6b"
+    },
+    {
+      "id": 3,
+      "name": "Nikita Karpenko",
+      "email": "karpenkonikita789@gmail.com",
+      "passwordHash": "90d1466cb938122621d25b6e470bffed:12c50ac9b45bd82098d3efa80d5b13e96b783adaaea106cd1c172cc3a99f898806157d3dfa706683d912aa7d2ddf5c0b37b29f1ef8c1d2a392200b907a9abfb0",
+      "role": "bar_staff",
+      "active": true,
+      "avatarPath": "/img/avatars/kiosk-1784224598753-3a467ee9.jpg",
+      "canViewTimesheets": false,
+      "canManageRoster": false,
+      "color": "#5b6b8c",
+      "phone": "0892152875",
+      "dob": "2004-08-06",
+      "sex": "male",
+      "location": "Waterford",
+      "createdAt": "2026-07-14T18:38:15.890Z",
+      "pinHash": "f4ca5968371625c9ee7bd4c0a239c0d4:6c6d943bcdd8aa48baa9b4e3e3fdfc280076d7d8e0705216546de3333e312a05e8a6cf4e8cb9f6c741bbc097cfeee2f1f74dabd68ad9922e925be1205dcc5bd4",
+      "liveShiftAvatarPath": ""
+    },
+    {
+      "id": 4,
+      "name": "Veera Durga Jagannad Maddula",
+      "username": "Veera7585",
+      "email": "jagannadham.int.edu@gmail.com",
+      "passwordHash": "8823ff59316cb3eccb8782b8176f1d94:ea8f17c987203cea3e2badb75960e8ae58ac6fb2e18e744f819fa32596d1f287a53bbfb5f999cde20c5aa100270126558493494cc8a56a3e9c9443014ad9e1c6",
+      "role": "bar_staff",
+      "active": true,
+      "avatarPath": "",
+      "canViewTimesheets": false,
+      "canManageRoster": false,
+      "canMakeRequests": false,
+      "canBookFunctions": false,
+      "canViewNotifications": false,
+      "color": "#b5543a",
+      "phone": "0894338657",
+      "dob": "2000-07-22",
+      "sex": "male",
+      "location": "Waterford",
+      "createdAt": "2026-07-15T22:49:34.952Z"
+    },
+    {
+      "id": 5,
+      "name": "bot",
+      "username": "admin@holycross.local",
+      "email": "botman@holycross",
+      "passwordHash": "98a4d7b021264455e0e9a2783b8ec5ff:d9a2b8b4c9917805c277feb2fa0f6159d9a821d242eb3be043eb86b58ea45c43981bb26315ba9a97b5535dc591572b1d556feccba4669b699c32ca5e781d119f",
+      "role": "kiosk",
+      "active": true,
+      "avatarPath": "",
+      "liveShiftAvatarPath": "",
+      "pinHash": "",
+      "canViewTimesheets": false,
+      "canManageRoster": false,
+      "canMakeRequests": false,
+      "canBookFunctions": false,
+      "canViewNotifications": false,
+      "color": "#8a5fb3",
+      "phone": "0894338657",
+      "dob": "2026-07-16",
+      "sex": "male",
+      "location": "Waterford",
+      "createdAt": "2026-07-16T20:33:44.178Z"
+    }
+  ],
+  "timeEntries": [
+    { "id": 1, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-14T13:03:41.504Z", "selfiePath": "/img/clock-selfies/clock-1-1784034221500.jpg" },
+    { "id": 2, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-14T13:03:48.555Z", "selfiePath": "/img/clock-selfies/clock-1-1784034228553.jpg" },
+    { "id": 3, "userId": 1, "userName": "Admin", "action": "break_end", "at": "2026-07-14T13:04:57.626Z", "selfiePath": "/img/clock-selfies/clock-1-1784034297622.jpg" },
+    { "id": 4, "userId": 1, "userName": "Admin", "action": "clock_out", "at": "2026-07-14T13:05:00.449Z", "selfiePath": "/img/clock-selfies/clock-1-1784034300448.jpg" },
+    { "id": 5, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-14T13:05:38.389Z", "selfiePath": "/img/clock-selfies/clock-1-1784034338367.jpg" },
+    { "id": 6, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-14T13:05:43.464Z", "selfiePath": "/img/clock-selfies/clock-1-1784034343457.jpg" },
+    { "id": 7, "userId": 1, "userName": "Admin", "action": "break_end", "at": "2026-07-14T13:06:00.210Z", "selfiePath": "/img/clock-selfies/clock-1-1784034360203.jpg" },
+    { "id": 8, "userId": 1, "userName": "Admin", "action": "clock_out", "at": "2026-07-14T13:06:02.828Z", "selfiePath": "/img/clock-selfies/clock-1-1784034362820.jpg" },
+    { "id": 9, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-14T13:48:28.159Z", "selfiePath": "/img/clock-selfies/clock-1-1784036908155.jpg" },
+    { "id": 10, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-14T13:48:35.221Z", "selfiePath": "/img/clock-selfies/clock-1-1784036915220.jpg" },
+    { "id": 11, "userId": 1, "userName": "Admin", "action": "break_end", "at": "2026-07-14T14:05:41.055Z", "selfiePath": "/img/clock-selfies/clock-1-1784037941053.jpg" },
+    { "id": 12, "userId": 1, "userName": "Admin", "action": "clock_out", "at": "2026-07-14T14:05:44.827Z", "selfiePath": "/img/clock-selfies/clock-1-1784037944825.jpg" },
+    { "id": 13, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-14T14:05:47.296Z", "selfiePath": "/img/clock-selfies/clock-1-1784037947294.jpg" },
+    { "id": 14, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-14T14:05:52.161Z", "selfiePath": "/img/clock-selfies/clock-1-1784037952159.jpg" },
+    { "id": 15, "userId": 1, "userName": "Admin", "action": "break_end", "at": "2026-07-14T15:06:03.950Z", "selfiePath": "/img/clock-selfies/clock-1-1784041563947.jpg" },
+    { "id": 16, "userId": 1, "userName": "Admin", "action": "clock_out", "at": "2026-07-14T15:06:06.009Z", "selfiePath": "/img/clock-selfies/clock-1-1784041566007.jpg" },
+    { "id": 17, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-14T15:49:36.527Z", "selfiePath": "/img/clock-selfies/clock-1-1784044176522.jpg" },
+    { "id": 18, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-14T15:49:40.593Z", "selfiePath": "/img/clock-selfies/clock-1-1784044180591.jpg" },
+    { "id": 19, "userId": 1, "userName": "Admin", "action": "break_end", "at": "2026-07-14T15:49:52.335Z", "selfiePath": "/img/clock-selfies/clock-1-1784044192334.jpg" },
+    { "id": 20, "userId": 2, "userName": "Venkata Satya ", "action": "clock_in", "at": "2026-07-14T18:33:32.103Z", "selfiePath": "/img/clock-selfies/clock-2-1784054012100.jpg" },
+    { "id": 21, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-14T18:39:53.301Z", "selfiePath": "/img/clock-selfies/clock-3-1784054393299.jpg" },
+    { "id": 22, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-14T18:40:15.035Z", "selfiePath": "/img/clock-selfies/clock-3-1784054415033.jpg" },
+    { "id": 23, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-14T18:40:43.697Z", "selfiePath": "/img/clock-selfies/clock-3-1784054443695.jpg" },
+    { "id": 24, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-14T20:43:41.051Z", "selfiePath": "/img/clock-selfies/clock-3-1784061821034.jpg" },
+    { "id": 25, "userId": 1, "userName": "Admin", "action": "clock_out", "at": "2026-07-15T12:48:57.750Z", "selfiePath": "/img/clock-selfies/clock-1-1784119737744.jpg" },
+    { "id": 26, "userId": 2, "userName": "Venkata Satya ", "action": "clock_out", "at": "2026-07-16T11:33:25.340Z", "selfiePath": "/img/clock-selfies/clock-2-1784201605335.jpg" },
+    { "id": 27, "userId": 1, "userName": "Admin", "action": "clock_in", "at": "2026-07-16T12:24:08.262Z", "selfiePath": "/img/clock-selfies/clock-1-1784204648260.jpg" },
+    { "id": 28, "userId": 1, "userName": "Admin", "action": "break_start", "at": "2026-07-16T12:24:15.324Z", "selfiePath": "/img/clock-selfies/clock-1-1784204655322.jpg" },
+    { "id": 29, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-16T17:48:36.705Z", "selfiePath": "" },
+    { "id": 30, "userId": 3, "userName": "Nikita Karpenko", "action": "break_start", "at": "2026-07-16T17:48:53.249Z", "selfiePath": "" },
+    { "id": 31, "userId": 3, "userName": "Nikita Karpenko", "action": "break_end", "at": "2026-07-16T17:48:59.175Z", "selfiePath": "" },
+    { "id": 32, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-16T17:51:36.988Z", "selfiePath": "" },
+    { "id": 33, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-16T17:56:38.844Z", "selfiePath": "/img/avatars/kiosk-1784224598753-3a467ee9.jpg" },
+    { "id": 34, "userId": 3, "userName": "Nikita Karpenko", "action": "break_start", "at": "2026-07-16T17:56:57.746Z", "selfiePath": "" },
+    { "id": 35, "userId": 3, "userName": "Nikita Karpenko", "action": "break_end", "at": "2026-07-16T17:57:05.017Z", "selfiePath": "" },
+    { "id": 36, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-16T17:57:11.754Z", "selfiePath": "" },
+    { "id": 37, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-16T18:27:49.603Z", "selfiePath": "/img/avatars/kiosk-1784226469532-17217a92.jpg" },
+    { "id": 38, "userId": 3, "userName": "Nikita Karpenko", "action": "break_start", "at": "2026-07-16T18:28:06.656Z", "selfiePath": "/img/avatars/kiosk-1784226486592-7ac5a3c5.jpg" },
+    { "id": 39, "userId": 3, "userName": "Nikita Karpenko", "action": "break_end", "at": "2026-07-16T18:28:15.506Z", "selfiePath": "/img/avatars/kiosk-1784226495443-a2f69bfa.jpg" },
+    { "id": 40, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-16T18:28:22.238Z", "selfiePath": "" },
+    { "id": 41, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_in", "at": "2026-07-16T18:48:04.537Z", "selfiePath": "/img/avatars/kiosk-1784227684471-fa06df57.jpg" },
+    { "id": 42, "userId": 3, "userName": "Nikita Karpenko", "action": "clock_out", "at": "2026-07-16T18:48:10.613Z", "selfiePath": "" }
+  ],
+  "rosterShifts": [
+    { "id": 1, "date": "2026-07-13", "userId": 1, "startTime": "08:30", "endTime": "22:00" },
+    { "id": 2, "date": "2026-07-15", "userId": 2, "startTime": "08:30", "endTime": "22:00" },
+    { "id": 3, "date": "2026-07-13", "userId": 2, "startTime": "20:18", "endTime": "23:19" },
+    { "id": 4, "date": "2026-07-14", "userId": 1, "startTime": "16:33", "endTime": "17:33" },
+    { "id": 5, "date": "2026-07-14", "userId": 3, "startTime": "22:41", "endTime": "23:41" },
+    { "id": 6, "date": "2026-07-13", "userId": 3, "startTime": "08:30", "endTime": "17:33" },
+    { "id": 7, "date": "2026-07-17", "userId": 3, "startTime": "15:32", "endTime": "21:33" },
+    { "id": 8, "date": "2026-07-13", "userId": 4, "startTime": "11:34", "endTime": "14:35" }
+  ],
+  "requests": [
+    { "id": 1, "type": "stock", "typeLabel": "Stock", "details": "stock", "requestedByUserId": 3, "requestedByName": "Nikita Karpenko", "recipientUserId": 1, "recipientName": "Admin", "status": "sent", "createdAt": "2026-07-14T19:33:23.709Z" }
+  ]
+}

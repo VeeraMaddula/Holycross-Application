@@ -6,6 +6,7 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Settings</h2>
+    <% if (cleared) { %><div class="success-box" style="max-width:480px">Operational data cleared — bookings, notifications, timesheets, roster shifts, and requests are all empty. Staff accounts, tables, and the menu are untouched.</div><% } %>
     <div class="card" style="max-width:480px">
       <form method="POST" action="/settings">
         <div class="field">
@@ -49,6 +50,27 @@
         <p><span class="badge cancelled">Not configured</span></p>
         <p class="muted">Set <code>GOOGLE_SERVICE_ACCOUNT_KEY_PATH</code> and <code>GOOGLE_CALENDAR_ID</code> in your <code>.env</code> file to enable two-way sync with Google Calendar. See README for the one-time Google Cloud Console setup steps.</p>
       <% } %>
+    </div>
+
+    <div class="card" style="max-width:480px;border-left:3px solid var(--danger)">
+      <h3 style="margin-top:0">Danger zone</h3>
+      <p class="muted">These also appear as quick-access buttons at the bottom of the sidebar on every page. Both are irreversible.</p>
+
+      <div style="margin-bottom:18px">
+        <strong>Clear data</strong>
+        <p class="muted" style="margin:4px 0 8px">Wipes all bookings, notification logs, clock-in history, roster shifts, and staff requests. Staff accounts, tables, and the menu are kept as-is.</p>
+        <form method="POST" action="/settings/clear-data" onsubmit="return confirm('Clear all bookings, notifications, timesheets, roster shifts, and requests?\n\nStaff accounts, tables, and the menu are kept. This cannot be undone.')">
+          <button class="btn danger" type="submit">Clear data</button>
+        </form>
+      </div>
+
+      <div>
+        <strong>Factory reset</strong>
+        <p class="muted" style="margin:4px 0 8px">Wipes absolutely everything — every booking, every staff account, tables, the menu, all of it — back to the app's defaults, and creates one fresh admin account from the credentials in <code>.env</code> (<code>ADMIN_EMAIL</code> / <code>ADMIN_PASSWORD</code>). You'll be logged out immediately.</p>
+        <form method="POST" action="/settings/factory-reset" onsubmit="return confirm('This deletes EVERY booking, staff account, table, and menu item, and logs you out.\n\nType OK to confirm you understand this cannot be undone.') &amp;&amp; confirm('Really factory reset? This is your last chance to cancel.')">
+          <button class="btn danger" type="submit">Factory reset</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>

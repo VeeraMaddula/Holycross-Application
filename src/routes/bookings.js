@@ -201,3 +201,7 @@ router.post('/:id/delete', requireAdmin, (req, res) => {
 });
 
 module.exports = router;
+// Exposed for the test suite (tests/booking-approval.test.js) — Express
+// routers are plain functions, so attaching extra named exports alongside
+// the router itself is safe and doesn't affect how server.js mounts it.
+module.exports.canBookFunctionRoom = canBookFunctionRoom;

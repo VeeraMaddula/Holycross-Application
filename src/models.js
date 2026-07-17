@@ -1,4 +1,5 @@
-const { readDb, writeDb } = require('./db');
+const crypto = require('crypto');
+const { readDb, writeDb, DEFAULT_DATA } = require('./db');
 const { ROLE_VALUES } = require('./roles');
 const { toDateStr, todayStr } = require('./dateUtils');
 const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
@@ -414,6 +415,55 @@ function getUserByPhone(phone, countryCode) {
 function getUserByLoginIdentifier(identifier, countryCode) {
   if (!identifier) return null;
   return getUserByUsername(identifier) || getUserByEmail(identifier) || getUserByPhone(identifier, countryCode);
+}
+
+// ---- Forgot password (reset-by-email-link) ----
+// Only the SHA-256 hash of the token is ever stored — same principle as
+// passwords — so a leaked db.json doesn't hand out working reset links.
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// Looks the account up the same way login does (username/email/phone), then
+// mints a one-time token good for 1 hour. Returns null if no account
+// matches — callers should show the same generic "check your email" message
+// either way, so this can't be used to discover which identifiers exist.
+function createPasswordResetToken(identifier, countryCode) {
+  const user = getUserByLoginIdentifier(identifier, countryCode);
+  if (!user) return null;
+  const token = crypto.randomBytes(32).toString('hex');
+  const db = readDb();
+  const dbUser = db.users.find(u => u.id === user.id);
+  if (!dbUser) return null;
+  dbUser.resetTokenHash = hashResetToken(token);
+  dbUser.resetTokenExpiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString();
+  writeDb(db);
+  return { user: dbUser, token };
+}
+
+function getUserByResetToken(token) {
+  if (!token) return null;
+  const hash = hashResetToken(token);
+  const db = readDb();
+  const user = (db.users || []).find(u => u.resetTokenHash === hash);
+  if (!user) return null;
+  if (!user.resetTokenExpiresAt || new Date(user.resetTokenExpiresAt).getTime() < Date.now()) return null;
+  return user;
+}
+
+// Sets the new password and burns the token so the link can't be reused.
+function resetPasswordWithToken(token, newPassword) {
+  const user = getUserByResetToken(token);
+  if (!user) return { error: 'This reset link is invalid or has expired. Request a new one.' };
+  const db = readDb();
+  const dbUser = db.users.find(u => u.id === user.id);
+  dbUser.passwordHash = hashPassword(newPassword);
+  delete dbUser.resetTokenHash;
+  delete dbUser.resetTokenExpiresAt;
+  writeDb(db);
+  return { user: dbUser };
 }
 
 function getUserById(id) {
@@ -880,13 +930,50 @@ function listRequestsForUser(userId) {
   };
 }
 
+// ---- Admin danger-zone actions (Settings page, admin only) ----
+
+// Clears all operational/transactional data — bookings, notification logs,
+// clock-in history, roster shifts, staff requests, and pulled-in external
+// calendar events — but leaves user accounts, tables, the menu, and
+// settings untouched. For wiping demo/test activity without losing staff
+// logins or the restaurant's configuration.
+function clearOperationalData() {
+  const db = readDb();
+  db.bookings = [];
+  db.notifications = [];
+  db.timeEntries = [];
+  db.rosterShifts = [];
+  db.requests = [];
+  db.externalCalendarEvents = [];
+  db.meta.nextBookingId = 1;
+  db.meta.nextNotificationId = 1;
+  db.meta.nextTimeEntryId = 1;
+  db.meta.nextRosterShiftId = 1;
+  db.meta.nextRequestId = 1;
+  db.meta.lastGoogleSyncAt = null;
+  writeDb(db);
+}
+
+// Wipes EVERYTHING back to the app's defaults — tables, menu, bookings,
+// notifications, every user account, all of it — then creates exactly one
+// fresh admin account so there's always a way back in. Irreversible; the
+// caller (routes/settings.js) is responsible for ending the current
+// session afterwards since the account that was logged in no longer exists.
+function factoryReset(adminEmail, adminPasswordHash) {
+  const fresh = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  writeDb(fresh);
+  return createUser({ name: 'Admin', email: adminEmail, passwordHash: adminPasswordHash, role: 'admin' });
+}
+
 module.exports = {
+  clearOperationalData, factoryReset,
   listTables, getTablesWithStatus, createTable, deleteTable,
   listBookings, getBooking, createBooking, approveBooking, updateBooking, setStatus, updatePayment, deleteBooking,
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,
   getSettings, saveSettings,
   listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserColor,
+  createPasswordResetToken, getUserByResetToken, resetPasswordWithToken,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
   setUserPin, verifyUserPin, getKioskRoster, setUserLiveShiftAvatar,

@@ -57,6 +57,7 @@
       <div class="kiosk-pin-error" id="pinError"></div>
       <div class="kiosk-keypad" id="pinPad"></div>
       <button type="button" class="btn secondary" id="pinCancel">Cancel</button>
+      <button type="button" class="kiosk-forgot-pin" id="forgotPinBtn">Forgot PIN?</button>
     </div>
 
     <div id="kioskActionStage" style="display:none">
@@ -180,6 +181,28 @@
   document.getElementById('pinCancel').addEventListener('click', closeModal);
   document.getElementById('actionCancel').addEventListener('click', closeModal);
   document.getElementById('cameraCancel').addEventListener('click', closeModal);
+
+  document.getElementById('forgotPinBtn').addEventListener('click', function() {
+    var btn = this;
+    if (!activeUserId) return;
+    btn.disabled = true;
+    btn.textContent = 'Notifying a manager…';
+    fetch('/kiosk/forgot-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: activeUserId })
+    }).then(function() {
+      pinStage.style.display = 'none';
+      successStage.style.display = 'block';
+      document.getElementById('successText').textContent = 'A manager has been notified — ask them for your new PIN.';
+      setTimeout(closeModal, 2200);
+    }).catch(function() {
+      pinError.textContent = 'Could not reach the server — check the connection.';
+    }).finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Forgot PIN?';
+    });
+  });
 
   document.getElementById('kioskGrid').addEventListener('click', function(e) {
     var tile = e.target.closest('.kiosk-tile');

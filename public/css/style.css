@@ -58,6 +58,15 @@ a:hover { text-decoration: underline; }
 .sidebar nav a:hover { background: rgba(255,255,255,0.1); text-decoration: none; }
 .sidebar nav a.active { background: rgba(255,255,255,0.18); font-weight: 600; }
 .nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
+.sidebar-danger-zone { margin-top: 24px; padding-top: 14px; border-top: 1px solid rgba(244,236,228,0.15); }
+.sidebar-danger-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,236,228,0.5); margin-bottom: 6px; }
+.sidebar-danger-btn {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  color: #e8a2a2; opacity: 0.85; cursor: pointer; font-size: 12.5px; padding: 6px 10px;
+  border-radius: 6px;
+}
+.sidebar-danger-btn:hover { opacity: 1; background: rgba(232,162,162,0.12); }
+.sidebar-danger-btn-strong { color: #ff9b9b; font-weight: 600; }
 .sidebar .logout-form { margin-top: 24px; }
 .sidebar button.linklike {
   background: none; border: none; color: #f4ece4; opacity: 0.8;
@@ -161,6 +170,9 @@ textarea { resize: vertical; min-height: 70px; }
 .field { margin-bottom: 14px; }
 
 .error-box { background: #fff5f5; border: 1px solid #ffc9c9; color: #c92a2a; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.success-box { background: #ebfbee; border: 1px solid #b2f2bb; color: #2b8a3e; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.login-forgot-link { display: block; text-align: center; margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+.login-forgot-link:hover { color: var(--accent-dark); }
 
 .filters { display: flex; gap: 10px; margin-bottom: 16px; align-items: end; flex-wrap: wrap; }
 .filters .field { margin-bottom: 0; min-width: 160px; }
@@ -569,6 +581,9 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 18px; }
 .kiosk-key { padding: 16px 0; font-size: 19px; font-weight: 600; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--accent-dark); cursor: pointer; }
 .kiosk-key:hover { background: #eef3ee; }
+.kiosk-forgot-pin { display: block; margin: 12px auto 0; background: none; border: none; font-size: 12.5px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+.kiosk-forgot-pin:hover { color: var(--accent-dark); }
+.kiosk-forgot-pin:disabled { cursor: default; text-decoration: none; opacity: 0.7; }
 
 .kiosk-action-buttons { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 18px; }
 .kiosk-action-btn { padding: 15px; font-size: 16px; font-weight: 600; border: none; border-radius: 10px; color: #fff; cursor: pointer; }
