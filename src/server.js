@@ -6,6 +6,9 @@ const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
 const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess } = require('./middleware');
+// requireTimesheetEditAccess (admin/senior_manager only) is applied inside
+// routes/timesheets.js itself, layered on top of the requireTimesheetAccess
+// mount gate below — not needed here.
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');

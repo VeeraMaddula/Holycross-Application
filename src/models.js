@@ -793,6 +793,74 @@ function listClockEntries({ userId, from, to } = {}) {
   return entries.slice().sort((a, b) => new Date(b.at) - new Date(a.at));
 }
 
+function getClockEntry(id) {
+  const db = readDb();
+  return (db.timeEntries || []).find(e => e.id === Number(id));
+}
+
+const CLOCK_ACTIONS = ['clock_in', 'clock_out', 'break_start', 'break_end'];
+
+// Manager-entered correction for a shift the kiosk never saw — staff forgot
+// to tap in or out. No selfie (that only happens at the kiosk); flagged as
+// manuallyAdded plus who added it, so it's clear in the log this didn't
+// come from the tablet.
+function addManualClockEntry({ userId, action, at, addedBy }) {
+  const db = readDb();
+  const user = (db.users || []).find(u => u.id === Number(userId));
+  if (!user) return { error: 'Staff member not found.' };
+  if (!CLOCK_ACTIONS.includes(action)) return { error: 'Please choose a valid action.' };
+  const atDate = at ? new Date(at) : new Date();
+  if (isNaN(atDate.getTime())) return { error: 'Please enter a valid date and time.' };
+  if (!db.timeEntries) db.timeEntries = [];
+  if (!db.meta.nextTimeEntryId) db.meta.nextTimeEntryId = 1;
+  const entry = {
+    id: db.meta.nextTimeEntryId++,
+    userId: user.id,
+    userName: user.name,
+    action,
+    at: atDate.toISOString(),
+    selfiePath: '',
+    manuallyAdded: true,
+    editedBy: addedBy || ''
+  };
+  db.timeEntries.push(entry);
+  writeDb(db);
+  return { entry };
+}
+
+// Corrects an existing entry's action and/or time (e.g. the kiosk logged
+// "clock in" at the wrong time, or someone tapped the wrong tile). Tracks
+// who made the correction and when, without touching the original selfie.
+function updateClockEntry(id, { action, at, editedBy }) {
+  const db = readDb();
+  const entry = (db.timeEntries || []).find(e => e.id === Number(id));
+  if (!entry) return { error: 'Entry not found.' };
+  if (action) {
+    if (!CLOCK_ACTIONS.includes(action)) return { error: 'Please choose a valid action.' };
+    entry.action = action;
+  }
+  if (at) {
+    const atDate = new Date(at);
+    if (isNaN(atDate.getTime())) return { error: 'Please enter a valid date and time.' };
+    entry.at = atDate.toISOString();
+  }
+  entry.edited = true;
+  entry.editedBy = editedBy || entry.editedBy || '';
+  entry.editedAt = new Date().toISOString();
+  writeDb(db);
+  return { entry };
+}
+
+// Removes a mistaken entry entirely (accidental double-tap on the kiosk, etc).
+function deleteClockEntry(id) {
+  const db = readDb();
+  const idx = (db.timeEntries || []).findIndex(e => e.id === Number(id));
+  if (idx === -1) return { error: 'Entry not found.' };
+  db.timeEntries.splice(idx, 1);
+  writeDb(db);
+  return { ok: true };
+}
+
 // ---- Roster (direct per-date shifts, no recurring pattern) ----
 // Design: every shift is pinned to one specific calendar date — there is no
 // "repeats every week" layer. That's deliberate: a small bar/restaurant's
@@ -976,6 +1044,7 @@ module.exports = {
   createPasswordResetToken, getUserByResetToken, resetPasswordWithToken,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,
+  getClockEntry, addManualClockEntry, updateClockEntry, deleteClockEntry,
   setUserPin, verifyUserPin, getKioskRoster, setUserLiveShiftAvatar,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,

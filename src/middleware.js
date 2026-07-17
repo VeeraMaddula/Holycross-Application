@@ -13,12 +13,22 @@ function requireAdmin(req, res, next) {
   return res.status(403).render('403');
 }
 
-// Timesheet access = Admin, Senior Manager, or anyone individually granted
-// access via the Users page (res.locals.currentUser is refreshed from the DB
-// on every request, so this reflects role/grant changes immediately).
+// Timesheet access (view + CSV download) = Admin, Senior Manager, Floor
+// Manager, or anyone individually granted access via the Users page
+// (res.locals.currentUser is refreshed from the DB on every request, so
+// this reflects role/grant changes immediately). Editing/adding/deleting
+// individual clock entries is narrower — see requireTimesheetEditAccess.
 function requireTimesheetAccess(req, res, next) {
   const u = res.locals.currentUser;
-  if (u && (u.role === 'admin' || u.role === 'senior_manager' || u.canViewTimesheets)) return next();
+  if (u && (u.role === 'admin' || u.role === 'senior_manager' || u.role === 'floor_manager' || u.canViewTimesheets)) return next();
+  return res.status(403).render('403');
+}
+
+// Correcting clock-in/out times (staff forgot to tap in/out) = Admin and
+// Senior Manager only — deliberately narrower than view/download access.
+function requireTimesheetEditAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (u.role === 'admin' || u.role === 'senior_manager')) return next();
   return res.status(403).render('403');
 }
 
@@ -59,4 +69,4 @@ function requireKioskPageAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, STAFF_ROLES };
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, STAFF_ROLES };

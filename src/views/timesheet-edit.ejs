@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head><title>Edit Clock Entry - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Edit clock entry</h2>
+    <p class="muted"><%= entry.userName %></p>
+
+    <div class="card" style="max-width:480px">
+      <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+      <% if (entry.manuallyAdded) { %><p class="muted">This entry was manually added by <%= entry.editedBy || 'a manager' %> — there's no selfie for it.</p><% } %>
+
+      <form method="POST" action="/timesheets/<%= entry.id %>" class="form-grid">
+        <div class="field">
+          <label>Staff member</label>
+          <input type="text" value="<%= entry.userName %>" disabled>
+        </div>
+        <div class="field">
+          <label>Action</label>
+          <select name="action" required>
+            <% Object.keys(actionLabels).forEach(a => { %>
+              <option value="<%= a %>" <%= entry.action === a ? 'selected' : '' %>><%= actionLabels[a] %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date &amp; time</label>
+          <% const d = new Date(entry.at); const pad = n => String(n).padStart(2, '0'); %>
+          <% const localValue = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; %>
+          <input type="datetime-local" name="at" value="<%= localValue %>" required>
+        </div>
+        <div class="field full" style="display:flex;gap:10px">
+          <button class="btn small" type="submit">Save changes</button>
+          <a class="btn small secondary" href="/timesheets">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

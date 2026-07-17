@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const { todayStr } = require('../dateUtils');
+const { requireTimesheetEditAccess } = require('../middleware');
+
+const ACTION_LABELS = { clock_in: 'Clocked in', clock_out: 'Clocked out', break_start: 'Started break', break_end: 'Ended break' };
 
 // Pairs up sequential clock_in/clock_out and break_start/break_end entries
 // (oldest first) to estimate total worked minutes and total break minutes
@@ -98,8 +101,75 @@ router.get('/', (req, res) => {
   res.render('timesheets', {
     entries, users, summary,
     filterUserId: userId || '', filterFrom: from || '', filterTo: to || '',
-    isRangeCustom: !!(from || to)
+    isRangeCustom: !!(from || to),
+    addError: req.query.addError || null
   });
+});
+
+// Manager-entered correction for a shift the kiosk never saw (forgot to tap
+// in or out). Admin/Senior Manager only.
+router.post('/', requireTimesheetEditAccess, (req, res) => {
+  const { userId, action, at } = req.body;
+  const result = models.addManualClockEntry({ userId, action, at, addedBy: res.locals.currentUser.name });
+  const qs = new URLSearchParams();
+  if (req.body.userId) qs.set('userId', req.body.userId);
+  if (result.error) qs.set('addError', result.error);
+  res.redirect('/timesheets' + (qs.toString() ? '?' + qs.toString() : ''));
+});
+
+router.get('/:id/edit', requireTimesheetEditAccess, (req, res) => {
+  const entry = models.getClockEntry(req.params.id);
+  if (!entry) return res.status(404).render('404');
+  res.render('timesheet-edit', { entry, error: null, actionLabels: ACTION_LABELS });
+});
+
+router.post('/:id', requireTimesheetEditAccess, (req, res) => {
+  const { action, at } = req.body;
+  const result = models.updateClockEntry(req.params.id, { action, at, editedBy: res.locals.currentUser.name });
+  if (result.error) {
+    const entry = models.getClockEntry(req.params.id);
+    return res.status(400).render('timesheet-edit', { entry, error: result.error, actionLabels: ACTION_LABELS });
+  }
+  res.redirect('/timesheets');
+});
+
+router.post('/:id/delete', requireTimesheetEditAccess, (req, res) => {
+  models.deleteClockEntry(req.params.id);
+  res.redirect('/timesheets');
+});
+
+// CSV download of hours worked per staff member for the selected filters —
+// same summary math as the on-page "summary" table, just exported. Anyone
+// who can view Timesheets (Admin, Senior Manager, Floor Manager, or a
+// granted individual) can download it.
+router.get('/export', (req, res) => {
+  const { userId, from, to } = req.query;
+  const users = models.listUsers();
+
+  const fromIso = from ? new Date(from + 'T00:00:00').toISOString() : undefined;
+  const toIso = to ? new Date(to + 'T23:59:59').toISOString() : undefined;
+
+  const targetUsers = userId ? users.filter(u => u.id === Number(userId)) : users;
+  const rows = targetUsers
+    .filter(u => u.active)
+    .map(u => {
+      const userEntries = models.listClockEntries({ userId: u.id, from: fromIso, to: toIso });
+      const { workedMinutes, breakMinutes } = summarize(userEntries);
+      return { name: u.name, role: u.role, workedMinutes, breakMinutes };
+    })
+    .filter(r => r.workedMinutes > 0 || r.breakMinutes > 0);
+
+  const fmt = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+  const csvEscape = s => `"${String(s).replace(/"/g, '""')}"`;
+  const header = 'Staff,Role,Worked (h:mm),Worked (decimal hours),Break (h:mm)\n';
+  const body = rows.map(r =>
+    [csvEscape(r.name), csvEscape(r.role), fmt(r.workedMinutes), (r.workedMinutes / 60).toFixed(2), fmt(r.breakMinutes)].join(',')
+  ).join('\n');
+
+  const rangeLabel = `${from || 'all-time'}_to_${to || todayStr()}`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="timesheet_${rangeLabel}.csv"`);
+  res.send(header + body + '\n');
 });
 
 module.exports = router;

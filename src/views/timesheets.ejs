@@ -6,7 +6,9 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Timesheets</h2>
-    <p class="muted">Clock in/out and break history with selfie verification. Visible to Admin, Senior Manager, and anyone else individually granted access on the Users page.</p>
+    <p class="muted">Clock in/out and break history with selfie verification. Visible to Admin, Senior Manager, Floor Manager, and anyone else individually granted access on the Users page.</p>
+
+    <% const canEditTimesheets = currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager'); %>
 
     <form class="filters" method="GET" action="/timesheets">
       <div class="field">
@@ -28,7 +30,42 @@
       </div>
       <button class="btn secondary" type="submit">Filter</button>
       <a class="btn secondary" href="/timesheets">Clear</a>
+      <a class="btn small" href="/timesheets/export?userId=<%= filterUserId %>&from=<%= filterFrom %>&to=<%= filterTo %>">Download CSV (hours worked)</a>
     </form>
+
+    <% if (canEditTimesheets) { %>
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-top:0">Correct a missed clock in/out</h3>
+      <p class="muted">For when someone forgets to tap in or out on the kiosk.</p>
+      <% if (addError) { %><div class="error-box"><%= addError %></div><% } %>
+      <form method="POST" action="/timesheets" class="form-grid">
+        <div class="field">
+          <label>Staff member</label>
+          <select name="userId" required>
+            <% users.forEach(u => { %>
+              <option value="<%= u.id %>"><%= u.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Action</label>
+          <select name="action" required>
+            <option value="clock_in">Clocked in</option>
+            <option value="clock_out">Clocked out</option>
+            <option value="break_start">Started break</option>
+            <option value="break_end">Ended break</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date &amp; time</label>
+          <input type="datetime-local" name="at" required>
+        </div>
+        <div class="field full">
+          <button class="btn small" type="submit">Add entry</button>
+        </div>
+      </form>
+    </div>
+    <% } %>
 
     <div class="card">
       <h3 style="margin-top:0"><%= isRangeCustom ? 'Summary for selected range' : "Today's summary" %></h3>
@@ -56,7 +93,7 @@
         <p class="muted">No entries match this filter.</p>
       <% } else { %>
         <table>
-          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>Date &amp; time</th><th>Hours worked</th><th>Break time</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>Date &amp; time</th><th>Hours worked</th><th>Break time</th><% if (canEditTimesheets) { %><th></th><% } %></tr></thead>
           <tbody>
           <% entries.forEach(e => { %>
             <tr>
@@ -72,10 +109,20 @@
                 <span class="badge <%= (e.action === 'clock_in' || e.action === 'break_end') ? 'confirmed' : (e.action === 'break_start' ? 'status-skipped-no-smtp' : 'cancelled') %>">
                   <%= ({ clock_in: 'Clocked in', clock_out: 'Clocked out', break_start: 'Started break', break_end: 'Ended break' })[e.action] || e.action %>
                 </span>
+                <% if (e.manuallyAdded) { %><div class="muted" style="font-size:11px;margin-top:2px">Added by <%= e.editedBy || 'a manager' %></div><% } %>
+                <% if (e.edited) { %><div class="muted" style="font-size:11px;margin-top:2px">Edited by <%= e.editedBy || 'a manager' %></div><% } %>
               </td>
               <td><%= new Date(e.at).toLocaleString() %></td>
               <td><%= e.shiftTotals ? (Math.floor(e.shiftTotals.workedMinutes / 60) + 'h ' + (e.shiftTotals.workedMinutes % 60) + 'm') : '—' %></td>
               <td><%= e.shiftTotals ? (Math.floor(e.shiftTotals.breakMinutes / 60) + 'h ' + (e.shiftTotals.breakMinutes % 60) + 'm') : '—' %></td>
+              <% if (canEditTimesheets) { %>
+                <td style="white-space:nowrap">
+                  <a class="btn small secondary" href="/timesheets/<%= e.id %>/edit">Edit</a>
+                  <form class="inline" method="POST" action="/timesheets/<%= e.id %>/delete" onsubmit="return confirm('Delete this clock entry?')">
+                    <button class="btn small danger" type="submit">Delete</button>
+                  </form>
+                </td>
+              <% } %>
             </tr>
           <% }) %>
           </tbody>
