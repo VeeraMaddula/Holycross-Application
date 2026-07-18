@@ -86,6 +86,7 @@ const DEFAULT_DATA = {
   rosterShifts: [],
   requests: [],
   dutyCompletions: [],
+  dutyReports: [],
   settings: {
     slotDurationMinutes: 90,
     reminderHoursBefore: 24,

@@ -25,7 +25,8 @@ const DUTY_SECTIONS = [
       { id: 'opening-14', text: 'Put breakfast menus on the door table' },
       { id: 'opening-15', text: 'Open doors at 9 AM' },
       { id: 'opening-16', text: 'Put display board outside at 9 AM' },
-      { id: 'opening-17', text: 'Thursday: put out new black mat from INTEL CLEANING' }
+      { id: 'opening-17', text: 'Thursday: put out new black mat from INTEL CLEANING' },
+      { id: 'opening-18', text: 'Get the towels from the washing machine and dry them' }
     ]
   },
   {
@@ -88,11 +89,18 @@ const DUTY_SECTIONS = [
       { id: 'closing-29', text: 'Flag any low stock to a senior staff member or co-worker' },
       { id: 'closing-30', text: 'Turn off and clean the dishwashers' },
       { id: 'closing-31', text: 'Monday night: put out the blue cardboard bin' },
-      { id: 'closing-32', text: 'Close doors and set the alarm' }
+      { id: 'closing-32', text: 'Close doors and set the alarm' },
+      { id: 'closing-33', text: 'Wash all the dirty towels before you go' }
     ]
   }
 ];
 
 const TASK_COUNT = DUTY_SECTIONS.reduce((sum, s) => sum + s.tasks.length, 0);
 
-module.exports = { DUTY_SECTIONS, TASK_COUNT };
+// Who gets emailed when a duties window closes with something not ticked
+// off (or a Bar Staff member explains a miss via the kiosk's Submit
+// button) — General Manager, Senior Manager, and Floor Manager specifically,
+// not the wider MANAGER_ROLES list (no Admin, no Staff Manager).
+const DUTY_ESCALATION_ROLES = ['general_manager', 'senior_manager', 'floor_manager'];
+
+module.exports = { DUTY_SECTIONS, TASK_COUNT, DUTY_ESCALATION_ROLES };

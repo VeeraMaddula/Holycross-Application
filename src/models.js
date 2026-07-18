@@ -5,6 +5,7 @@ const { toDateStr, todayStr } = require('./dateUtils');
 const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
 const { hashPassword, verifyPassword } = require('./password');
 const { DUTY_SECTIONS, TASK_COUNT } = require('./duties');
+const dutyWindows = require('./dutyWindows');
 
 function normalizeRole(role) {
   return ROLE_VALUES.includes(role) ? role : 'bar_staff';
@@ -1010,6 +1011,81 @@ function toggleDutyTask({ date, taskId, userId, userName }) {
   writeDb(db);
 }
 
+// Bar Staff currently on shift (clocked in or on break) right now — used to
+// name who's accountable in a duties escalation email.
+function getBarStaffOnShiftNames() {
+  return listAllStaffStatus()
+    .filter(s => s.user.role === 'bar_staff' && (s.status === 'clocked_in' || s.status === 'on_break'))
+    .map(s => s.user.name);
+}
+
+// One record per (date, section) at most — the first thing to record a
+// completion state "wins" for the day, whether that's a Bar Staff member
+// tapping Submit or the automatic sweep/clock-out check finding the window
+// over. A later manual submit can still attach a reason if the auto-check
+// got there first without one. `isNewIncomplete` tells the caller (routes/
+// notify.js) whether this call just created a fresh incomplete report that
+// still needs emailing — recordDutyReport itself never sends anything, to
+// keep models.js free of any dependency on notify.js.
+function recordDutyReport({ date, section, sectionTitle, complete, reason, missingTaskTexts, staffOnShiftNames, trigger }) {
+  const db = readDb();
+  if (!db.dutyReports) db.dutyReports = [];
+  let rec = db.dutyReports.find(r => r.date === date && r.section === section);
+  if (rec) {
+    if (reason && !rec.reason) {
+      rec.reason = reason;
+      rec.updatedAt = new Date().toISOString();
+      writeDb(db);
+    }
+    return { report: rec, isNewIncomplete: false };
+  }
+  if (!db.meta.nextDutyReportId) db.meta.nextDutyReportId = 1;
+  rec = {
+    id: db.meta.nextDutyReportId++,
+    date,
+    section,
+    sectionTitle: sectionTitle || section,
+    complete: !!complete,
+    reason: reason || '',
+    missingTaskTexts: missingTaskTexts || [],
+    staffOnShiftNames: staffOnShiftNames || [],
+    trigger: trigger || 'auto',
+    createdAt: new Date().toISOString()
+  };
+  db.dutyReports.push(rec);
+  writeDb(db);
+  return { report: rec, isNewIncomplete: !complete };
+}
+
+function getDutyReport(date, section) {
+  const db = readDb();
+  return (db.dutyReports || []).find(r => r.date === date && r.section === section) || null;
+}
+
+// What the kiosk's duties tab should show right now: which section (if
+// any) is in its scheduled window today, its checklist, and progress — or
+// { active: false } if nothing's scheduled, or if today's occurrence of
+// that section has already been reported (submitted or auto-closed), so it
+// doesn't keep nagging for the rest of the day.
+function getDutyPanelState(now = new Date()) {
+  const win = dutyWindows.getWindowForNow(now);
+  if (!win) return { active: false };
+  const date = toDateStr(win.businessDate);
+  if (getDutyReport(date, win.section)) return { active: false };
+  const checklist = getDutiesChecklist(date);
+  const sectionData = checklist.sections.find(s => s.key === win.section);
+  if (!sectionData) return { active: false };
+  return {
+    active: true,
+    section: win.section,
+    sectionTitle: win.sectionTitle,
+    date,
+    tasks: sectionData.tasks,
+    doneCount: sectionData.doneCount,
+    totalCount: sectionData.totalCount
+  };
+}
+
 const REQUEST_TYPES = [
   { value: 'stock', label: 'Stock' },
   { value: 'leave', label: 'Leave' },
@@ -1068,6 +1144,7 @@ function clearOperationalData() {
   db.rosterShifts = [];
   db.requests = [];
   db.dutyCompletions = [];
+  db.dutyReports = [];
   db.externalCalendarEvents = [];
   db.meta.nextBookingId = 1;
   db.meta.nextNotificationId = 1;
@@ -1106,5 +1183,6 @@ module.exports = {
   getResolvedScheduleForRange, getUserUpcomingShifts,
   REQUEST_TYPES, createRequest, listRequestsForUser,
   getDutiesChecklist, toggleDutyTask,
+  getDutyPanelState, recordDutyReport, getDutyReport, getBarStaffOnShiftNames,
   toMinutes
 };

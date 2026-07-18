@@ -135,8 +135,65 @@ router.post('/action', (req, res) => {
       action,
       selfiePath: PHOTO_ACTIONS.includes(action) ? effectiveAvatarPath : ''
     });
+
+    // If a Bar Staff member just clocked out and that leaves nobody from
+    // Bar Staff still on shift, and we're inside a Closing window, this was
+    // "the last person out" — the moment the closing checklist should have
+    // been checked. Fire-and-forget so the tablet's response isn't held up
+    // waiting on an email send.
+    if (action === 'clock_out' && user.role === 'bar_staff') {
+      notify.checkClosingDutiesOnClockOut().catch(err => console.error('Closing duties check failed:', err.message));
+    }
+
     res.json({ ok: true, avatarPath: effectiveAvatarPath });
   });
+});
+
+// ---- Bar Staff Duties panel (the corner tab/side panel on the kiosk
+// screen) — ambient and shared, not gated behind a PIN like clock actions
+// are, since it's a team checklist rather than an individual time record. ----
+
+// Polled every ~30s by the kiosk page to know whether a duties section is
+// currently in its scheduled window and, if so, its live checklist state.
+router.get('/duties-status', (req, res) => {
+  res.json(models.getDutyPanelState(new Date()));
+});
+
+router.post('/duties/toggle', (req, res) => {
+  const { date, taskId } = req.body;
+  if (!date || !taskId) return res.status(400).json({ error: 'Missing date/taskId.' });
+  models.toggleDutyTask({ date, taskId, userId: null, userName: 'Bar Staff (kiosk)' });
+  res.json({ ok: true });
+});
+
+// If everything's ticked, this just closes out the section for the day. If
+// something's still unticked and no reason was sent yet, it responds
+// asking for one instead of submitting — the kiosk then shows the "why not
+// done?" prompt and calls this again with the reason filled in.
+router.post('/duties/submit', async (req, res) => {
+  const { date, section, reason } = req.body;
+  if (!date || !section) return res.status(400).json({ error: 'Missing date/section.' });
+  const checklist = models.getDutiesChecklist(date);
+  const sectionData = checklist.sections.find(s => s.key === section);
+  if (!sectionData) return res.status(400).json({ error: 'Unknown duties section.' });
+  const missing = sectionData.tasks.filter(t => !t.done);
+  if (missing.length && !(reason && reason.trim())) {
+    return res.json({ ok: true, needsReason: true, missing: missing.map(t => t.text) });
+  }
+  const { report, isNewIncomplete } = models.recordDutyReport({
+    date,
+    section,
+    sectionTitle: sectionData.title,
+    complete: missing.length === 0,
+    reason: missing.length ? reason.trim() : '',
+    missingTaskTexts: missing.map(t => t.text),
+    staffOnShiftNames: models.getBarStaffOnShiftNames(),
+    trigger: 'manual'
+  });
+  if (isNewIncomplete) {
+    await notify.notifyManagersDutyReport(report);
+  }
+  res.json({ ok: true, submitted: true });
 });
 
 module.exports = router;

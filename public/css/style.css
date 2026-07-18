@@ -618,6 +618,36 @@ textarea { resize: vertical; min-height: 70px; }
 
 .kiosk-camera-video { width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; background: #000; display: block; margin: 0 auto; }
 
+/* Bar Staff Duties tab/panel — ambient, floats over a corner of the kiosk
+   screen without ever blocking the tile grid underneath. */
+.kiosk-duties-tab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 250;
+  background: var(--accent-dark); color: #fff; border-radius: 30px;
+  padding: 12px 18px; display: none; align-items: center; gap: 8px;
+  cursor: pointer; box-shadow: 0 8px 20px rgba(18,51,40,0.25);
+  font-size: 13px; font-weight: 600; border: none;
+}
+.kiosk-duties-tab-count { background: rgba(255,255,255,0.2); border-radius: 12px; padding: 2px 8px; font-size: 12px; }
+.kiosk-duties-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 92vw;
+  background: var(--card); box-shadow: -6px 0 24px rgba(18,51,40,0.18);
+  transform: translateX(100%); transition: transform 0.25s ease; z-index: 250;
+  display: flex; flex-direction: column; padding: 20px;
+}
+.kiosk-duties-panel.open { transform: translateX(0); }
+.kiosk-duties-panel-header { display: flex; align-items: center; justify-content: space-between; font-weight: 700; color: var(--accent-dark); margin-bottom: 14px; font-size: 15px; }
+.kiosk-duties-collapse { background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--muted); }
+.kiosk-duties-panel-body { flex: 1; overflow-y: auto; }
+.kiosk-duty-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; cursor: pointer; }
+.kiosk-duty-row input { margin-top: 2px; width: 18px; height: 18px; flex-shrink: 0; }
+.kiosk-duty-row.done span { color: var(--muted); text-decoration: line-through; }
+.kiosk-duties-panel-footer { padding-top: 14px; display: flex; }
+.kiosk-duties-panel-footer .btn { width: 100%; }
+.kiosk-duties-reason textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-family: inherit; font-size: 13.5px; resize: vertical; }
+.kiosk-duties-reason-actions { display: flex; gap: 8px; margin-top: 10px; }
+.kiosk-duties-reason-actions .btn { flex: 1; }
+.kiosk-duties-done { text-align: center; padding-top: 40px; }
+
 /* ---- "Who's clocked in now" slide-in drawer (opened from the Dashboard
    stat tile) ---- */
 .drawer-overlay {

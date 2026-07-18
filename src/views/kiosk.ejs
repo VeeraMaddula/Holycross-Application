@@ -46,6 +46,39 @@
   <% } %>
 </div>
 
+<!-- Bar Staff Duties: an ambient corner tab + side panel, separate from the
+     PIN-gated clock pad above. Only appears during a scheduled duties
+     window (Opening/After Breakfast/After Carvery/Closing) and never
+     blocks the tile grid — other staff can keep clocking in/out underneath
+     it the whole time. -->
+<div class="kiosk-duties-tab" id="dutiesTab">
+  <span id="dutiesTabTitle"></span>
+  <span class="kiosk-duties-tab-count" id="dutiesTabCount"></span>
+</div>
+
+<div class="kiosk-duties-panel" id="dutiesPanel">
+  <div class="kiosk-duties-panel-header">
+    <span id="dutiesPanelTitle"></span>
+    <button type="button" class="kiosk-duties-collapse" id="dutiesCollapseBtn" aria-label="Collapse">&times;</button>
+  </div>
+  <div class="kiosk-duties-panel-body" id="dutiesPanelBody"></div>
+  <div class="kiosk-duties-panel-footer" id="dutiesPanelFooter">
+    <button type="button" class="btn" id="dutiesSubmitBtn">Submit</button>
+  </div>
+  <div class="kiosk-duties-reason" id="dutiesReasonBox" style="display:none">
+    <p class="muted" style="margin:0 0 8px">Some duties aren't ticked — why? This will be sent to the managers.</p>
+    <textarea id="dutiesReasonText" rows="3" placeholder="e.g. Short-staffed this morning, will finish by 9:15"></textarea>
+    <div class="kiosk-duties-reason-actions">
+      <button type="button" class="btn secondary" id="dutiesReasonCancel">Back</button>
+      <button type="button" class="btn" id="dutiesReasonSend">Send report</button>
+    </div>
+  </div>
+  <div class="kiosk-duties-done" id="dutiesDoneMsg" style="display:none">
+    <div class="kiosk-success-check">&#10003;</div>
+    <p>Thanks — submitted.</p>
+  </div>
+</div>
+
 <div class="kiosk-modal-overlay" id="kioskModal">
   <div class="kiosk-modal">
 
@@ -414,6 +447,119 @@
   }
   tickClock();
   setInterval(tickClock, 1000);
+
+  // ---- Bar Staff Duties tab/panel ----
+  var dutiesTab = document.getElementById('dutiesTab');
+  var dutiesPanel = document.getElementById('dutiesPanel');
+  var dutiesPanelBody = document.getElementById('dutiesPanelBody');
+  var dutiesPanelFooter = document.getElementById('dutiesPanelFooter');
+  var dutiesReasonBox = document.getElementById('dutiesReasonBox');
+  var dutiesDoneMsg = document.getElementById('dutiesDoneMsg');
+  var dutiesState = null;
+  var dutiesPanelOpen = false;
+
+  function showDutiesStage(stage) {
+    dutiesPanelBody.style.display = stage === 'checklist' ? 'block' : 'none';
+    dutiesPanelFooter.style.display = stage === 'checklist' ? 'flex' : 'none';
+    dutiesReasonBox.style.display = stage === 'reason' ? 'block' : 'none';
+    dutiesDoneMsg.style.display = stage === 'done' ? 'block' : 'none';
+  }
+
+  function renderDutiesTab() {
+    if (!dutiesState || !dutiesState.active) {
+      dutiesTab.style.display = 'none';
+      dutiesPanel.classList.remove('open');
+      dutiesPanelOpen = false;
+      return;
+    }
+    dutiesTab.style.display = dutiesPanelOpen ? 'none' : 'flex';
+    document.getElementById('dutiesTabTitle').textContent = dutiesState.sectionTitle;
+    document.getElementById('dutiesTabCount').textContent = dutiesState.doneCount + '/' + dutiesState.totalCount;
+  }
+
+  function renderDutiesPanel() {
+    if (!dutiesState) return;
+    document.getElementById('dutiesPanelTitle').textContent = dutiesState.sectionTitle;
+    dutiesPanelBody.innerHTML = '';
+    dutiesState.tasks.forEach(function(t) {
+      var row = document.createElement('label');
+      row.className = 'kiosk-duty-row' + (t.done ? ' done' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = t.done;
+      cb.addEventListener('change', function() { toggleDuty(t.id); });
+      var span = document.createElement('span');
+      span.textContent = t.text;
+      row.appendChild(cb);
+      row.appendChild(span);
+      dutiesPanelBody.appendChild(row);
+    });
+  }
+
+  function fetchDutiesStatus() {
+    fetch('/kiosk/duties-status').then(function(r) { return r.json(); }).then(function(data) {
+      dutiesState = data;
+      if (!data.active) {
+        dutiesPanelOpen = false;
+        showDutiesStage('checklist');
+      } else if (dutiesPanelOpen) {
+        renderDutiesPanel();
+      }
+      renderDutiesTab();
+    }).catch(function() {});
+  }
+  setInterval(fetchDutiesStatus, 30000);
+  fetchDutiesStatus();
+
+  function toggleDuty(taskId) {
+    if (!dutiesState) return;
+    fetch('/kiosk/duties/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'date=' + encodeURIComponent(dutiesState.date) + '&taskId=' + encodeURIComponent(taskId)
+    }).then(fetchDutiesStatus);
+  }
+
+  dutiesTab.addEventListener('click', function() {
+    dutiesPanelOpen = true;
+    dutiesPanel.classList.add('open');
+    showDutiesStage('checklist');
+    renderDutiesPanel();
+    renderDutiesTab();
+  });
+
+  document.getElementById('dutiesCollapseBtn').addEventListener('click', function() {
+    dutiesPanelOpen = false;
+    dutiesPanel.classList.remove('open');
+    renderDutiesTab();
+  });
+
+  function submitDuties(reason) {
+    if (!dutiesState) return;
+    var body = 'date=' + encodeURIComponent(dutiesState.date) + '&section=' + encodeURIComponent(dutiesState.section) + '&reason=' + encodeURIComponent(reason || '');
+    fetch('/kiosk/duties/submit', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.needsReason) {
+          showDutiesStage('reason');
+          return;
+        }
+        showDutiesStage('done');
+        setTimeout(function() {
+          dutiesPanelOpen = false;
+          dutiesPanel.classList.remove('open');
+          fetchDutiesStatus();
+        }, 1800);
+      });
+  }
+
+  document.getElementById('dutiesSubmitBtn').addEventListener('click', function() { submitDuties(''); });
+  document.getElementById('dutiesReasonCancel').addEventListener('click', function() { showDutiesStage('checklist'); });
+  document.getElementById('dutiesReasonSend').addEventListener('click', function() {
+    var reason = document.getElementById('dutiesReasonText').value.trim();
+    if (!reason) return;
+    submitDuties(reason);
+  });
 })();
 </script>
 </body>

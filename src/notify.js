@@ -4,6 +4,9 @@ const { readDb } = require('./db');
 const models = require('./models');
 const sms = require('./sms');
 const { MANAGER_ROLES } = require('./roles');
+const { DUTY_ESCALATION_ROLES } = require('./duties');
+const dutyWindows = require('./dutyWindows');
+const { toDateStr } = require('./dateUtils');
 
 const CONTACT_PHONE = '+353 51 353087';
 
@@ -122,6 +125,27 @@ function pinResetRequestEmail(user) {
   return { subject, text };
 }
 
+// Sent to General Manager / Senior Manager / Floor Manager when a kiosk
+// duties window (Opening, After Breakfast, After Carvery, Closing) closes
+// with something left unticked — whether that's because a Bar Staff member
+// hit Submit and explained why, or because nobody confirmed it at all and
+// the automatic check caught it.
+function dutyMissedEmail(report) {
+  const subject = `Duties alert: ${report.sectionTitle} not fully done - ${report.date}`;
+  const missingLines = report.missingTaskTexts && report.missingTaskTexts.length
+    ? report.missingTaskTexts.map(t => `  - ${t}`).join('\n')
+    : '  (none listed)';
+  const staffLine = report.staffOnShiftNames && report.staffOnShiftNames.length
+    ? report.staffOnShiftNames.join(', ')
+    : 'No Bar Staff currently clocked in';
+  const text = `${report.sectionTitle} on ${report.date} was not fully completed.\n\n`
+    + `Not ticked off:\n${missingLines}\n\n`
+    + `Reason given: ${report.reason || '(no reason given)'}\n\n`
+    + `Bar Staff on shift: ${staffLine}\n\n`
+    + `Check the Duties page in the app for the full checklist.`;
+  return { subject, text };
+}
+
 function shiftAssignedEmail(shift, userName) {
   const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
   const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
@@ -173,6 +197,100 @@ async function notifyManagersPinResetRequest(user) {
   }
 }
 
+// Duties escalation audience is narrower than the usual MANAGER_ROLES set —
+// General Manager, Senior Manager, Floor Manager only (see duties.js).
+async function notifyManagersDutyReport(report) {
+  const recipients = models.listUsers().filter(u => DUTY_ESCALATION_ROLES.includes(u.role) && u.email);
+  const { subject, text } = dutyMissedEmail(report);
+  for (const m of recipients) {
+    await sendEmail({ to: m.email, subject, text, type: 'duty-missed' });
+  }
+}
+
+// Evaluates one duty section for one date and, if it's incomplete and
+// hasn't already been reported, records + emails it. Shared by the fixed-
+// window sweep, the lastClockout closing check, and the overnight safety
+// net below — all three just disagree on *when* to call this.
+async function evaluateAndReportDuty({ date, section, sectionTitle, trigger, fallbackReason }) {
+  if (models.getDutyReport(date, section)) return; // already handled today
+  const checklist = models.getDutiesChecklist(date);
+  const sectionData = checklist.sections.find(s => s.key === section);
+  if (!sectionData) return;
+  const missing = sectionData.tasks.filter(t => !t.done);
+  const { report, isNewIncomplete } = models.recordDutyReport({
+    date,
+    section,
+    sectionTitle: sectionTitle || sectionData.title,
+    complete: missing.length === 0,
+    reason: missing.length ? fallbackReason : '',
+    missingTaskTexts: missing.map(t => t.text),
+    staffOnShiftNames: models.getBarStaffOnShiftNames(),
+    trigger
+  });
+  if (isNewIncomplete) await notifyManagersDutyReport(report);
+}
+
+// Runs every 5 minutes (see startScheduler below). Catches the fixed-time
+// windows (Opening, After Breakfast, After Carvery, Sunday's Closing) that
+// nobody ever opened or submitted on the kiosk, plus an overnight safety
+// net for the lastClockout-style Closing windows in case a clock-out was
+// never tapped at all.
+async function runDutyWindowSweep() {
+  const now = new Date();
+  const ended = dutyWindows.getEndedFixedWindows(now);
+  for (const w of ended) {
+    await evaluateAndReportDuty({
+      date: toDateStr(w.day),
+      section: w.section,
+      sectionTitle: w.sectionTitle,
+      trigger: 'auto-sweep',
+      fallbackReason: '(not submitted on the kiosk — window closed automatically)'
+    });
+  }
+  await checkStaleClosingWindows(now);
+}
+
+// Safety net for lastClockout Closing windows: if it's well past a
+// reasonable overnight cutoff (2:30am) and the window still hasn't been
+// resolved (no clock-out ever triggered the check — e.g. someone forgot to
+// tap out), report it anyway rather than leaving it open forever.
+async function checkStaleClosingWindows(now) {
+  for (const offset of [0, 1]) {
+    const day = dutyWindows.addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), -offset);
+    const windowsToday = dutyWindows.DUTY_WINDOWS.filter(w => w.endMode === 'lastClockout' && w.days.includes(day.getDay()));
+    for (const w of windowsToday) {
+      const cutoff = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 2, 30, 0, 0);
+      if (now < cutoff) continue;
+      await evaluateAndReportDuty({
+        date: toDateStr(day),
+        section: w.section,
+        sectionTitle: w.sectionTitle,
+        trigger: 'auto-stale',
+        fallbackReason: '(not confirmed — no clock-out detected before the overnight cutoff)'
+      });
+    }
+  }
+}
+
+// Called from routes/kiosk.js right after a Bar Staff clock-out. If that
+// leaves nobody from Bar Staff still clocked in, and we're inside a
+// lastClockout Closing window, this was "the last person out" — the moment
+// the closing checklist is supposed to have been checked. Evaluates and
+// reports immediately rather than waiting for the 5-minute sweep.
+async function checkClosingDutiesOnClockOut(now = new Date()) {
+  const win = dutyWindows.getWindowForNow(now);
+  if (!win || win.section !== 'closing' || win.endMode !== 'lastClockout') return;
+  const stillIn = models.getBarStaffOnShiftNames();
+  if (stillIn.length > 0) return; // not the last one out yet
+  await evaluateAndReportDuty({
+    date: toDateStr(win.businessDate),
+    section: 'closing',
+    sectionTitle: win.sectionTitle,
+    trigger: 'auto-clockout',
+    fallbackReason: '(not confirmed before clocking out)'
+  });
+}
+
 // Checks for bookings starting within the reminder window and sends a reminder once.
 async function runReminderSweep() {
   const db = readDb();
@@ -209,12 +327,21 @@ function startScheduler() {
     runReminderSweep().catch(err => console.error('Reminder sweep failed:', err.message));
   });
   console.log('Reminder scheduler started (checks every 15 minutes).');
+
+  // Runs every 5 minutes to catch duty windows nobody confirmed on the
+  // kiosk (fixed-time windows), plus the overnight safety net for
+  // Closing's lastClockout windows.
+  cron.schedule('*/5 * * * *', () => {
+    runDutyWindowSweep().catch(err => console.error('Duty window sweep failed:', err.message));
+  });
+  console.log('Duty window sweep started (checks every 5 minutes).');
 }
 
 module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
-  passwordResetEmail, pinResetRequestEmail,
+  passwordResetEmail, pinResetRequestEmail, dutyMissedEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
+  notifyManagersDutyReport, runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter
 };
