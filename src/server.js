@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) is applied inside
 // routes/timesheets.js itself, layered on top of the requireTimesheetAccess
 // mount gate below — not needed here.
@@ -89,14 +89,14 @@ app.use((req, res, next) => {
 });
 
 // Kitchen Staff get a deliberately narrow slice of the app — Dashboard,
-// My Shifts (incl. the team week-at-a-glance), Requests, and their own
-// Profile. Everything else (Bookings, Tables, Menu, Calendar, Staff Status,
-// the Kiosk page, etc.) bounces back to the Dashboard. Like everyone else,
-// they clock in/out by tapping their tile on the shared kiosk tablet — not
-// by opening /kiosk under their own login.
+// My Shifts (incl. the team week-at-a-glance), Requests, Reports, and their
+// own Profile. Everything else (Bookings, Tables, Menu, Calendar, Staff
+// Status, the Kiosk page, etc.) bounces back to the Dashboard. Like
+// everyone else, they clock in/out by tapping their tile on the shared
+// kiosk tablet — not by opening /kiosk under their own login.
 // Bar Staff keep the full staff-level access they've always had — this
 // only applies to the kitchen_staff role.
-const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/profile'];
+const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/reports', '/profile'];
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
   if (u && u.role === 'kitchen_staff') {
@@ -124,6 +124,7 @@ app.use('/roster', requireAuth, requireRosterAccess, require('./routes/roster'))
 app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
 app.use('/requests', requireAuth, requireRequestsAccess, require('./routes/requests'));
 app.use('/duties', requireAuth, requireDutiesAccess, require('./routes/duties'));
+app.use('/reports', requireAuth, requireReportAccess, require('./routes/reports'));
 
 app.use((req, res) => {
   res.status(404).render('404');

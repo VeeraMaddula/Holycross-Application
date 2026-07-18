@@ -648,6 +648,19 @@ textarea { resize: vertical; min-height: 70px; }
 .kiosk-duties-reason-actions .btn { flex: 1; }
 .kiosk-duties-done { text-align: center; padding-top: 40px; }
 
+/* Report an Issue page */
+.report-evidence-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.report-upload-label { display: inline-flex; align-items: center; cursor: pointer; }
+.report-evidence-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.report-evidence-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+.report-evidence-remove { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; }
+.report-camera-overlay { display: none; position: fixed; inset: 0; background: rgba(18,51,40,0.65); align-items: center; justify-content: center; z-index: 400; padding: 20px; }
+.report-camera-overlay.open { display: flex; }
+.report-camera-box { background: var(--card); border-radius: 16px; padding: 24px; max-width: 340px; width: 100%; text-align: center; }
+.report-camera-video { width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; background: #000; display: block; margin: 0 auto; }
+.report-camera-actions { display: flex; gap: 10px; margin-top: 14px; }
+.report-camera-actions .btn, .report-camera-actions .btn.secondary { flex: 1; }
+
 /* ---- "Who's clocked in now" slide-in drawer (opened from the Dashboard
    stat tile) ---- */
 .drawer-overlay {

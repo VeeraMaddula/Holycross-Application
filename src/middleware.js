@@ -78,4 +78,13 @@ function requireDutiesAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, STAFF_ROLES };
+// Report access = everyone with a real staff account — the whole point is
+// "any staff can report anything." Only the Kiosk/Bot account (which isn't
+// a person) is excluded.
+function requireReportAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && u.role !== 'kiosk') return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, STAFF_ROLES };

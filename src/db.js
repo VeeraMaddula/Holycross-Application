@@ -87,6 +87,7 @@ const DEFAULT_DATA = {
   requests: [],
   dutyCompletions: [],
   dutyReports: [],
+  reports: [],
   settings: {
     slotDurationMinutes: 90,
     reminderHoursBefore: 24,

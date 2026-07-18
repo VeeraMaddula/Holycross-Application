@@ -146,6 +146,20 @@ function dutyMissedEmail(report) {
   return { subject, text };
 }
 
+// Sent to the one specific person a "Report an Issue" was addressed to —
+// never broadcast to anyone else, and never seen by whoever/whatever is
+// being reported about.
+function reportSubmittedEmail(report) {
+  const subject = `New report (${report.categoryLabel}) from ${report.reportedByName}`;
+  const fileNote = report.files && report.files.length
+    ? `\n\n${report.files.length} file(s)/photo(s) attached — view them in the app under Reports.`
+    : '';
+  const text = `${report.reportedByName} filed a report: ${report.categoryLabel}.\n\n`
+    + `Details:\n${report.details || '(no details given)'}${fileNote}\n\n`
+    + `Review it in the app under Reports.`;
+  return { subject, text };
+}
+
 function shiftAssignedEmail(shift, userName) {
   const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
   const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
@@ -340,7 +354,7 @@ function startScheduler() {
 module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
-  passwordResetEmail, pinResetRequestEmail, dutyMissedEmail,
+  passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
   notifyManagersDutyReport, runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter

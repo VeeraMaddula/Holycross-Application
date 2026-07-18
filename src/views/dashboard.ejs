@@ -7,6 +7,16 @@
   <div class="main">
     <h2>Dashboard</h2>
 
+    <% if (currentUser && currentUser.role !== 'kiosk') { %>
+      <div class="card" style="border-left:3px solid var(--accent);display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+          <strong>Report an Issue</strong>
+          <div class="muted" style="margin-top:2px">Something not right? Send a private report straight to a manager — with photos or files if you need them.</div>
+        </div>
+        <a class="btn small secondary" href="/reports">Report now</a>
+      </div>
+    <% } %>
+
     <% if (pendingApprovalBookings && pendingApprovalBookings.length > 0) { %>
       <div class="card" style="border-left:3px solid #e8590c;display:flex;justify-content:space-between;align-items:center;gap:12px;">
         <div>

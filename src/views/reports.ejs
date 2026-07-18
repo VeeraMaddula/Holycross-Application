@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head><title>Report an Issue - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Report an Issue</h2>
+    <p class="muted">Send a private report straight to a manager — they'll get an email as soon as you send it. This is never visible to anyone else, including the person the report is about.</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-top:0">New report</h3>
+      <form method="POST" action="/reports" enctype="multipart/form-data" id="reportForm">
+        <div class="field">
+          <label>Category</label>
+          <select name="category" required>
+            <option value="">Choose a category</option>
+            <% categories.forEach(c => { %>
+              <option value="<%= c.value %>"><%= c.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Send to</label>
+          <select name="recipientUserId" required>
+            <option value="">Choose a person</option>
+            <% recipients.forEach(u => { %>
+              <option value="<%= u.id %>"><%= u.name %> (<%= u.roleLabel %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Details</label>
+          <textarea name="details" rows="4" required placeholder="What happened?"></textarea>
+        </div>
+        <div class="field">
+          <label>Evidence <span class="muted" style="font-weight:400">(optional)</span></label>
+          <div class="report-evidence-actions">
+            <button type="button" class="btn secondary" id="reportCameraBtn">Take a photo</button>
+            <label class="btn secondary report-upload-label">
+              Upload files
+              <input type="file" id="reportFileInput" name="files" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" style="display:none">
+            </label>
+          </div>
+          <div class="report-evidence-list" id="reportEvidenceList"></div>
+          <p class="muted" style="margin-top:6px">Photos, screenshots, chat exports, video/audio clips, or documents — up to 5 files, 20MB each.</p>
+        </div>
+        <button class="btn" type="submit">Send report</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Sent to you</h3>
+      <% if (!received.length) { %>
+        <p class="muted">No reports yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>From</th><th>Category</th><th>Details</th><th>Evidence</th><th>Sent</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          <% received.forEach(r => { %>
+            <tr>
+              <td><%= r.reportedByName %></td>
+              <td><span class="badge pending_approval"><%= r.categoryLabel %></span></td>
+              <td><%= r.details %></td>
+              <td>
+                <% if (r.files && r.files.length) { %>
+                  <% r.files.forEach(f => { %>
+                    <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank" style="display:block;font-size:12.5px"><%= f.originalName %></a>
+                  <% }) %>
+                <% } else { %><span class="muted">—</span><% } %>
+              </td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+              <td><span class="badge <%= r.status === 'reviewed' ? 'confirmed' : 'pending_approval' %>"><%= r.status === 'reviewed' ? 'Reviewed' : 'Sent' %></span></td>
+              <td>
+                <% if (r.status !== 'reviewed') { %>
+                  <form method="POST" action="/reports/<%= r.id %>/reviewed">
+                    <button class="btn small secondary" type="submit">Mark reviewed</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Sent by you</h3>
+      <% if (!sent.length) { %>
+        <p class="muted">You haven't sent any reports yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>To</th><th>Category</th><th>Details</th><th>Evidence</th><th>Sent</th><th>Status</th></tr></thead>
+          <tbody>
+          <% sent.forEach(r => { %>
+            <tr>
+              <td><%= r.recipientName %></td>
+              <td><span class="badge pending_approval"><%= r.categoryLabel %></span></td>
+              <td><%= r.details %></td>
+              <td>
+                <% if (r.files && r.files.length) { %>
+                  <% r.files.forEach(f => { %>
+                    <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank" style="display:block;font-size:12.5px"><%= f.originalName %></a>
+                  <% }) %>
+                <% } else { %><span class="muted">—</span><% } %>
+              </td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+              <td><span class="badge <%= r.status === 'reviewed' ? 'confirmed' : 'pending_approval' %>"><%= r.status === 'reviewed' ? 'Reviewed' : 'Sent' %></span></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="report-camera-overlay" id="reportCameraOverlay">
+  <div class="report-camera-box">
+    <video id="reportCameraVideo" autoplay playsinline muted class="report-camera-video"></video>
+    <canvas id="reportCameraCanvas" style="display:none"></canvas>
+    <p class="muted" id="reportCameraStatus" style="margin:10px 0">Starting camera…</p>
+    <div class="report-camera-actions">
+      <button type="button" class="btn secondary" id="reportCameraFlip">Flip camera</button>
+      <button type="button" class="btn" id="reportCameraCapture" disabled>Take photo</button>
+    </div>
+    <button type="button" class="btn secondary" id="reportCameraClose" style="margin-top:10px;width:100%">Done</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  var pendingFiles = [];
+  var MAX_FILES = 5;
+  var fileInput = document.getElementById('reportFileInput');
+  var listEl = document.getElementById('reportEvidenceList');
+
+  function syncInput() {
+    var dt = new DataTransfer();
+    pendingFiles.forEach(function(pf) { dt.items.add(pf); });
+    fileInput.files = dt.files;
+  }
+
+  function renderList() {
+    listEl.innerHTML = '';
+    pendingFiles.forEach(function(f, idx) {
+      var row = document.createElement('div');
+      row.className = 'report-evidence-item';
+      var label = document.createElement('span');
+      label.textContent = f.name + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB)';
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'report-evidence-remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', function() {
+        pendingFiles.splice(idx, 1);
+        syncInput();
+        renderList();
+      });
+      row.appendChild(label);
+      row.appendChild(removeBtn);
+      listEl.appendChild(row);
+    });
+  }
+
+  fileInput.addEventListener('change', function() {
+    Array.prototype.forEach.call(fileInput.files, function(f) {
+      if (pendingFiles.length < MAX_FILES) pendingFiles.push(f);
+    });
+    syncInput();
+    renderList();
+  });
+
+  // ---- Camera (front/back flip) ----
+  var cameraOverlay = document.getElementById('reportCameraOverlay');
+  var cameraVideo = document.getElementById('reportCameraVideo');
+  var cameraCanvas = document.getElementById('reportCameraCanvas');
+  var cameraStatus = document.getElementById('reportCameraStatus');
+  var captureBtn = document.getElementById('reportCameraCapture');
+  var flipBtn = document.getElementById('reportCameraFlip');
+  var closeBtn = document.getElementById('reportCameraClose');
+  var cameraStream = null;
+  var facingMode = 'user';
+
+  function stopCamera() {
+    if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
+  }
+
+  function startCamera() {
+    stopCamera();
+    cameraStatus.textContent = 'Starting camera…';
+    captureBtn.disabled = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      cameraStatus.textContent = 'Camera not supported on this device/browser.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false })
+      .then(function(stream) {
+        cameraStream = stream;
+        cameraVideo.srcObject = stream;
+        cameraStatus.textContent = 'Ready — tap Take photo. Use Flip camera to switch front/back.';
+        captureBtn.disabled = false;
+      })
+      .catch(function(err) {
+        cameraStatus.textContent = 'Could not access the camera: ' + err.message + '.';
+      });
+  }
+
+  document.getElementById('reportCameraBtn').addEventListener('click', function() {
+    facingMode = 'user';
+    cameraOverlay.classList.add('open');
+    startCamera();
+  });
+
+  flipBtn.addEventListener('click', function() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera();
+  });
+
+  captureBtn.addEventListener('click', function() {
+    if (!cameraStream || pendingFiles.length >= MAX_FILES) return;
+    cameraCanvas.width = cameraVideo.videoWidth || 480;
+    cameraCanvas.height = cameraVideo.videoHeight || 480;
+    cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+    cameraCanvas.toBlob(function(blob) {
+      var file = new File([blob], 'photo-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      pendingFiles.push(file);
+      syncInput();
+      renderList();
+    }, 'image/jpeg', 0.85);
+  });
+
+  closeBtn.addEventListener('click', function() {
+    stopCamera();
+    cameraOverlay.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>
