@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { name, username, email, password, role, phone, dob, sex, location } = req.body;
+  const { name, username, email, password, role, phone, dob, sex, location, pin } = req.body;
   if (!name || !email || !password) {
     return res.status(400).render('users/list', {
       users: models.listUsers(),
@@ -77,7 +77,18 @@ router.post('/', (req, res) => {
       currentUserId: req.session.userId
     });
   }
-  models.createUser({ name, username, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
+  if (pin && !/^\d{4}$/.test(pin)) {
+    return res.status(400).render('users/list', {
+      users: models.listUsers(),
+      error: 'Kiosk PIN must be exactly 4 digits — leave it blank to set one later.',
+      currentUserId: req.session.userId
+    });
+  }
+  const newUser = models.createUser({ name, username, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
+  // Kiosk PIN is optional at creation — set it now if one was entered, so a
+  // new starter can be handed straight to the tablet without a second trip
+  // through Edit first.
+  if (pin) models.setUserPin(newUser.id, pin);
   res.redirect('/users');
 });
 

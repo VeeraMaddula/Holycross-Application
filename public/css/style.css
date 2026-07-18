@@ -321,6 +321,28 @@ textarea { resize: vertical; min-height: 70px; }
 .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin-top: 6px; }
 .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; color: var(--ink); }
 .checkbox-item input { width: auto; }
+
+/* Bar Staff Duties checklist page */
+.duties-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.duty-progress-summary { margin-left: auto; font-size: 13px; color: var(--muted); min-width: 180px; }
+.duty-progress-track { width: 180px; height: 8px; border-radius: 20px; background: var(--line); margin-top: 5px; overflow: hidden; }
+.duty-progress-fill { height: 100%; background: var(--success); border-radius: 20px; transition: width 0.2s ease; }
+.duty-section-card { padding-bottom: 8px; }
+.duty-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.duty-section-header h3 { margin: 0; }
+.duty-task-list { list-style: none; margin: 0; padding: 0; }
+.duty-task { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.duty-task:last-child { border-bottom: none; }
+.duty-task-form { margin: 0; flex-shrink: 0; }
+.duty-task-check {
+  width: 22px; height: 22px; border-radius: 5px; border: 1.5px solid var(--line);
+  background: #fff; cursor: pointer; color: #fff; font-size: 13px; font-weight: 700;
+  line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.duty-task.done .duty-task-check { background: var(--success); border-color: var(--success); }
+.duty-task-text { flex: 1; }
+.duty-task.done .duty-task-text { color: var(--muted); text-decoration: line-through; }
+.duty-task-meta { font-size: 12px; color: var(--muted); text-decoration: none; display: inline-block; }
 .music-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .music-tag { background: #eef3ee; color: var(--accent-dark); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
 

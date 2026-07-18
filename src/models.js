@@ -4,6 +4,7 @@ const { ROLE_VALUES } = require('./roles');
 const { toDateStr, todayStr } = require('./dateUtils');
 const { normalizePhone, normalizePhoneWithCountryCode } = require('./phoneUtils');
 const { hashPassword, verifyPassword } = require('./password');
+const { DUTY_SECTIONS, TASK_COUNT } = require('./duties');
 
 function normalizeRole(role) {
   return ROLE_VALUES.includes(role) ? role : 'bar_staff';
@@ -955,6 +956,60 @@ function getUserUpcomingShifts(userId, fromDate, toDate) {
 // Deliberately minimal first pass: pick a type, pick a specific recipient,
 // write what you need — the recipient gets an email + text right away.
 // Status tracking / approve-decline workflow can be layered on later.
+// ---- Bar Staff Duties checklist ----
+// One tick-list per calendar day (the same 4 sections every day, defined
+// statically in ./duties.js) — whoever's on shift ticks tasks off as they
+// go, and the list quietly resets itself each new day since completions are
+// keyed by date rather than ever being "cleared."
+
+// Everything ticked off on a given date, e.g. { 'opening-3': { completedByName, completedAt }, ... }
+function getDutyCompletionsForDate(date) {
+  const db = readDb();
+  const map = {};
+  (db.dutyCompletions || []).filter(c => c.date === date).forEach(c => {
+    map[c.taskId] = { completedByUserId: c.completedByUserId, completedByName: c.completedByName, completedAt: c.completedAt };
+  });
+  return map;
+}
+
+// The full 4-section checklist for a date, with each task's done/who/when
+// merged in, plus overall + per-section progress counts — everything the
+// duties view needs in one call.
+function getDutiesChecklist(date) {
+  const completions = getDutyCompletionsForDate(date);
+  let doneCount = 0;
+  const sections = DUTY_SECTIONS.map(section => {
+    const tasks = section.tasks.map(t => {
+      const done = completions[t.id];
+      if (done) doneCount++;
+      return { ...t, done: !!done, completedByName: done ? done.completedByName : '', completedAt: done ? done.completedAt : null };
+    });
+    const sectionDone = tasks.filter(t => t.done).length;
+    return { key: section.key, title: section.title, tasks, doneCount: sectionDone, totalCount: tasks.length };
+  });
+  return { date, sections, doneCount, totalCount: TASK_COUNT };
+}
+
+// Ticks a task on, or unticks it if it was already done — a plain toggle,
+// same as every other checkbox-style control in this app.
+function toggleDutyTask({ date, taskId, userId, userName }) {
+  const db = readDb();
+  if (!db.dutyCompletions) db.dutyCompletions = [];
+  const existingIndex = db.dutyCompletions.findIndex(c => c.date === date && c.taskId === taskId);
+  if (existingIndex >= 0) {
+    db.dutyCompletions.splice(existingIndex, 1);
+  } else {
+    db.dutyCompletions.push({
+      date,
+      taskId,
+      completedByUserId: userId ? Number(userId) : null,
+      completedByName: userName || 'Unknown',
+      completedAt: new Date().toISOString()
+    });
+  }
+  writeDb(db);
+}
+
 const REQUEST_TYPES = [
   { value: 'stock', label: 'Stock' },
   { value: 'leave', label: 'Leave' },
@@ -1012,6 +1067,7 @@ function clearOperationalData() {
   db.timeEntries = [];
   db.rosterShifts = [];
   db.requests = [];
+  db.dutyCompletions = [];
   db.externalCalendarEvents = [];
   db.meta.nextBookingId = 1;
   db.meta.nextNotificationId = 1;
@@ -1049,5 +1105,6 @@ module.exports = {
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
   REQUEST_TYPES, createRequest, listRequestsForUser,
+  getDutiesChecklist, toggleDutyTask,
   toMinutes
 };

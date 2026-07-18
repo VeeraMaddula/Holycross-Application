@@ -69,4 +69,13 @@ function requireKioskPageAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, STAFF_ROLES };
+// Duties checklist access = Bar Staff (it's their sheet), plus Admin and
+// Senior Manager so they can check in on it / preview it, same reasoning as
+// requireKioskPageAccess above. Kitchen Staff and everyone else don't see it.
+function requireDutiesAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (u.role === 'bar_staff' || u.role === 'admin' || u.role === 'senior_manager')) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, STAFF_ROLES };

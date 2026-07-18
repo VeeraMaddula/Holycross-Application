@@ -159,6 +159,11 @@
             <% }) %>
           </select>
         </div>
+        <div class="field">
+          <label>Kiosk PIN <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="text" name="pin" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="4 digits, e.g. 4821" autocomplete="off">
+          <p class="muted" style="margin-top:4px">Lets this person clock in/out on the shared Kiosk tablet. Leave blank to set it later from Edit.</p>
+        </div>
         <p class="muted">Phone number is required so staff get text notifications when a shift is assigned or changed. Admins have full access, including Settings, Users, payments, and deleting bookings. Senior Managers also get Timesheets, Roster, Function bookings, and Notifications automatically. Everyone else (General Manager, Staff Manager, Floor Manager, Bar Staff, Kitchen Staff) can be individually granted any of those using the access toggles above.</p>
         <button class="btn" type="submit">Create user</button>
       </form>

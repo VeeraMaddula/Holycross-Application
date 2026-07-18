@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) is applied inside
 // routes/timesheets.js itself, layered on top of the requireTimesheetAccess
 // mount gate below — not needed here.
@@ -123,6 +123,7 @@ app.use('/timesheets', requireAuth, requireTimesheetAccess, require('./routes/ti
 app.use('/roster', requireAuth, requireRosterAccess, require('./routes/roster'));
 app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
 app.use('/requests', requireAuth, requireRequestsAccess, require('./routes/requests'));
+app.use('/duties', requireAuth, requireDutiesAccess, require('./routes/duties'));
 
 app.use((req, res) => {
   res.status(404).render('404');

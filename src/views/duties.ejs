@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head><title>Duties - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Bar Staff Duties</h2>
+    <p class="muted">Tick off each task as it's done. The list resets itself automatically every new day.</p>
+
+    <div class="card">
+      <div class="duties-toolbar">
+        <form method="GET" action="/duties" class="inline">
+          <input type="date" name="date" value="<%= checklist.date %>" onchange="this.form.submit()">
+        </form>
+        <% if (checklist.date !== today) { %>
+          <a class="btn small secondary" href="/duties">Back to today</a>
+        <% } %>
+        <div class="duty-progress-summary">
+          <%= checklist.doneCount %> / <%= checklist.totalCount %> done
+          <div class="duty-progress-track">
+            <div class="duty-progress-fill" style="width: <%= checklist.totalCount ? Math.round(checklist.doneCount / checklist.totalCount * 100) : 0 %>%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% checklist.sections.forEach(section => { %>
+      <div class="card duty-section-card">
+        <div class="duty-section-header">
+          <h3><%= section.title %></h3>
+          <span class="badge <%= section.doneCount === section.totalCount ? 'confirmed' : 'pending_approval' %>"><%= section.doneCount %> / <%= section.totalCount %></span>
+        </div>
+        <ul class="duty-task-list">
+          <% section.tasks.forEach(task => { %>
+            <li class="duty-task <%= task.done ? 'done' : '' %>">
+              <form method="POST" action="/duties/toggle" class="duty-task-form">
+                <input type="hidden" name="date" value="<%= checklist.date %>">
+                <input type="hidden" name="taskId" value="<%= task.id %>">
+                <button type="submit" class="duty-task-check" aria-label="<%= task.done ? 'Mark not done' : 'Mark done' %>"><%= task.done ? '✓' : '' %></button>
+              </form>
+              <div class="duty-task-text">
+                <%= task.text %>
+                <% if (task.done && task.completedByName) { %>
+                  <span class="duty-task-meta">— <%= task.completedByName %>, <%= new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    <% }) %>
+  </div>
+</div>
+</body>
+</html>
