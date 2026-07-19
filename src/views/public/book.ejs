@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reserve a Table - The Holy Cross</title>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <div class="login-wrap--brand">
+    <div class="login-card--brand" style="max-width:480px">
+      <img class="login-logo-full" src="/img/logo-full.png" alt="The Holy Cross - Bar & Restaurant, Since 1775">
+      <p class="login-tagline">Reserve a table</p>
+      <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+      <form method="POST" action="/book">
+        <!-- Honeypot: real visitors never see this field. A bot that fills
+             every input trips it; we quietly pretend success instead of
+             erroring, so it learns nothing. -->
+        <div style="position:absolute;left:-9999px" aria-hidden="true">
+          <label>Leave this field blank</label>
+          <input type="text" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" name="customerName" required value="<%= values.customerName || '' %>">
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="tel" name="phone" required value="<%= values.phone || '' %>" placeholder="089 433 8657">
+        </div>
+        <div class="field">
+          <label>Email <span class="muted" style="font-weight:400">(optional, but the fastest way to confirm)</span></label>
+          <input type="email" name="email" value="<%= values.email || '' %>">
+        </div>
+        <div class="field" style="display:flex;gap:10px">
+          <div style="flex:1">
+            <label>Date</label>
+            <input type="date" name="date" required min="<%= today %>" value="<%= values.date || '' %>">
+          </div>
+          <div style="flex:1">
+            <label>Time</label>
+            <input type="time" name="time" required value="<%= values.time || '' %>">
+          </div>
+        </div>
+        <div class="field">
+          <label>Party size</label>
+          <input type="number" name="partySize" min="1" max="20" required value="<%= values.partySize || '' %>">
+        </div>
+        <div class="field">
+          <label>Occasion <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="text" name="occasion" value="<%= values.occasion || '' %>" placeholder="Birthday, anniversary...">
+        </div>
+        <div class="field">
+          <label>Anything we should know? <span class="muted" style="font-weight:400">(optional)</span></label>
+          <textarea name="notes" rows="3"><%= values.notes || '' %></textarea>
+        </div>
+        <button class="btn" type="submit">Request booking</button>
+      </form>
+      <p class="muted" style="margin-top:14px;text-align:center;font-size:12.5px">We'll confirm by text and email within 60 minutes. For parties over 20 or private events, please give us a call.</p>
+    </div>
+  </div>
+</body>
+</html>

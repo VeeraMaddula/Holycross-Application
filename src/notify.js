@@ -60,16 +60,55 @@ function bookingDetailLines(booking, table) {
   return lines;
 }
 
+// Only meaningful once the app is actually hosted somewhere with a real
+// domain (see PUBLIC_BASE_URL in .env) — blank locally, so the link is
+// simply left out rather than pointing at nothing useful.
+function publicMenuLink() {
+  const base = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  return base ? `${base}/our-menu` : '';
+}
+
 function bookingConfirmationEmail(booking, table) {
   const subject = `Booking confirmed - The Holy Cross, ${booking.date} at ${booking.time}`;
   const details = bookingDetailLines(booking, table).map(l => `  - ${l}`).join('\n');
+  const menuLink = publicMenuLink();
   const text = `Hi ${booking.customerName},\n\n`
     + `A warm welcome from all of us at The Holy Cross, and thank you for booking with us!\n\n`
     + `Here are your booking details:\n${details}\n\n`
     + `We'll be in touch nearer your booking, and we'll send you a reminder again by both text and email closer to the date.\n\n`
+    + (menuLink ? `Take a look at what's on the menu: ${menuLink}\n\n` : '')
     + `For more information, please contact us on ${CONTACT_PHONE}.\n\n`
     + `Follow us on Facebook for more news and updates from The Holy Cross.\n\n`
     + `Thanks again for booking with us - we can't wait to welcome you!\n\nThe Holy Cross`;
+  return { subject, text };
+}
+
+// Sent immediately when a customer submits the public "Reserve a table"
+// form — before any Manager has looked at it. Sets expectations (60
+// minutes) rather than leaving them wondering whether it went through.
+function publicBookingReceivedEmail(booking) {
+  const subject = `We've got your booking request - The Holy Cross`;
+  const text = `Hi ${booking.customerName},\n\n`
+    + `Thanks for your booking request for ${booking.partySize} guest${booking.partySize === 1 ? '' : 's'} on ${booking.date} at ${booking.time}.\n\n`
+    + `We haven't confirmed it yet — a member of our team reviews every online request and will send you a confirmation by text and email within 60 minutes.\n\n`
+    + `If you don't hear from us in that time, please call us on ${CONTACT_PHONE}.\n\nThe Holy Cross`;
+  return { subject, text };
+}
+
+// Sent to every member of staff (not just Managers) the moment a public
+// booking request comes in — so everyone can see it on the Bookings page,
+// even though only a Manager/Floor Manager/Senior Manager/General
+// Manager/Admin can actually approve it.
+function newPublicBookingRequestEmail(booking, table) {
+  const subject = `New online booking request: ${booking.customerName} - ${booking.date} at ${booking.time}`;
+  const text = `A new booking request came in from the website, awaiting Manager approval:\n\n`
+    + `  - Customer: ${booking.customerName}\n`
+    + `  - Party size: ${booking.partySize}\n`
+    + `  - Date: ${booking.date} at ${booking.time}\n`
+    + `  - Suggested table: ${table ? table.name : 'none available for that party size'}\n`
+    + (booking.occasion ? `  - Occasion: ${booking.occasion}\n` : '')
+    + (booking.notes ? `  - Notes: ${booking.notes}\n` : '')
+    + `\nView and approve it in the app under Bookings (booking #${booking.id}).`;
   return { subject, text };
 }
 
@@ -199,6 +238,17 @@ async function notifyManagersPendingApproval(booking, table, conflict) {
   const { subject, text } = pendingApprovalEmail(booking, table, conflict);
   for (const m of managers) {
     await sendEmail({ to: m.email, subject, text, type: 'pending-approval', bookingId: booking.id });
+  }
+}
+
+// Every active staff account (not just Managers) gets told about a new
+// public booking request — Bar/Kitchen Staff can see it on the Bookings
+// page but can't approve it; only a Manager-tier account can.
+async function notifyAllStaffNewPublicBooking(booking, table) {
+  const staff = models.listUsers().filter(u => u.active && u.role !== 'kiosk' && u.email);
+  const { subject, text } = newPublicBookingRequestEmail(booking, table);
+  for (const s of staff) {
+    await sendEmail({ to: s.email, subject, text, type: 'public-booking-request', bookingId: booking.id });
   }
 }
 
@@ -355,7 +405,8 @@ module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
+  publicBookingReceivedEmail, newPublicBookingRequestEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
-  notifyManagersDutyReport, runDutyWindowSweep, checkClosingDutiesOnClockOut,
-  runReminderSweep, startScheduler, getTransporter
+  notifyManagersDutyReport, notifyAllStaffNewPublicBooking, runDutyWindowSweep, checkClosingDutiesOnClockOut,
+  runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };

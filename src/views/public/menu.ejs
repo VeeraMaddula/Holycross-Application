@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Menu - The Holy Cross</title>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <div class="main" style="max-width:720px;margin:0 auto;padding:36px 20px;float:none">
+    <div style="text-align:center;margin-bottom:28px">
+      <img src="/img/logo-full.png" alt="The Holy Cross" style="max-width:220px;margin-bottom:12px">
+      <p class="muted"><%= menu.intro %></p>
+    </div>
+    <% menu.sections.forEach(section => { %>
+      <div class="card">
+        <h3 style="margin-top:0"><%= section.title %></h3>
+        <% section.items.forEach(item => { %>
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">
+            <div>
+              <div style="font-weight:600"><%= item.name %></div>
+              <div class="muted" style="font-size:13px"><%= item.desc %></div>
+            </div>
+            <div style="font-weight:700;white-space:nowrap">&euro;<%= item.price %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+    <p style="text-align:center;margin-top:20px"><a href="/book">Reserve a table</a></p>
+  </div>
+</body>
+</html>

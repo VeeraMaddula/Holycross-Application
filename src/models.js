@@ -170,6 +170,27 @@ function findConflict(db, candidate, excludeId) {
   });
 }
 
+// Picks a table for a public/website booking, where the customer never
+// sees a table picker. Main Floor only — Function Room events go through
+// staff directly, same restriction Bar Staff already have. Prefers the
+// smallest table that actually fits the party (keeps bigger tables free),
+// and among those prefers one with no existing conflict at that date/time.
+// If every fitting table is already booked, still returns the smallest
+// fitting one — createBooking's own conflict check will then correctly
+// park it as pending_approval, which is what we want anyway (a manager
+// needs to look at it either way for a public booking).
+function findBestAvailableTable({ date, time, durationMinutes, partySize }) {
+  const db = readDb();
+  const duration = durationMinutes || db.settings.slotDurationMinutes;
+  const fitting = db.tables
+    .filter(t => t.area !== 'Function Room' && t.seats >= Number(partySize))
+    .sort((a, b) => a.seats - b.seats);
+  if (!fitting.length) return null;
+  const candidate = { date, time, durationMinutes: duration };
+  const free = fitting.find(t => !findConflict(db, { ...candidate, tableId: t.id }));
+  return free || fitting[0];
+}
+
 // `options.autoOverrideConflict` — true for Manager-or-above roles. If a
 // conflict is found: managers still get their booking created and confirmed
 // (the overlap is just noted in the history log); anyone else (Bar Staff)
@@ -196,7 +217,13 @@ function createBooking(input, createdBy, options = {}) {
   const conflict = findConflict(db, candidate);
   let status = 'confirmed';
   let historyEvent = `Booking created${createdBy ? ' by ' + createdBy.name : ''}`;
-  if (conflict) {
+  if (options.forcePendingApproval) {
+    // Public/website bookings always wait for a Manager to approve, win or
+    // lose on the conflict check — there's no staff member vetting it live.
+    status = 'pending_approval';
+    historyEvent = 'Booking request submitted via website — awaiting Manager approval'
+      + (conflict ? ` (also overlaps booking #${conflict.id} for ${conflict.customerName})` : '');
+  } else if (conflict) {
     if (options.autoOverrideConflict) {
       historyEvent += ` — overlaps booking #${conflict.id} for ${conflict.customerName}, created anyway (Manager)`;
     } else {
@@ -226,7 +253,7 @@ function createBooking(input, createdBy, options = {}) {
     googleEventId: '',
     createdAt: new Date().toISOString(),
     createdByUserId: createdBy ? createdBy.id : null,
-    createdByName: createdBy ? createdBy.name : '',
+    createdByName: createdBy ? createdBy.name : (options.forcePendingApproval ? 'Website' : ''),
     history: [{ at: new Date().toISOString(), event: historyEvent }]
   };
   db.bookings.push(booking);
@@ -1242,7 +1269,7 @@ function factoryReset(adminEmail, adminPasswordHash) {
 module.exports = {
   clearOperationalData, factoryReset,
   listTables, getTablesWithStatus, createTable, deleteTable,
-  listBookings, getBooking, createBooking, approveBooking, updateBooking, setStatus, updatePayment, deleteBooking,
+  listBookings, getBooking, createBooking, findBestAvailableTable, approveBooking, updateBooking, setStatus, updatePayment, deleteBooking,
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,
   getSettings, saveSettings,

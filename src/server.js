@@ -108,6 +108,11 @@ app.use((req, res, next) => {
 
 app.use('/', require('./routes/auth'));
 
+// Public, unauthenticated pages — linked from the real website
+// (holycrosswaterford.ie). Never gated behind requireAuth.
+app.use('/book', require('./routes/publicBooking'));
+app.use('/our-menu', require('./routes/publicMenu'));
+
 app.use('/profile', requireAuth, require('./routes/profile'));
 app.use('/', requireAuth, require('./routes/dashboard'));
 app.use('/bookings', requireAuth, require('./routes/bookings'));
