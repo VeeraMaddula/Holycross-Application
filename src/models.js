@@ -641,7 +641,7 @@ function getCurrentSafeBalance() {
   return latest.total;
 }
 
-function addCashLog({ reason, coinsIn, coinsOut, notesIn, notesOut, loggedByUserId, loggedByName }) {
+function addCashLog({ reason, coinsIn, coinsOut, notesIn, notesOut, loggedByUserId, loggedByName, photoPath }) {
   const db = readDb();
   if (!db.cashLogs) db.cashLogs = [];
   const cIn = Number(coinsIn) || 0;
@@ -663,7 +663,8 @@ function addCashLog({ reason, coinsIn, coinsOut, notesIn, notesOut, loggedByUser
     coinsOut: cOut,
     notesIn: nIn,
     notesOut: nOut,
-    total
+    total,
+    photoPath: photoPath || null
   };
   db.cashLogs.push(entry);
   writeDb(db);

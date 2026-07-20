@@ -21,7 +21,7 @@
 
     <div class="card" style="max-width:560px">
       <h3 style="margin-top:0">Log a change</h3>
-      <form method="POST" action="/cash-safe">
+      <form method="POST" action="/cash-safe" enctype="multipart/form-data" id="cashSafeForm">
         <div class="field">
           <label>Reason</label>
           <textarea name="reason" rows="2" required placeholder="e.g. Till 2 low on coins, took &euro;40 in coins from safe"></textarea>
@@ -44,7 +44,16 @@
             <input type="number" name="notesOut" step="0.01" min="0" value="0">
           </div>
         </div>
-        <button class="btn" type="submit" style="margin-top:10px">Submit</button>
+        <div class="field">
+          <label>Photo of you <span class="muted" style="font-weight:400">(required)</span></label>
+          <input type="file" id="cashSafePhotoInput" name="photo" accept="image/*" style="display:none">
+          <div id="cashSafePhotoPreviewWrap" style="display:none;margin:8px 0">
+            <img id="cashSafePhotoPreview" style="max-width:160px;border-radius:8px;display:block">
+            <button type="button" class="btn small secondary" id="cashSafeRetakeBtn" style="margin-top:6px">Retake photo</button>
+          </div>
+          <button type="button" class="btn secondary" id="cashSafeTakePhotoBtn">Take photo</button>
+        </div>
+        <button class="btn" type="submit" style="margin-top:10px" id="cashSafeSubmitBtn" disabled>Submit</button>
         <p class="muted" style="margin-top:8px">Submitting sends an email to the Senior Manager and adds a new row below with the running total.</p>
       </form>
     </div>
@@ -55,12 +64,17 @@
         <p class="muted">No entries yet.</p>
       <% } else { %>
         <table>
-          <thead><tr><th>Date</th><th>Logged by</th><th>Reason</th><th>Coins in</th><th>Coins out</th><th>Notes in</th><th>Notes out</th><th>Total</th></tr></thead>
+          <thead><tr><th>Date</th><th>Logged by</th><th>Photo</th><th>Reason</th><th>Coins in</th><th>Coins out</th><th>Notes in</th><th>Notes out</th><th>Total</th></tr></thead>
           <tbody>
           <% logs.forEach(l => { %>
             <tr>
               <td><%= l.date %></td>
               <td><%= l.loggedByName %></td>
+              <td>
+                <% if (l.photoPath) { %>
+                  <a href="/cash-safe/photo/<%= l.photoPath %>" target="_blank"><img src="/cash-safe/photo/<%= l.photoPath %>" alt="Photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px"></a>
+                <% } else { %><span class="muted">—</span><% } %>
+              </td>
               <td><%= l.reason %></td>
               <td>&euro;<%= l.coinsIn.toFixed(2) %></td>
               <td>&euro;<%= l.coinsOut.toFixed(2) %></td>
@@ -78,5 +92,106 @@
     </div>
   </div>
 </div>
+
+<div class="report-camera-overlay" id="cashSafeCameraOverlay">
+  <div class="report-camera-box">
+    <video id="cashSafeCameraVideo" autoplay playsinline muted class="report-camera-video"></video>
+    <canvas id="cashSafeCameraCanvas" style="display:none"></canvas>
+    <p class="muted" id="cashSafeCameraStatus" style="margin:10px 0">Starting camera…</p>
+    <div class="report-camera-actions">
+      <button type="button" class="btn secondary" id="cashSafeCameraFlip">Flip camera</button>
+      <button type="button" class="btn" id="cashSafeCameraCapture" disabled>Take photo</button>
+    </div>
+    <button type="button" class="btn secondary" id="cashSafeCameraClose" style="margin-top:10px;width:100%">Cancel</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  var fileInput = document.getElementById('cashSafePhotoInput');
+  var previewWrap = document.getElementById('cashSafePhotoPreviewWrap');
+  var previewImg = document.getElementById('cashSafePhotoPreview');
+  var takePhotoBtn = document.getElementById('cashSafeTakePhotoBtn');
+  var retakeBtn = document.getElementById('cashSafeRetakeBtn');
+  var submitBtn = document.getElementById('cashSafeSubmitBtn');
+
+  var overlay = document.getElementById('cashSafeCameraOverlay');
+  var video = document.getElementById('cashSafeCameraVideo');
+  var canvas = document.getElementById('cashSafeCameraCanvas');
+  var status = document.getElementById('cashSafeCameraStatus');
+  var captureBtn = document.getElementById('cashSafeCameraCapture');
+  var flipBtn = document.getElementById('cashSafeCameraFlip');
+  var closeBtn = document.getElementById('cashSafeCameraClose');
+  var stream = null;
+  var facingMode = 'user';
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+  }
+
+  function startCamera() {
+    stopCamera();
+    status.textContent = 'Starting camera…';
+    captureBtn.disabled = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      status.textContent = 'Camera not supported on this device/browser.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false })
+      .then(function(s) {
+        stream = s;
+        video.srcObject = s;
+        status.textContent = 'Look at the camera, then tap Take photo.';
+        captureBtn.disabled = false;
+      })
+      .catch(function(err) {
+        status.textContent = 'Could not access the camera: ' + err.message + '.';
+      });
+  }
+
+  takePhotoBtn.addEventListener('click', function() {
+    facingMode = 'user';
+    overlay.classList.add('open');
+    startCamera();
+  });
+
+  flipBtn.addEventListener('click', function() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera();
+  });
+
+  closeBtn.addEventListener('click', function() {
+    stopCamera();
+    overlay.classList.remove('open');
+  });
+
+  captureBtn.addEventListener('click', function() {
+    if (!stream) return;
+    canvas.width = video.videoWidth || 480;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(function(blob) {
+      var file = new File([blob], 'cash-safe-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+
+      previewImg.src = URL.createObjectURL(blob);
+      previewWrap.style.display = 'block';
+      takePhotoBtn.style.display = 'none';
+      submitBtn.disabled = false;
+
+      stopCamera();
+      overlay.classList.remove('open');
+    }, 'image/jpeg', 0.85);
+  });
+
+  retakeBtn.addEventListener('click', function() {
+    facingMode = 'user';
+    overlay.classList.add('open');
+    startCamera();
+  });
+})();
+</script>
 </body>
 </html>
