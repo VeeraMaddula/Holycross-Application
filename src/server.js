@@ -5,7 +5,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) is applied inside
 // routes/timesheets.js itself, layered on top of the requireTimesheetAccess
 // mount gate below — not needed here.
@@ -62,9 +62,10 @@ app.use((req, res, next) => {
           canManageRoster: !!dbUser.canManageRoster,
           canMakeRequests: !!dbUser.canMakeRequests,
           canBookFunctions: !!dbUser.canBookFunctions,
-          canViewNotifications: !!dbUser.canViewNotifications
+          canViewNotifications: !!dbUser.canViewNotifications,
+          canManageCashSafe: !!dbUser.canManageCashSafe
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false };
   } else {
     res.locals.currentUser = null;
   }
@@ -130,6 +131,7 @@ app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
 app.use('/requests', requireAuth, requireRequestsAccess, require('./routes/requests'));
 app.use('/duties', requireAuth, requireDutiesAccess, require('./routes/duties'));
 app.use('/reports', requireAuth, requireReportAccess, require('./routes/reports'));
+app.use('/cash-safe', requireAuth, requireCashSafeAccess, require('./routes/cashSafe'));
 
 app.use((req, res) => {
   res.status(404).render('404');

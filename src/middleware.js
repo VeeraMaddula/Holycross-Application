@@ -87,4 +87,15 @@ function requireReportAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, STAFF_ROLES };
+// Cash Safe Log access = Admin, Senior Manager, General Manager, Floor
+// Manager automatically, plus anyone individually granted access via the
+// Users page (used to give specific Bar Staff access) — same pattern as
+// requireTimesheetAccess/requireRosterAccess above.
+function requireCashSafeAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  const autoRoles = ['admin', 'senior_manager', 'general_manager', 'floor_manager'];
+  if (u && (autoRoles.includes(u.role) || u.canManageCashSafe)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, STAFF_ROLES };

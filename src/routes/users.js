@@ -217,6 +217,15 @@ router.post('/:id/notifications-access', (req, res) => {
   res.redirect('/users');
 });
 
+router.post('/:id/cash-safe-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserCashSafeAccess(req.params.id, !(target && target.canManageCashSafe));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
 router.post('/:id/color', (req, res) => {
   const result = models.setUserColor(req.params.id, req.body.color);
   if (result.error) {

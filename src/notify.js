@@ -199,6 +199,31 @@ function reportSubmittedEmail(report) {
   return { subject, text };
 }
 
+// Sent only to Senior Manager(s) whenever a Cash Safe Log entry is
+// submitted — not the broader DUTY_ESCALATION_ROLES, not Admin/GM/FM, per
+// the specific request that this go to Senior Manager only.
+function cashSafeLogEmail(entry) {
+  const flag = entry.total !== 1000 ? `\n\nNOTE: Safe balance is currently EUR ${entry.total.toFixed(2)}, not the usual EUR 1000.00 — please check.` : '';
+  const subject = `Cash safe log: ${entry.loggedByName} - ${entry.date} (new total EUR ${entry.total.toFixed(2)})`;
+  const text = `${entry.loggedByName} logged a cash safe change on ${entry.date}.\n\n`
+    + `Reason: ${entry.reason || '(no reason given)'}\n\n`
+    + `Coins in: EUR ${entry.coinsIn.toFixed(2)}\n`
+    + `Coins out: EUR ${entry.coinsOut.toFixed(2)}\n`
+    + `Notes in: EUR ${entry.notesIn.toFixed(2)}\n`
+    + `Notes out: EUR ${entry.notesOut.toFixed(2)}\n\n`
+    + `New safe total: EUR ${entry.total.toFixed(2)}${flag}\n\n`
+    + `Check the Cash Safe Log in the app for the full history.`;
+  return { subject, text };
+}
+
+async function notifySeniorManagerCashLog(entry) {
+  const recipients = models.listUsers().filter(u => u.role === 'senior_manager' && u.email);
+  const { subject, text } = cashSafeLogEmail(entry);
+  for (const m of recipients) {
+    await sendEmail({ to: m.email, subject, text, type: 'cash-safe-log' });
+  }
+}
+
 function shiftAssignedEmail(shift, userName) {
   const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
   const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
@@ -405,8 +430,9 @@ module.exports = {
   sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
-  publicBookingReceivedEmail, newPublicBookingRequestEmail,
+  publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
-  notifyManagersDutyReport, notifyAllStaffNewPublicBooking, runDutyWindowSweep, checkClosingDutiesOnClockOut,
+  notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
+  runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };

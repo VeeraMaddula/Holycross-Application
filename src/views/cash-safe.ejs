@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head><title>Cash Safe Log - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Cash Safe Log</h2>
+    <p class="muted">The small safe always holds &euro;<%= starting.toFixed(2) %> of change (coins: &euro;2, &euro;1, 50c, 20c, 10c; notes: &euro;5, &euro;10, &euro;50). Log every time you move change between the safe and a till, or top up from the bank.</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:420px;text-align:center">
+      <div class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.04em">Current safe balance</div>
+      <div style="font-size:34px;font-weight:700;margin:6px 0"><%= balance < 0 ? '-' : '' %>&euro;<%= Math.abs(balance).toFixed(2) %></div>
+      <% if (balance !== starting) { %>
+        <span class="badge pending_approval">Not the usual &euro;<%= starting.toFixed(2) %> — check safe</span>
+      <% } else { %>
+        <span class="badge confirmed">Matches expected &euro;<%= starting.toFixed(2) %></span>
+      <% } %>
+    </div>
+
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-top:0">Log a change</h3>
+      <form method="POST" action="/cash-safe">
+        <div class="field">
+          <label>Reason</label>
+          <textarea name="reason" rows="2" required placeholder="e.g. Till 2 low on coins, took &euro;40 in coins from safe"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>Coins in (&euro;)</label>
+            <input type="number" name="coinsIn" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label>Coins out (&euro;)</label>
+            <input type="number" name="coinsOut" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label>Notes in (&euro;)</label>
+            <input type="number" name="notesIn" step="0.01" min="0" value="0">
+          </div>
+          <div class="field">
+            <label>Notes out (&euro;)</label>
+            <input type="number" name="notesOut" step="0.01" min="0" value="0">
+          </div>
+        </div>
+        <button class="btn" type="submit" style="margin-top:10px">Submit</button>
+        <p class="muted" style="margin-top:8px">Submitting sends an email to the Senior Manager and adds a new row below with the running total.</p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">History</h3>
+      <% if (!logs.length) { %>
+        <p class="muted">No entries yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Logged by</th><th>Reason</th><th>Coins in</th><th>Coins out</th><th>Notes in</th><th>Notes out</th><th>Total</th></tr></thead>
+          <tbody>
+          <% logs.forEach(l => { %>
+            <tr>
+              <td><%= l.date %></td>
+              <td><%= l.loggedByName %></td>
+              <td><%= l.reason %></td>
+              <td>&euro;<%= l.coinsIn.toFixed(2) %></td>
+              <td>&euro;<%= l.coinsOut.toFixed(2) %></td>
+              <td>&euro;<%= l.notesIn.toFixed(2) %></td>
+              <td>&euro;<%= l.notesOut.toFixed(2) %></td>
+              <td>
+                &euro;<%= l.total.toFixed(2) %>
+                <% if (l.total !== starting) { %><span class="badge pending_approval" style="margin-left:4px">&ne; &euro;<%= starting.toFixed(2) %></span><% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

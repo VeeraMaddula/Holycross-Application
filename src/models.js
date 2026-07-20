@@ -521,6 +521,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canMakeRequests: false,
     canBookFunctions: false,
     canViewNotifications: false,
+    canManageCashSafe: false,
     color: defaultColorForId(id),
     phone: phone || '',
     dob: dob || '',
@@ -613,6 +614,60 @@ function setUserNotificationsAccess(id, allowed) {
   u.canViewNotifications = !!allowed;
   writeDb(db);
   return { user: u };
+}
+
+function setUserCashSafeAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canManageCashSafe = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+const SAFE_STARTING_BALANCE = 1000;
+
+function listCashLogs() {
+  const db = readDb();
+  return (db.cashLogs || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function getCurrentSafeBalance() {
+  const db = readDb();
+  const logs = db.cashLogs || [];
+  if (!logs.length) return SAFE_STARTING_BALANCE;
+  // Logs are appended in chronological order; the latest entry holds the running total.
+  const latest = logs.reduce((a, b) => (new Date(a.createdAt) > new Date(b.createdAt) ? a : b));
+  return latest.total;
+}
+
+function addCashLog({ reason, coinsIn, coinsOut, notesIn, notesOut, loggedByUserId, loggedByName }) {
+  const db = readDb();
+  if (!db.cashLogs) db.cashLogs = [];
+  const cIn = Number(coinsIn) || 0;
+  const cOut = Number(coinsOut) || 0;
+  const nIn = Number(notesIn) || 0;
+  const nOut = Number(notesOut) || 0;
+  const previousTotal = db.cashLogs.length
+    ? db.cashLogs.reduce((a, b) => (new Date(a.createdAt) > new Date(b.createdAt) ? a : b)).total
+    : SAFE_STARTING_BALANCE;
+  const total = Math.round((previousTotal + cIn + nIn - cOut - nOut) * 100) / 100;
+  const entry = {
+    id: db.cashLogs.length ? Math.max(...db.cashLogs.map(l => l.id)) + 1 : 1,
+    date: todayStr(),
+    createdAt: new Date().toISOString(),
+    loggedByUserId: loggedByUserId || null,
+    loggedByName: loggedByName || 'Unknown',
+    reason: (reason || '').trim(),
+    coinsIn: cIn,
+    coinsOut: cOut,
+    notesIn: nIn,
+    notesOut: nOut,
+    total
+  };
+  db.cashLogs.push(entry);
+  writeDb(db);
+  return entry;
 }
 
 function setUserAvatar(id, avatarPath) {
@@ -1245,6 +1300,7 @@ function clearOperationalData() {
   db.dutyCompletions = [];
   db.dutyReports = [];
   db.reports = [];
+  db.cashLogs = [];
   db.externalCalendarEvents = [];
   db.meta.nextBookingId = 1;
   db.meta.nextNotificationId = 1;
@@ -1273,7 +1329,8 @@ module.exports = {
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,
   getSettings, saveSettings,
-  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserColor,
+  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserCashSafeAccess, setUserColor,
+  SAFE_STARTING_BALANCE, listCashLogs, getCurrentSafeBalance, addCashLog,
   createPasswordResetToken, getUserByResetToken, resetPasswordWithToken,
   setBookingGoogleEventId, listExternalCalendarEvents, replaceExternalCalendarEvents, getGoogleSyncStatus,
   getLatestClockEntry, getStaffStatus, nextValidAction, listAllStaffStatus, addClockEntry, listClockEntries,

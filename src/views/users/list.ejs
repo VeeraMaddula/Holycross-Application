@@ -10,7 +10,7 @@
 
     <div class="card">
       <table>
-        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Requests access</th><th>Function bookings</th><th>Notifications access</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Username</th><th>Colour</th><th>Email</th><th>Role</th><th>Status</th><th>Timesheet access</th><th>Roster access</th><th>Requests access</th><th>Function bookings</th><th>Notifications access</th><th>Cash safe access</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <% users.forEach(u => { %>
           <tr>
@@ -83,6 +83,17 @@
                 <form class="inline" method="POST" action="/users/<%= u.id %>/notifications-access">
                   <button class="btn-toggle <%= u.canViewNotifications ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canViewNotifications ? 'Revoke' : 'Grant' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (['admin', 'senior_manager', 'general_manager', 'floor_manager'].includes(u.role)) { %>
+                <span class="badge confirmed">Included in role</span>
+              <% } else { %>
+                <form class="inline" method="POST" action="/users/<%= u.id %>/cash-safe-access">
+                  <button class="btn-toggle <%= u.canManageCashSafe ? 'revoke' : 'grant' %>" type="submit">
+                    <%= u.canManageCashSafe ? 'Revoke' : 'Grant' %>
                   </button>
                 </form>
               <% } %>

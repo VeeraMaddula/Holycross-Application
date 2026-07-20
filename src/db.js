@@ -88,6 +88,7 @@ const DEFAULT_DATA = {
   dutyCompletions: [],
   dutyReports: [],
   reports: [],
+  cashLogs: [],
   settings: {
     slotDurationMinutes: 90,
     reminderHoursBefore: 24,
