@@ -6,7 +6,7 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Cash Safe Log</h2>
-    <p class="muted">The small safe always holds &euro;<%= starting.toFixed(2) %> of change (coins: &euro;2, &euro;1, 50c, 20c, 10c; notes: &euro;5, &euro;10, &euro;50). Log every time you move change between the safe and a till, or top up from the bank.</p>
+    <p class="muted">The small safe should hold &euro;<%= starting.toFixed(2) %> of change (coins: &euro;2, &euro;1, 50c, 20c, 10c; notes: &euro;5, &euro;10, &euro;50). Log every time you move change between the safe and a till, or top up from the bank.</p>
     <% if (error) { %><div class="error-box"><%= error %></div><% } %>
 
     <div class="card" style="max-width:420px;text-align:center">
@@ -16,6 +16,27 @@
         <span class="badge pending_approval">Not the usual &euro;<%= starting.toFixed(2) %> — check safe</span>
       <% } else { %>
         <span class="badge confirmed">Matches expected &euro;<%= starting.toFixed(2) %></span>
+      <% } %>
+
+      <% if (lastLodgementChange) { %>
+        <p class="muted" style="font-size:12px;margin-top:10px">Expected lodgement last set to &euro;<%= lastLodgementChange.newAmount.toFixed(2) %> by <%= lastLodgementChange.changedByName %> on <%= new Date(lastLodgementChange.changedAt).toLocaleDateString() %><% if (lastLodgementChange.reason) { %> — <%= lastLodgementChange.reason %><% } %></p>
+      <% } %>
+
+      <% if (canEditLodgement) { %>
+        <details style="margin-top:12px;text-align:left">
+          <summary style="cursor:pointer;color:var(--accent);font-weight:600;font-size:13px">Edit expected lodgement</summary>
+          <form method="POST" action="/cash-safe/lodgement-target" style="margin-top:10px">
+            <div class="field">
+              <label>New expected lodgement (&euro;)</label>
+              <input type="number" name="amount" step="0.01" min="0" value="<%= starting.toFixed(2) %>" required>
+            </div>
+            <div class="field">
+              <label>Reason <span class="muted" style="font-weight:400">(optional)</span></label>
+              <input type="text" name="reason" placeholder="e.g. Increased for the Christmas trading period">
+            </div>
+            <button class="btn small" type="submit">Update lodgement</button>
+          </form>
+        </details>
       <% } %>
     </div>
 

@@ -89,11 +89,13 @@ const DEFAULT_DATA = {
   dutyReports: [],
   reports: [],
   cashLogs: [],
+  cashLodgementHistory: [],
   settings: {
     slotDurationMinutes: 90,
     reminderHoursBefore: 24,
     openHour: 11,
-    closeHour: 23
+    closeHour: 23,
+    cashSafeLodgementTarget: 1000
   },
   meta: {
     nextBookingId: 1,
