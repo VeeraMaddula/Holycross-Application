@@ -28,12 +28,15 @@ router.post('/', async (req, res) => {
     return res.redirect('/book/thanks');
   }
 
-  const { customerName, phone, email, date, time, partySize, occasion, notes } = req.body;
+  const { customerName, phone, email, date, time, partySize, occasion, notes, privacyAcknowledged } = req.body;
   if (!customerName || !phone || !date || !time || !partySize) {
     return rerender('Please fill in your name, phone number, date, time, and party size.');
   }
   if (Number(partySize) < 1) {
     return rerender('Party size must be at least 1.');
+  }
+  if (!privacyAcknowledged) {
+    return rerender('Please confirm you\'ve read the Privacy Notice before submitting.');
   }
 
   const table = models.findBestAvailableTable({ date, time, durationMinutes: settings.slotDurationMinutes, partySize });

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Privacy Notice - The Holy Cross</title>
+  <%- include('../partials/head') %>
+</head>
+<body>
+  <div class="main" style="max-width:720px;margin:0 auto;padding:36px 20px;float:none">
+    <div style="text-align:center;margin-bottom:28px">
+      <img src="/img/logo-full.png" alt="The Holy Cross" style="max-width:220px;margin-bottom:12px">
+      <h2 style="margin:8px 0 0">Privacy Notice — Booking Requests</h2>
+    </div>
+    <div class="card">
+      <% sections.forEach(s => { %>
+        <h3><%= s.heading %></h3>
+        <p><%= s.body %></p>
+      <% }) %>
+      <p class="muted" style="margin-top:20px;font-size:12.5px">Last updated: 2026.</p>
+    </div>
+    <p style="text-align:center;margin-top:20px"><a href="/book">Back to booking</a></p>
+  </div>
+</body>
+</html>

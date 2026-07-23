@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Privacy Notice - Booking Admin</title>
+  <%- include('partials/head') %>
+</head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Privacy Notice</h2>
+    <p class="muted" style="max-width:640px">
+      This explains how <%= controllerName %> processes your personal data as a
+      member of staff — what we hold, why, and your rights. Please read it and
+      confirm you've seen it below.
+    </p>
+
+    <% if (alreadyCurrent) { %>
+      <div class="badge confirmed" style="padding:8px 14px;margin:16px 0;display:inline-block">
+        ✓ You've already acknowledged this version<% if (acceptedAt) { %> — on <%= new Date(acceptedAt).toLocaleDateString('en-IE', { year: 'numeric', month: 'long', day: 'numeric' }) %><% } %>
+      </div>
+    <% } %>
+
+    <div class="card" style="max-width:680px">
+      <% sections.forEach(s => { %>
+        <h3><%= s.heading %></h3>
+        <% if (s.body) { %><p><%= s.body %></p><% } %>
+        <% if (s.list) { %>
+          <ul style="margin:0 0 12px;padding-left:20px">
+            <% s.list.forEach(item => { %><li style="margin-bottom:6px"><%= item %></li><% }) %>
+          </ul>
+        <% } %>
+        <% if (s.note) { %><p class="muted" style="font-size:13px"><%= s.note %></p><% } %>
+      <% }) %>
+      <p class="muted" style="margin-top:20px;font-size:12.5px">Version <%= version %>.</p>
+    </div>
+
+    <form method="POST" action="/accept-privacy" style="margin-top:20px;max-width:680px">
+      <input type="hidden" name="returnTo" value="<%= returnTo %>">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+        <input type="checkbox" required style="margin-top:4px">
+        <span>I confirm I've read and understood this privacy notice.</span>
+      </label>
+      <div class="actions-row" style="margin-top:16px">
+        <button class="btn" type="submit"><%= alreadyCurrent ? 'Confirm again' : 'Acknowledge and continue' %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

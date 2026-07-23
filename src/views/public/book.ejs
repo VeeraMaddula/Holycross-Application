@@ -52,6 +52,10 @@
           <label>Anything we should know? <span class="muted" style="font-weight:400">(optional)</span></label>
           <textarea name="notes" rows="3"><%= values.notes || '' %></textarea>
         </div>
+        <div class="field" style="display:flex;align-items:flex-start;gap:8px">
+          <input type="checkbox" name="privacyAcknowledged" id="privacyAcknowledged" value="1" required style="width:auto;margin-top:3px">
+          <label for="privacyAcknowledged" style="margin:0;font-weight:400">I've read the <a href="/privacy" target="_blank">Privacy Notice</a> and agree to my details being used to process this booking.</label>
+        </div>
         <button class="btn" type="submit">Request booking</button>
       </form>
       <p class="muted" style="margin-top:14px;text-align:center;font-size:12.5px">We'll confirm by text and email within 60 minutes. For parties over 20 or private events, please give us a call.</p>

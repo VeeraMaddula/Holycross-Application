@@ -12,6 +12,7 @@ const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, 
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');
+const { STAFF_PRIVACY_VERSION } = require('./privacyPolicy');
 
 ensureDb();
 
@@ -63,13 +64,32 @@ app.use((req, res, next) => {
           canMakeRequests: !!dbUser.canMakeRequests,
           canBookFunctions: !!dbUser.canBookFunctions,
           canViewNotifications: !!dbUser.canViewNotifications,
-          canManageCashSafe: !!dbUser.canManageCashSafe
+          canManageCashSafe: !!dbUser.canManageCashSafe,
+          privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
+          privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
   } else {
     res.locals.currentUser = null;
   }
   res.locals.roles = ROLES;
+  next();
+});
+
+// Every logged-in staff/manager account (everyone except the shared Kiosk/Bot
+// account, which isn't a real person) has to acknowledge the current privacy
+// notice before doing anything else in the app. If their stored version is
+// missing or stale, they get bounced to /accept-privacy. Exempt /logout so a
+// pending user can still sign out, and exempt /accept-privacy itself so the
+// redirect target doesn't loop back on itself.
+app.use((req, res, next) => {
+  const u = res.locals.currentUser;
+  if (u && u.role !== 'kiosk') {
+    const exempt = req.path === '/accept-privacy' || req.path === '/logout';
+    if (!exempt && u.privacyPolicyVersionRaw !== STAFF_PRIVACY_VERSION) {
+      return res.redirect('/accept-privacy?returnTo=' + encodeURIComponent(req.originalUrl));
+    }
+  }
   next();
 });
 
@@ -97,7 +117,7 @@ app.use((req, res, next) => {
 // kiosk tablet — not by opening /kiosk under their own login.
 // Bar Staff keep the full staff-level access they've always had — this
 // only applies to the kitchen_staff role.
-const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/reports', '/profile'];
+const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/reports', '/profile', '/accept-privacy'];
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
   if (u && u.role === 'kitchen_staff') {
@@ -113,7 +133,9 @@ app.use('/', require('./routes/auth'));
 // (holycrosswaterford.ie). Never gated behind requireAuth.
 app.use('/book', require('./routes/publicBooking'));
 app.use('/our-menu', require('./routes/publicMenu'));
+app.use('/privacy', require('./routes/publicPrivacy'));
 
+app.use('/', requireAuth, require('./routes/privacy'));
 app.use('/profile', requireAuth, require('./routes/profile'));
 app.use('/', requireAuth, require('./routes/dashboard'));
 app.use('/bookings', requireAuth, require('./routes/bookings'));

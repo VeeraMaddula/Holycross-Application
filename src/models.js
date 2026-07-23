@@ -522,6 +522,8 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canBookFunctions: false,
     canViewNotifications: false,
     canManageCashSafe: false,
+    privacyPolicyVersion: null,
+    privacyPolicyAcceptedAt: null,
     color: defaultColorForId(id),
     phone: phone || '',
     dob: dob || '',
@@ -612,6 +614,16 @@ function setUserNotificationsAccess(id, allowed) {
   const u = (db.users || []).find(x => x.id === Number(id));
   if (!u) return { error: 'User not found.' };
   u.canViewNotifications = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
+function acceptPrivacyPolicy(id, version) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.privacyPolicyVersion = version;
+  u.privacyPolicyAcceptedAt = new Date().toISOString();
   writeDb(db);
   return { user: u };
 }
@@ -1373,7 +1385,7 @@ module.exports = {
   getMenu, saveMenu, listEvents, createEvent, deleteEvent,
   logNotification, listNotifications, getNotification,
   getSettings, saveSettings,
-  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserCashSafeAccess, setUserColor,
+  listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier, getUserById, createUser, updateUserProfile, setUserActive, setUserRole, setUserAvatar, setUserTimesheetAccess, setUserRosterAccess, setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, setUserCashSafeAccess, setUserColor, acceptPrivacyPolicy,
   SAFE_STARTING_BALANCE, listCashLogs, getCurrentSafeBalance, addCashLog,
   getCashSafeLodgementTarget, setCashSafeLodgementTarget, getCashLodgementHistory,
   createPasswordResetToken, getUserByResetToken, resetPasswordWithToken,
