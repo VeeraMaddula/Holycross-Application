@@ -7,6 +7,7 @@ const { MANAGER_ROLES } = require('./roles');
 const { DUTY_ESCALATION_ROLES } = require('./duties');
 const dutyWindows = require('./dutyWindows');
 const { toDateStr } = require('./dateUtils');
+const calendarLinks = require('./calendarLinks');
 
 const CONTACT_PHONE = '+353 51 353087';
 
@@ -27,7 +28,7 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendEmail({ to, subject, text, html, type, bookingId }) {
+async function sendEmail({ to, subject, text, html, type, bookingId, attachments }) {
   if (!to) return;
   const t = getTransporter();
   if (!t) {
@@ -37,12 +38,25 @@ async function sendEmail({ to, subject, text, html, type, bookingId }) {
   try {
     await t.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to, subject, text, html
+      to, subject, text, html,
+      attachments: attachments || undefined
     });
     models.logNotification({ type, bookingId, recipient: to, subject, text, status: 'sent' });
   } catch (err) {
     models.logNotification({ type, bookingId, recipient: to, subject, text, status: 'failed', error: err.message });
   }
+}
+
+// A booking's confirmation email always gets a matching .ics attachment —
+// opening it lets Google/Apple/Outlook calendar apps add the event with no
+// clicks on a link required. Kept separate from the email body builders
+// below so callers can attach it via sendEmail's `attachments` option.
+function bookingIcsAttachment(booking, table) {
+  return {
+    filename: 'booking.ics',
+    content: calendarLinks.bookingIcs(booking, table),
+    contentType: 'text/calendar; charset=utf-8; method=PUBLISH'
+  };
 }
 
 // Booking details for the customer, in a fixed order. We deliberately never
@@ -72,10 +86,13 @@ function bookingConfirmationEmail(booking, table) {
   const subject = `Booking confirmed - The Holy Cross, ${booking.date} at ${booking.time}`;
   const details = bookingDetailLines(booking, table).map(l => `  - ${l}`).join('\n');
   const menuLink = publicMenuLink();
+  const calendarLink = calendarLinks.googleCalendarAddLink(booking, table);
   const text = `Hi ${booking.customerName},\n\n`
     + `A warm welcome from all of us at The Holy Cross, and thank you for booking with us!\n\n`
     + `Here are your booking details:\n${details}\n\n`
     + `We'll be in touch nearer your booking, and we'll send you a reminder again by both text and email closer to the date.\n\n`
+    + `Add it to your calendar: ${calendarLink}\n`
+    + `(or open the attached file to add it to Apple/Outlook/any calendar app)\n\n`
     + (menuLink ? `Take a look at what's on the menu: ${menuLink}\n\n` : '')
     + `For more information, please contact us on ${CONTACT_PHONE}.\n\n`
     + `Follow us on Facebook for more news and updates from The Holy Cross.\n\n`
@@ -427,7 +444,7 @@ function startScheduler() {
 }
 
 module.exports = {
-  sendEmail, bookingConfirmationEmail, bookingReminderEmail, cancellationEmail,
+  sendEmail, bookingConfirmationEmail, bookingIcsAttachment, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,

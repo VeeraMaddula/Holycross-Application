@@ -70,7 +70,10 @@ router.post('/', async (req, res) => {
     // Fire customer notifications (no-ops gracefully if SMTP/Twilio aren't configured)
     if (result.booking.email) {
       const { subject, text } = notify.bookingConfirmationEmail(result.booking, table);
-      notify.sendEmail({ to: result.booking.email, subject, text, type: 'confirmation', bookingId: result.booking.id });
+      notify.sendEmail({
+        to: result.booking.email, subject, text, type: 'confirmation', bookingId: result.booking.id,
+        attachments: [notify.bookingIcsAttachment(result.booking, table)]
+      });
     }
     if (result.booking.phone) {
       sms.sendSms({
@@ -167,7 +170,10 @@ router.post('/:id/approve', requireManagerRole, async (req, res) => {
 
   if (result.booking.email) {
     const { subject, text } = notify.bookingConfirmationEmail(result.booking, table);
-    notify.sendEmail({ to: result.booking.email, subject, text, type: 'confirmation', bookingId: result.booking.id });
+    notify.sendEmail({
+      to: result.booking.email, subject, text, type: 'confirmation', bookingId: result.booking.id,
+      attachments: [notify.bookingIcsAttachment(result.booking, table)]
+    });
   }
   if (result.booking.phone) {
     sms.sendSms({
