@@ -160,7 +160,17 @@ router.get('/export', (req, res) => {
     .filter(r => r.workedMinutes > 0 || r.breakMinutes > 0);
 
   const fmt = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
-  const csvEscape = s => `"${String(s).replace(/"/g, '""')}"`;
+  // Quoting alone stops values spilling into the next column, but Excel/
+  // Sheets still treat a cell starting with =, +, -, or @ as a formula when
+  // the CSV is opened — a staff name someone set to e.g. "=1+1" (or worse,
+  // a formula that calls out to another sheet) would silently execute.
+  // Prefixing a leading apostrophe forces spreadsheet apps to treat it as
+  // plain text, same fix used by Google/Microsoft's own CSV export tools.
+  const csvEscape = s => {
+    let str = String(s);
+    if (/^[=+\-@]/.test(str)) str = `'${str}`;
+    return `"${str.replace(/"/g, '""')}"`;
+  };
   const header = 'Staff,Role,Worked (h:mm),Worked (decimal hours),Break (h:mm)\n';
   const body = rows.map(r =>
     [csvEscape(r.name), csvEscape(r.role), fmt(r.workedMinutes), (r.workedMinutes / 60).toFixed(2), fmt(r.breakMinutes)].join(',')

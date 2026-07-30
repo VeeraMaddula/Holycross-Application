@@ -12,6 +12,7 @@
     <div class="card" style="max-width:560px">
       <h3 style="margin-top:0">New report</h3>
       <form method="POST" action="/reports" enctype="multipart/form-data" id="reportForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Category</label>
           <select name="category" required>
@@ -75,6 +76,7 @@
               <td>
                 <% if (r.status !== 'reviewed') { %>
                   <form method="POST" action="/reports/<%= r.id %>/reviewed">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button class="btn small secondary" type="submit">Mark reviewed</button>
                   </form>
                 <% } %>

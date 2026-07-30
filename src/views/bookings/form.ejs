@@ -9,6 +9,7 @@
     <% if (error) { %><div class="error-box"><%= error %></div><% } %>
     <div class="card">
       <form method="POST" action="<%= booking ? '/bookings/' + booking.id : '/bookings' %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="form-grid">
           <div class="field">
             <label>Customer name *</label>

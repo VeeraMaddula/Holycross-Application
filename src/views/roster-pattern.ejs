@@ -32,6 +32,7 @@
           <h3 style="margin-top:0"><%= dayNames[dow] %></h3>
 
           <form class="roster-add-form" method="POST" action="/roster/assignments">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="dayOfWeek" value="<%= dow %>">
             <div class="field">
               <label>Staff</label>
@@ -67,6 +68,7 @@
                   </div>
                 </div>
                 <form class="inline" method="POST" action="/roster/assignments/<%= a.id %>/delete">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="roster-timeline-remove" type="submit" title="Remove from weekly pattern">&times;</button>
                 </form>
               </div>

@@ -4,6 +4,7 @@ const models = require('../models');
 const notify = require('../notify');
 const sms = require('../sms');
 const { todayStr } = require('../dateUtils');
+const { publicBookingLimiter } = require('../rateLimiters');
 
 // Public "Reserve a table" page — no login required, meant to be linked
 // from the real website (holycrosswaterford.ie). Deliberately a small
@@ -17,7 +18,7 @@ router.get('/', (req, res) => {
   res.render('public/book', { settings, today: todayStr(), error: null, values: {} });
 });
 
-router.post('/', async (req, res) => {
+router.post('/', publicBookingLimiter, async (req, res) => {
   const settings = models.getSettings();
   const rerender = (error) => res.status(400).render('public/book', { settings, today: todayStr(), error, values: req.body });
 

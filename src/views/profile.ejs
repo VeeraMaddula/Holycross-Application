@@ -33,6 +33,7 @@
       </div>
 
       <form method="POST" action="/profile/avatar" enctype="multipart/form-data" id="avatarForm" style="margin-top:18px">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Upload a new profile picture</label>
           <input type="file" name="avatar" id="avatarFileInput" accept="image/jpeg,image/png,image/webp" required>
@@ -60,6 +61,7 @@
 
       <% if (profileUser.avatarPath) { %>
         <form method="POST" action="/profile/avatar/remove" style="margin-top:10px" onsubmit="return confirm('Remove your profile picture?')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn secondary small" type="submit">Remove current picture</button>
         </form>
       <% } %>
@@ -139,7 +141,7 @@
         fetch('/profile/avatar', {
           method: 'POST',
           body: formData,
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' }
         })
           .then(function(res) {
             return res.json().then(function(data) { return { ok: res.ok, data: data }; });

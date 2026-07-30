@@ -12,6 +12,7 @@
       <% if (error) { %><div class="error-box"><%= error %></div><% } %>
       <% if (resetSuccess) { %><div class="success-box">Password updated — log in with your new password.</div><% } %>
       <form method="POST" action="/login">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Username or Phone Number</label>
           <div style="display:flex;gap:8px">

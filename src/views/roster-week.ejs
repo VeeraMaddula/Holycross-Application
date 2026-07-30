@@ -63,6 +63,7 @@
           <h3 style="margin-top:0"><%= dayNames[day.dayOfWeek] %>, <%= day.date %></h3>
 
           <form class="roster-add-form" method="POST" action="/roster/shifts">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="date" value="<%= day.date %>">
             <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
             <div class="field">
@@ -101,12 +102,14 @@
                 <button type="button" class="roster-timeline-remove" title="Edit this shift" style="font-size:15px"
                   onclick="var f=document.getElementById('edit-<%= s.id %>'); f.style.display = f.style.display==='none' ? 'flex' : 'none';">&#9998;</button>
                 <form class="inline" method="POST" action="/roster/shifts/<%= s.id %>/delete">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                   <button class="roster-timeline-remove" type="submit" title="Remove this shift">&times;</button>
                 </form>
               </div>
               <div id="edit-<%= s.id %>" style="display:none;margin:0 0 10px 138px;">
                 <form class="roster-add-form" method="POST" action="/roster/shifts/<%= s.id %>/edit" style="margin-bottom:0">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                   <div class="field narrow"><label>Date</label><input type="date" name="date" value="<%= s.date %>" required></div>
                   <div class="field narrow"><label>Start</label><input type="time" name="startTime" value="<%= s.startTime %>" required></div>

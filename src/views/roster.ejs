@@ -25,6 +25,7 @@
               <td></td>
               <td>
                 <form class="inline" method="POST" action="/roster/shift-templates/<%= t.id %>/delete" onsubmit="return confirm('Remove this shift template? Any weekly assignments and overrides using it will also be removed.')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                   <button class="btn small danger" type="submit">Remove</button>
                 </form>
@@ -37,6 +38,7 @@
 
       <h3>Add a shift template</h3>
       <form method="POST" action="/roster/shift-templates" class="form-grid" style="max-width:600px">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
         <div class="field">
           <label>Name</label>
@@ -83,12 +85,14 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px;background:#fbf8f1;border-radius:6px;padding:3px 6px;font-size:12px">
                       <span><%= a.userName %></span>
                       <form class="inline" method="POST" action="/roster/assignments/<%= a.id %>/delete" style="margin:0">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                         <button type="submit" title="Remove from weekly pattern" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;line-height:1;padding:0">&times;</button>
                       </form>
                     </div>
                   <% }) %>
                   <form class="inline" method="POST" action="/roster/assignments" style="display:flex;gap:2px">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <input type="hidden" name="dayOfWeek" value="<%= dow %>">
                     <input type="hidden" name="shiftTemplateId" value="<%= t.id %>">
                     <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
@@ -140,11 +144,13 @@
                   <td>
                     <% if (s.fromOverride) { %>
                       <form class="inline" method="POST" action="/roster/overrides/<%= s.overrideId %>/delete">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                         <button class="btn small danger" type="submit">Remove</button>
                       </form>
                     <% } else { %>
                       <form class="inline" method="POST" action="/roster/overrides" onsubmit="return confirm('Remove <%= s.userName %> from this one date only? The weekly pattern stays the same for other weeks.')">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="date" value="<%= dayEntry.date %>">
                         <input type="hidden" name="shiftTemplateId" value="<%= s.shiftTemplateId %>">
                         <input type="hidden" name="userId" value="<%= s.userId %>">
@@ -161,6 +167,7 @@
           <% } %>
           <% if (shiftTemplates.length > 0 && users.length > 0) { %>
             <form class="inline" method="POST" action="/roster/overrides" style="display:flex;gap:6px;margin-top:8px;align-items:center">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="date" value="<%= dayEntry.date %>">
               <input type="hidden" name="type" value="add">
               <input type="hidden" name="redirectWeek" value="<%= weekStart %>">

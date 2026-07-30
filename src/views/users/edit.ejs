@@ -10,6 +10,7 @@
 
     <div class="card" style="max-width:480px">
       <form method="POST" action="/users/<%= user.id %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Name</label>
           <input type="text" name="name" value="<%= user.name %>" required>
@@ -66,11 +67,13 @@
             </span>
           <% } %>
           <form method="POST" action="/users/<%= user.id %>/avatar" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required>
             <button class="btn small" type="submit">Upload</button>
           </form>
           <% if (user.avatarPath) { %>
             <form method="POST" action="/users/<%= user.id %>/avatar/remove" onsubmit="return confirm('Remove this profile picture?')">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button class="btn small secondary" type="submit">Remove</button>
             </form>
           <% } %>
@@ -83,6 +86,7 @@
         <% if (pinError) { %><div class="error-box"><%= pinError %></div><% } %>
         <% if (pinSaved) { %><div class="card" style="background:#ebfbee;border-color:#b2f2bb;color:#2b8a3e;margin-bottom:16px">PIN updated.</div><% } %>
         <form method="POST" action="/users/<%= user.id %>/pin" class="inline" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="field" style="margin-bottom:0">
             <label>New PIN</label>
             <input type="text" name="pin" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="1234" style="width:100px" required>

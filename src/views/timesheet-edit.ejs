@@ -13,6 +13,7 @@
       <% if (entry.manuallyAdded) { %><p class="muted">This entry was manually added by <%= entry.editedBy || 'a manager' %> — there's no selfie for it.</p><% } %>
 
       <form method="POST" action="/timesheets/<%= entry.id %>" class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Staff member</label>
           <input type="text" value="<%= entry.userName %>" disabled>

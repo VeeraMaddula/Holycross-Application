@@ -10,6 +10,7 @@
     <div class="card">
       <h3 style="margin-top:0">Menu</h3>
       <form method="POST" action="/menu">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Intro line</label>
           <input type="text" name="intro" value="<%= menu.intro %>">
@@ -61,6 +62,7 @@
             <td><%= e.description %></td>
             <td>
               <form class="inline" method="POST" action="/menu/events/<%= e.id %>/delete">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button class="btn small danger" type="submit">Remove</button>
               </form>
             </td>
@@ -70,6 +72,7 @@
       </table>
       <h4>Add event</h4>
       <form method="POST" action="/menu/events">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="form-grid">
           <div class="field"><label>Title</label><input type="text" name="title" required></div>
           <div class="field"><label>Date</label><input type="date" name="date" required></div>

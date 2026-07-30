@@ -18,12 +18,14 @@
             <td><%= u.username || '—' %></td>
             <td>
               <form class="inline" method="POST" action="/users/<%= u.id %>/color">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="color" name="color" value="<%= u.color || '#7a8f6b' %>" onchange="this.form.submit()" style="width:36px;height:28px;padding:2px;cursor:pointer" title="Roster colour for <%= u.name %>">
               </form>
             </td>
             <td><%= u.email %></td>
             <td>
               <form class="inline" method="POST" action="/users/<%= u.id %>/role">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <select name="role" class="role-select" onchange="this.form.submit()" <%= u.id === currentUserId ? 'disabled' : '' %>>
                   <% roles.forEach(r => { %>
                     <option value="<%= r.value %>" <%= u.role === r.value ? 'selected' : '' %>><%= r.label %></option>
@@ -37,6 +39,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/timesheet-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canViewTimesheets ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canViewTimesheets ? 'Revoke' : 'Grant' %>
                   </button>
@@ -48,6 +51,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/roster-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canManageRoster ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canManageRoster ? 'Revoke' : 'Grant' %>
                   </button>
@@ -59,6 +63,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/requests-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canMakeRequests ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canMakeRequests ? 'Revoke' : 'Grant' %>
                   </button>
@@ -70,6 +75,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/function-bookings-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canBookFunctions ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canBookFunctions ? 'Revoke' : 'Grant' %>
                   </button>
@@ -81,6 +87,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/notifications-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canViewNotifications ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canViewNotifications ? 'Revoke' : 'Grant' %>
                   </button>
@@ -92,6 +99,7 @@
                 <span class="badge confirmed">Included in role</span>
               <% } else { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/cash-safe-access">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle <%= u.canManageCashSafe ? 'revoke' : 'grant' %>" type="submit">
                     <%= u.canManageCashSafe ? 'Revoke' : 'Grant' %>
                   </button>
@@ -103,6 +111,7 @@
               <a class="btn small secondary" href="/users/<%= u.id %>/edit">Edit</a>
               <% if (u.id !== currentUserId) { %>
                 <form class="inline" method="POST" action="/users/<%= u.id %>/toggle-active" onsubmit="return confirm('<%= u.active ? 'Deactivate' : 'Reactivate' %> this user?')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn small secondary" type="submit"><%= u.active ? 'Deactivate' : 'Reactivate' %></button>
                 </form>
               <% } %>
@@ -116,6 +125,7 @@
     <div class="card" style="max-width:480px">
       <h3 style="margin-top:0">Add a user</h3>
       <form method="POST" action="/users">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Name</label>
           <input type="text" name="name" required>

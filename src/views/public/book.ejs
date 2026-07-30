@@ -11,6 +11,7 @@
       <p class="login-tagline">Reserve a table</p>
       <% if (error) { %><div class="error-box"><%= error %></div><% } %>
       <form method="POST" action="/book">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <!-- Honeypot: real visitors never see this field. A bot that fills
              every input trips it; we quietly pretend success instead of
              erroring, so it learns nothing. -->

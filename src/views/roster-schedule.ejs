@@ -44,11 +44,13 @@
               </div>
               <% if (s.fromOverride) { %>
                 <form class="inline" method="POST" action="/roster/overrides/<%= s.overrideId %>/delete">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                   <button class="roster-timeline-remove" type="submit" title="Remove this one-off addition">&times;</button>
                 </form>
               <% } else { %>
                 <form class="inline" method="POST" action="/roster/overrides" onsubmit="return confirm('Remove <%= s.userName %> from this one date only? The weekly grid stays the same for other weeks.')">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="date" value="<%= day.date %>">
                   <input type="hidden" name="assignmentId" value="<%= s.assignmentId %>">
                   <input type="hidden" name="type" value="remove">
@@ -65,6 +67,7 @@
           <details style="margin-top:10px">
             <summary style="cursor:pointer;color:var(--accent-dark);font-size:13px;font-weight:600">+ Add cover for this date only</summary>
             <form class="inline" method="POST" action="/roster/overrides" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="date" value="<%= day.date %>">
               <input type="hidden" name="type" value="add">
               <input type="hidden" name="redirectWeek" value="<%= weekStart %>">

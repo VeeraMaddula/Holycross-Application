@@ -8,6 +8,10 @@ This is an **admin-only** tool — there's no public booking form. Staff enter b
 phone, walk-in, or another channel, and the app handles capacity checks, the calendar, and
 reminder emails.
 
+New to this codebase? See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for how the app is organized
+and how a request flows through it, and **[SECURITY.md](./SECURITY.md)** for the security review
+and protections in place.
+
 ## Features
 
 - Password-protected admin dashboard (single shared admin password)
@@ -46,11 +50,14 @@ reminder emails.
 
    Open `.env` and set at minimum:
    - `ADMIN_PASSWORD` — the password staff will use to log in
-   - `SESSION_SECRET` — any long random string
+   - `SESSION_SECRET` — any long random string. **Required** if you ever set `NODE_ENV=production`
+     — the app refuses to start with the placeholder default in that case, since sessions signed
+     with a known secret can be forged. In local development it's optional but strongly
+     recommended (you'll get a console warning if you skip it).
 
-   Email and SMS are both optional. If you leave the `SMTP_*` / `TWILIO_*` values blank, the app
+   Email and SMS are both optional. If you leave the `SMTP_*` / `SENDMODE_*` values blank, the app
    still works — it just logs notifications as "skipped" instead of sending them. See the **Email
-   via Resend** and **SMS via Twilio** sections below for the one-time setup for each.
+   via Resend** and **SMS via Sendmode** sections below for the one-time setup for each.
 
 3. Start the app:
 
@@ -103,35 +110,37 @@ better deliverability, and no fighting with Google's account settings.
 If you skip this setup, the app works exactly as before — email is entirely optional, and SMS
 (below) can cover notifications on its own if you'd rather not deal with email at all.
 
-## SMS via Twilio (optional)
+## SMS via Sendmode (optional)
 
-Text message notifications use [Twilio](https://www.twilio.com), the standard service for
-sending SMS from an app. It's pay-as-you-go — a phone number costs roughly €1/month and each text
-is a few cents, with a small free trial credit to test with.
+Text message notifications use [Sendmode](https://www.sendmode.com), an Irish SMS provider —
+pay-as-you-go credit bundles (no monthly subscription), with direct routes to Irish mobile
+networks and support for a branded sender ID so texts can show up as "HolyCross" instead of a
+generic number.
 
-1. Sign up at https://www.twilio.com.
-2. From the Twilio Console dashboard, buy a phone number (**Phone Numbers → Buy a number** —
-   pick one with SMS capability in your country or a nearby one).
-3. On the same Console dashboard, copy your **Account SID** and **Auth Token**.
-4. In `.env`, set:
+1. Sign up free at https://app.sendmode.com/createaccount — you get free trial credits to test
+   with before buying any.
+2. Once logged in, generate an **API Access Key** from your account (Sendmode's admin portal has
+   a dedicated API/integration settings section for this).
+3. In `.env`, set:
    ```
-   TWILIO_ACCOUNT_SID=your-account-sid
-   TWILIO_AUTH_TOKEN=your-auth-token
-   TWILIO_PHONE_NUMBER=+15551234567
+   SENDMODE_API_KEY=your-sendmode-access-key
    ```
-   `TWILIO_PHONE_NUMBER` is the number you bought, in international format (starts with `+` and
-   the country code).
-5. Restart the app and create a test booking with your own phone number to confirm it arrives.
+4. **Optional but recommended** — a branded sender ID. Without one, texts send from Sendmode's
+   account default; with one, customers see your business name instead. In your Sendmode
+   dashboard, register a sender ID (e.g. `HolyCross`, max 11 characters, letters/numbers only) —
+   Irish law requires this to go through ComReg, which Sendmode submits on your behalf (typically
+   a few days to go live). Once approved, add it to `.env`:
+   ```
+   SENDMODE_SENDER_ID=HolyCross
+   ```
+5. Buy a credit bundle from your Sendmode dashboard (starts at 1,000 credits) — each standard SMS
+   uses 1 credit.
+6. Restart the app and create a test booking with your own phone number to confirm it arrives.
    Customer phone numbers entered in the Irish local format (e.g. `089 433 8657`) are converted
    to international format automatically before sending.
 
-**Trial accounts:** if you haven't added billing to Twilio yet, trial accounts can only text
-phone numbers you've manually verified in the Twilio Console (**Phone Numbers → Verified Caller
-IDs**) — real customers' numbers won't receive anything until you add a payment method and
-upgrade out of trial mode.
-
 If you skip this setup, the app works exactly as before — SMS is entirely optional, and email
-(above) can cover notifications on its own if you'd rather not use Twilio.
+(above) can cover notifications on its own if you'd rather not use Sendmode.
 
 ## Google Calendar sync (optional)
 

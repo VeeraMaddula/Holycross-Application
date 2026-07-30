@@ -15,6 +15,7 @@
       <div class="kiosk-clock" id="kioskClock"></div>
       <% if (currentUser && currentUser.role === 'kiosk') { %>
         <form method="POST" action="/logout" onsubmit="return confirm('Log the Bot account out of this tablet?')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="kiosk-exit">Exit</button>
         </form>
       <% } else if (currentUser) { %>
@@ -222,7 +223,7 @@
     btn.textContent = 'Notifying a manager…';
     fetch('/kiosk/forgot-pin', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' },
       body: JSON.stringify({ userId: activeUserId })
     }).then(function() {
       pinStage.style.display = 'none';
@@ -246,7 +247,7 @@
   function verifyPin() {
     fetch('/kiosk/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' },
       body: JSON.stringify({ userId: activeUserId, pin: entered })
     }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
       .then(function(result) {
@@ -342,7 +343,7 @@
     formData.append('action', action);
     if (photoBlob) formData.append('photo', photoBlob, 'clockin.jpg');
 
-    fetch('/kiosk/action', { method: 'POST', body: formData, headers: { Accept: 'application/json' } })
+    fetch('/kiosk/action', { method: 'POST', body: formData, headers: { Accept: 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' } })
       .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
       .then(function(result) {
         if (!result.ok) {
@@ -515,7 +516,7 @@
     if (!dutiesState) return;
     fetch('/kiosk/duties/toggle', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': '<%= csrfToken %>' },
       body: 'date=' + encodeURIComponent(dutiesState.date) + '&taskId=' + encodeURIComponent(taskId)
     }).then(fetchDutiesStatus);
   }
@@ -537,7 +538,7 @@
   function submitDuties(reason) {
     if (!dutiesState) return;
     var body = 'date=' + encodeURIComponent(dutiesState.date) + '&section=' + encodeURIComponent(dutiesState.section) + '&reason=' + encodeURIComponent(reason || '');
-    fetch('/kiosk/duties/submit', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+    fetch('/kiosk/duties/submit', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': '<%= csrfToken %>' }, body: body })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.needsReason) {

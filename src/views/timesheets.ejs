@@ -39,6 +39,7 @@
       <p class="muted">For when someone forgets to tap in or out on the kiosk.</p>
       <% if (addError) { %><div class="error-box"><%= addError %></div><% } %>
       <form method="POST" action="/timesheets" class="form-grid">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Staff member</label>
           <select name="userId" required>
@@ -119,6 +120,7 @@
                 <td style="white-space:nowrap">
                   <a class="btn small secondary" href="/timesheets/<%= e.id %>/edit">Edit</a>
                   <form class="inline" method="POST" action="/timesheets/<%= e.id %>/delete" onsubmit="return confirm('Delete this clock entry?')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button class="btn small danger" type="submit">Delete</button>
                   </form>
                 </td>

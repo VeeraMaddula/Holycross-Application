@@ -16,13 +16,16 @@ the full generic setup instructions.
 - Since the Resend API key was shared in chat, consider regenerating it later (Resend dashboard →
   API Keys → revoke old one → create new → update `.env`). Not urgent, just good hygiene.
 
-## SMS (Twilio) — not started yet
+## SMS (Sendmode) — not started yet
 
-- Nothing set up yet. `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` are all
-  still placeholders in `.env`.
-- Steps are in `README.md` under "SMS via Twilio (optional)" whenever ready to pick this up.
-- Trial Twilio accounts can only text phone numbers manually verified in the Twilio Console until
-  billing is added.
+- Switched from Twilio to Sendmode (an Irish SMS provider — cheaper for Irish numbers, and
+  supports a branded sender ID like "HolyCross"). Nothing set up yet — `SENDMODE_API_KEY` and
+  `SENDMODE_SENDER_ID` are still placeholders (commented out) in `.env`.
+- Steps are in `README.md` under "SMS via Sendmode (optional)" whenever ready to pick this up:
+  sign up free, generate an API Access Key, optionally register a sender ID (takes a few days —
+  goes through ComReg), buy a credit bundle (starts at 1,000 credits / €50).
+- Until `SENDMODE_API_KEY` is set, SMS sends are logged as "skipped" on the Notifications page —
+  nothing breaks, texts just don't go out yet.
 
 ## Quick status check
 

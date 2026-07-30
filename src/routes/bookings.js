@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
     // them can review and approve or decline it.
     notify.notifyManagersPendingApproval(result.booking, table, result.conflict);
   } else {
-    // Fire customer notifications (no-ops gracefully if SMTP/Twilio aren't configured)
+    // Fire customer notifications (no-ops gracefully if SMTP/Sendmode aren't configured)
     if (result.booking.email) {
       const { subject, text } = notify.bookingConfirmationEmail(result.booking, table);
       notify.sendEmail({

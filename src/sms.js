@@ -1,10 +1,18 @@
-// SMS notifications via Twilio's REST API, using only Node's built-in fetch
-// (no twilio SDK dependency needed) — same philosophy as googleCalendar.js.
+// SMS notifications via Sendmode's REST API, using only Node's built-in
+// fetch (no SDK dependency needed) — same philosophy as googleCalendar.js.
+// API reference: https://developers.sendmode.com/restdocs/send
 const models = require('./models');
 const { normalizePhone } = require('./phoneUtils');
 
+const SENDMODE_API_URL = 'https://rest.sendmode.com/v2/send';
+
+// Only the access key is strictly required — senderid is optional on
+// Sendmode's side (it falls back to your account default if omitted), but
+// setting SENDMODE_SENDER_ID is what lets texts show up as "HolyCross"
+// instead of a generic number. That needs a one-time ComReg registration
+// (a few days) — see README "SMS via Sendmode" for the how-to.
 function isConfigured() {
-  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
+  return !!process.env.SENDMODE_API_KEY;
 }
 
 async function sendSms({ to, body, type, bookingId }) {
@@ -12,26 +20,36 @@ async function sendSms({ to, body, type, bookingId }) {
   if (!recipient) return;
 
   if (!isConfigured()) {
-    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'skipped-no-twilio' });
+    models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'skipped-no-sendmode' });
     return;
   }
 
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+  const { SENDMODE_API_KEY, SENDMODE_SENDER_ID } = process.env;
+  const message = {
+    messagetext: body,
+    recipients: [recipient]
+  };
+  if (SENDMODE_SENDER_ID) message.senderid = SENDMODE_SENDER_ID;
+  // A per-message reference — shows up on Sendmode's delivery reports/
+  // dashboard, handy for matching a report back to a booking while
+  // troubleshooting, without changing anything about how the SMS itself sends.
+  if (bookingId) message.customerid = String(bookingId);
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(SENDMODE_API_URL, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${auth}`,
+        Authorization: SENDMODE_API_KEY,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({ To: recipient, From: TWILIO_PHONE_NUMBER, Body: body })
+      body: new URLSearchParams({ message: JSON.stringify(message) })
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error((data && data.message) || `Twilio error ${res.status}`);
+    // Sendmode always replies 200 OK at the HTTP level and signals success/
+    // failure via the JSON body instead (statusCode 0 = accepted; anything
+    // else is an error — see https://developers.sendmode.com/restdocs/errors).
+    if (!res.ok || data.statusCode !== 0) {
+      throw new Error((data && (data.error || data.status)) || `Sendmode error (HTTP ${res.status})`);
     }
     models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'sent' });
   } catch (err) {

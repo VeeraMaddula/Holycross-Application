@@ -35,6 +35,7 @@
           <% section.tasks.forEach(task => { %>
             <li class="duty-task <%= task.done ? 'done' : '' %>">
               <form method="POST" action="/duties/toggle" class="duty-task-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="date" value="<%= checklist.date %>">
                 <input type="hidden" name="taskId" value="<%= task.id %>">
                 <button type="submit" class="duty-task-check" aria-label="<%= task.done ? 'Mark not done' : 'Mark done' %>"><%= task.done ? '✓' : '' %></button>

@@ -15,8 +15,8 @@
     <% } %>
     <% if (!smsConfigured) { %>
       <div class="error-box">
-        SMS isn't configured yet. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER
-        in your .env file to enable confirmation, reminder, and cancellation texts. Until then, sends are logged as "skipped". See README for Twilio setup steps.
+        SMS isn't configured yet. Set SENDMODE_API_KEY (and optionally SENDMODE_SENDER_ID)
+        in your .env file to enable confirmation, reminder, and cancellation texts. Until then, sends are logged as "skipped". See README for Sendmode setup steps.
       </div>
     <% } %>
     <% if (retryResult === 'sent') { %>
@@ -29,6 +29,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <h3 style="margin:0">Reminder log</h3>
         <form method="POST" action="/notifications/run-reminder-sweep">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn small secondary" type="submit">Run reminder check now</button>
         </form>
       </div>
@@ -46,6 +47,7 @@
             <td>
               <% if (n.status === 'failed') { %>
                 <form method="POST" action="/notifications/<%= n.id %>/retry" style="margin:0;">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn-toggle grant" type="submit">Retry</button>
                 </form>
               <% } %>

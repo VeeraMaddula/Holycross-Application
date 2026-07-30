@@ -120,9 +120,11 @@
       <div class="sidebar-danger-zone">
         <div class="sidebar-danger-label">Danger zone</div>
         <form method="POST" action="/settings/clear-data" onsubmit="return confirm('Clear all bookings, notifications, timesheets, roster shifts, and requests?\n\nStaff accounts, tables, and the menu are kept. This cannot be undone.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="sidebar-danger-btn">Clear data</button>
         </form>
         <form method="POST" action="/settings/factory-reset" onsubmit="return confirm('This deletes EVERY booking, staff account, table, and menu item, and logs you out.\n\nThis cannot be undone.') &amp;&amp; confirm('Really factory reset? This is your last chance to cancel.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="sidebar-danger-btn sidebar-danger-btn-strong">Factory reset</button>
         </form>
       </div>
@@ -143,6 +145,7 @@
       </a>
     <% } %>
     <form class="logout-form" method="POST" action="/logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <button class="linklike" type="submit">Log out</button>
     </form>
   </div>

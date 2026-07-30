@@ -4,6 +4,7 @@ const models = require('../models');
 const notify = require('../notify');
 const { verifyPassword, isValidPassword, PASSWORD_RULES } = require('../password');
 const { COUNTRY_CODES } = require('../phoneUtils');
+const { loginLimiter, forgotLimiter } = require('../rateLimiters');
 
 const REMEMBER_ME_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
 const DEFAULT_MAX_AGE = 1000 * 60 * 60 * 12; // 12 hours — matches the session default in server.js
@@ -13,7 +14,7 @@ router.get('/login', (req, res) => {
   res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: false });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', loginLimiter, (req, res) => {
   const { identifier, countryCode, password, rememberMe } = req.body;
   const user = models.getUserByLoginIdentifier(identifier || '', countryCode || '');
   if (!user || !user.active || !verifyPassword(password || '', user.passwordHash)) {
@@ -35,7 +36,7 @@ router.get('/forgot-password', (req, res) => {
   res.render('forgot-password', { sent: false, countryCodes: COUNTRY_CODES });
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotLimiter, async (req, res) => {
   const { identifier, countryCode } = req.body;
   const result = models.createPasswordResetToken(identifier || '', countryCode || '');
   if (result && result.user.email) {
@@ -53,7 +54,7 @@ router.get('/reset-password/:token', (req, res) => {
   res.render('reset-password', { valid: !!user, error: null, token: req.params.token, passwordRules: PASSWORD_RULES });
 });
 
-router.post('/reset-password/:token', (req, res) => {
+router.post('/reset-password/:token', forgotLimiter, (req, res) => {
   const { password, confirmPassword } = req.body;
   const user = models.getUserByResetToken(req.params.token);
   if (!user) {

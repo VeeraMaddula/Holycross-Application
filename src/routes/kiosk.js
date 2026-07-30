@@ -6,6 +6,8 @@ const multer = require('multer');
 const router = express.Router();
 const models = require('../models');
 const notify = require('../notify');
+const pinLockout = require('../pinLockout');
+const { kioskPinLimiter, forgotLimiter } = require('../rateLimiters');
 
 // Shares the same folder as the profile-page avatar upload (src/routes/profile.js)
 // since a kiosk clock-in photo becomes that person's profile picture — same
@@ -47,7 +49,7 @@ router.get('/status', (req, res) => {
 
 // Step 1: tap a tile, enter the PIN. Returns current status + which actions
 // are valid next, so the client can render the right buttons.
-router.post('/verify', (req, res) => {
+router.post('/verify', kioskPinLimiter, (req, res) => {
   const { userId, pin } = req.body;
   const user = models.getUserById(userId);
   if (!user || !user.active || user.role === 'kiosk') {
@@ -56,9 +58,17 @@ router.post('/verify', (req, res) => {
   if (!user.pinHash) {
     return res.status(400).json({ error: 'No PIN set for this account yet — ask a manager to set one on the Users page.' });
   }
+  // Per-account lockout — closes the brute-force gap a 4-digit PIN (only
+  // 10,000 combinations) would otherwise leave open, regardless of where
+  // the requests are coming from. See pinLockout.js.
+  if (pinLockout.isLocked(user.id)) {
+    return res.status(429).json({ error: `Too many wrong PIN attempts. Try again in ${pinLockout.minutesRemaining(user.id)} minute(s), or ask a manager to reset your PIN.` });
+  }
   if (!models.verifyUserPin(user.id, pin)) {
+    pinLockout.recordFailure(user.id);
     return res.status(400).json({ error: 'Wrong PIN. Try again.' });
   }
+  pinLockout.recordSuccess(user.id);
   const status = models.getStaffStatus(user.id);
   res.json({ ok: true, status: status.status });
 });
@@ -67,7 +77,7 @@ router.post('/verify', (req, res) => {
 // point of a PIN gate on clock-in — so "Forgot PIN?" just alerts whoever can
 // set a new one from the Users page (Manager/Floor Manager/Senior
 // Manager/General Manager/Admin).
-router.post('/forgot-pin', async (req, res) => {
+router.post('/forgot-pin', forgotLimiter, async (req, res) => {
   const { userId } = req.body;
   const user = models.getUserById(userId);
   if (!user || !user.active || user.role === 'kiosk') {
@@ -89,7 +99,7 @@ const PHOTO_ACTIONS = ['clock_in', 'break_start', 'break_end'];
 // call, so a tampered request can't skip straight to logging an action.
 // Always sent as multipart/form-data from the client (simplest to have one
 // shape); only the PHOTO_ACTIONS above actually include a "photo" field.
-router.post('/action', (req, res) => {
+router.post('/action', kioskPinLimiter, (req, res) => {
   upload.single('photo')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
 
@@ -98,9 +108,14 @@ router.post('/action', (req, res) => {
     if (!user || !user.active || user.role === 'kiosk') {
       return res.status(400).json({ error: 'Staff member not found.' });
     }
+    if (pinLockout.isLocked(user.id)) {
+      return res.status(429).json({ error: `Too many wrong PIN attempts. Try again in ${pinLockout.minutesRemaining(user.id)} minute(s), or ask a manager to reset your PIN.` });
+    }
     if (!models.verifyUserPin(user.id, pin)) {
+      pinLockout.recordFailure(user.id);
       return res.status(400).json({ error: 'Wrong PIN.' });
     }
+    pinLockout.recordSuccess(user.id);
     const status = models.getStaffStatus(user.id);
     const allowed = models.nextValidAction(status.status);
     const allowedList = Array.isArray(allowed) ? allowed : [allowed].filter(Boolean);

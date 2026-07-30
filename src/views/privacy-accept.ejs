@@ -36,6 +36,7 @@
     </div>
 
     <form method="POST" action="/accept-privacy" style="margin-top:20px;max-width:680px">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="returnTo" value="<%= returnTo %>">
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
         <input type="checkbox" required style="margin-top:4px">

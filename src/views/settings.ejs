@@ -9,6 +9,7 @@
     <% if (cleared) { %><div class="success-box" style="max-width:480px">Operational data cleared — bookings, notifications, timesheets, roster shifts, and requests are all empty. Staff accounts, tables, and the menu are untouched.</div><% } %>
     <div class="card" style="max-width:480px">
       <form method="POST" action="/settings">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Default booking duration (minutes)</label>
           <input type="number" name="slotDurationMinutes" min="15" step="15" value="<%= settings.slotDurationMinutes %>">
@@ -44,6 +45,7 @@
         </dl>
         <p class="muted">Bookings created, edited, or cancelled in this app are automatically pushed to that calendar. Events added directly on Google Calendar show up on the app's Calendar page (synced every 10 minutes).</p>
         <form method="POST" action="/settings/google-sync-now">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn small secondary" type="submit">Sync now</button>
         </form>
       <% } else { %>
@@ -60,6 +62,7 @@
         <strong>Clear data</strong>
         <p class="muted" style="margin:4px 0 8px">Wipes all bookings, notification logs, clock-in history, roster shifts, and staff requests. Staff accounts, tables, and the menu are kept as-is.</p>
         <form method="POST" action="/settings/clear-data" onsubmit="return confirm('Clear all bookings, notifications, timesheets, roster shifts, and requests?\n\nStaff accounts, tables, and the menu are kept. This cannot be undone.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn danger" type="submit">Clear data</button>
         </form>
       </div>
@@ -68,6 +71,7 @@
         <strong>Factory reset</strong>
         <p class="muted" style="margin:4px 0 8px">Wipes absolutely everything — every booking, every staff account, tables, the menu, all of it — back to the app's defaults, and creates one fresh admin account from the credentials in <code>.env</code> (<code>ADMIN_EMAIL</code> / <code>ADMIN_PASSWORD</code>). You'll be logged out immediately.</p>
         <form method="POST" action="/settings/factory-reset" onsubmit="return confirm('This deletes EVERY booking, staff account, table, and menu item, and logs you out.\n\nType OK to confirm you understand this cannot be undone.') &amp;&amp; confirm('Really factory reset? This is your last chance to cancel.')">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn danger" type="submit">Factory reset</button>
         </form>
       </div>

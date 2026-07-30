@@ -12,6 +12,7 @@
     <div class="card" style="max-width:520px">
       <h3 style="margin-top:0">Send a request</h3>
       <form method="POST" action="/requests">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Type</label>
           <select name="type" required>
