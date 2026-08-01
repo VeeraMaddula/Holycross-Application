@@ -1,16 +1,32 @@
-// SMS notifications via Sendmode's REST API, using only Node's built-in
-// fetch (no SDK dependency needed) — same philosophy as googleCalendar.js.
-// API reference: https://developers.sendmode.com/restdocs/send
+// SMS notifications via Sendmode's current "Engage" REST API (sms-rest 3.0).
+// API reference: https://engage.sendmode.com/apireference/#/send
+//
+// IMPORTANT: an earlier version of this file integrated against
+// https://rest.sendmode.com/v2/send, documented at
+// developers.sendmode.com/restdocs/send. That turned out to be a legacy/
+// deprecated endpoint — it accepts requests and always replies with a fake
+// "statusCode: 0" success, but never actually queues or delivers anything
+// (confirmed live: messages never arrived, never appeared in Sendmode's own
+// Sent SMS report, and account credit balance never moved, across ~10 send
+// attempts). Sendmode support (Trevor Dougherty) flagged that we were on
+// old documentation. The correct, current API lives at
+// sms-rest.sendmode.dev/3.0/send — different host, different auth style
+// (still a raw Authorization header, but JSON body instead of a
+// form-urlencoded "message" field), different field names, and a different
+// success shape (`is_successful: true` instead of `statusCode: 0`).
 const models = require('./models');
 const { normalizePhone } = require('./phoneUtils');
 
-const SENDMODE_API_URL = 'https://rest.sendmode.com/v2/send';
+const SENDMODE_API_URL = 'https://sms-rest.sendmode.dev/3.0/send';
 
-// Only the access key is strictly required — senderid is optional on
-// Sendmode's side (it falls back to your account default if omitted), but
-// setting SENDMODE_SENDER_ID is what lets texts show up as "HolyCross"
-// instead of a generic number. That needs a one-time ComReg registration
-// (a few days) — see README "SMS via Sendmode" for the how-to.
+// Unlike the old API, sender_id is a REQUIRED field on every request (max
+// 15 chars, alphanumeric). If SENDMODE_SENDER_ID isn't set in .env yet, we
+// fall back to "HolyCross" so sends don't fail outright — but an
+// unregistered alpha sender ID can still be rejected by some carriers, so
+// registering the real one (see README "SMS via Sendmode") is worth doing
+// once you're past initial testing.
+const DEFAULT_SENDER_ID = 'HolyCross';
+
 function isConfigured() {
   return !!process.env.SENDMODE_API_KEY;
 }
@@ -25,31 +41,30 @@ async function sendSms({ to, body, type, bookingId }) {
   }
 
   const { SENDMODE_API_KEY, SENDMODE_SENDER_ID } = process.env;
-  const message = {
-    messagetext: body,
-    recipients: [recipient]
+  const payload = {
+    sender_id: SENDMODE_SENDER_ID || DEFAULT_SENDER_ID,
+    message: body,
+    // mobile_number wants international format (e.g. "+353871234567") per
+    // Sendmode's docs — normalizePhone() already gives us exactly that.
+    mobile_number: recipient
   };
-  if (SENDMODE_SENDER_ID) message.senderid = SENDMODE_SENDER_ID;
-  // A per-message reference — shows up on Sendmode's delivery reports/
-  // dashboard, handy for matching a report back to a booking while
-  // troubleshooting, without changing anything about how the SMS itself sends.
-  if (bookingId) message.customerid = String(bookingId);
+  // A per-message reference — comes back in webhook callbacks/delivery
+  // reports, handy for matching a report back to a booking while
+  // troubleshooting, without changing anything about how the SMS sends.
+  if (bookingId) payload.customer_id = String(bookingId);
 
   try {
     const res = await fetch(SENDMODE_API_URL, {
       method: 'POST',
       headers: {
         Authorization: SENDMODE_API_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/json'
       },
-      body: new URLSearchParams({ message: JSON.stringify(message) })
+      body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
-    // Sendmode always replies 200 OK at the HTTP level and signals success/
-    // failure via the JSON body instead (statusCode 0 = accepted; anything
-    // else is an error — see https://developers.sendmode.com/restdocs/errors).
-    if (!res.ok || data.statusCode !== 0) {
-      throw new Error((data && (data.error || data.status)) || `Sendmode error (HTTP ${res.status})`);
+    if (!res.ok || data.is_successful !== true) {
+      throw new Error((data && data.error_message) || `Sendmode error (HTTP ${res.status})`);
     }
     models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'sent' });
   } catch (err) {
