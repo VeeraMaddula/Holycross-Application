@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Admin booking management app for a bar and restaurant",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",

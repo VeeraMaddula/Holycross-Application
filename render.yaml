@@ -1,0 +1,62 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploy: push this repo to GitHub, then on Render choose
+# New > Blueprint and point it at this repo. Render reads this file and
+# creates the service below automatically. Any env var marked
+# `sync: false` needs its real value entered once in the Render dashboard
+# after the first deploy (Render will prompt for these) — nothing secret
+# lives in this file or in git.
+#
+# The persistent disk is mounted at /var/data and PERSIST_DIR points the
+# app at it (see src/persist.js) — without this, Render wipes local disk on
+# every deploy/restart and you'd lose data/db.json, staff avatars, kiosk
+# selfies, and report attachments each time.
+services:
+  - type: web
+    name: holycross-booking
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /login
+    disk:
+      name: holycross-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PERSIST_DIR
+        value: /var/data
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: ADMIN_NOTIFICATION_EMAIL
+        sync: false
+      - key: SENDMODE_API_KEY
+        sync: false
+      - key: SENDMODE_SENDER_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_KEY_PATH
+        sync: false
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: APP_TIMEZONE
+        value: Europe/Dublin

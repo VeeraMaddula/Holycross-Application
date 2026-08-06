@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./persist').setupPersistence();
 const express = require('express');
 const session = require('express-session');
 const helmet = require('helmet');

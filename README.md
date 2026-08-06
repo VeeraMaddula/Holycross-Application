@@ -180,11 +180,33 @@ If you skip this setup, the app works exactly as before — Google sync is entir
 
 ## Deploying online (optional)
 
-To make this reachable outside your own computer, deploy it to a host like Render, Railway, or
-Fly.io: push this folder to a Git repo, connect it to the host, set the same environment
-variables from `.env` in the host's dashboard, and set the start command to `npm start`. The
-JSON data file will live on that host's disk — for anything beyond casual use, consider
-attaching persistent storage/volume so `data/db.json` survives redeploys.
+To make this reachable outside your own computer (needed for the public `/book` page, the Wix
+"Reserve a Table" button, and real Sendmode/Resend delivery), deploy it to a host. These steps
+use [Render](https://render.com), since this repo ships a ready-made `render.yaml` blueprint for
+it — the same general approach (push to Git, connect the repo, set env vars, add persistent
+storage) works on Railway or Fly.io too if you'd rather use one of those.
+
+1. Push this repo to GitHub if it isn't already (`git push`).
+2. Sign up / log in at [render.com](https://render.com) and choose **New > Blueprint**.
+3. Point it at this GitHub repo. Render reads `render.yaml` and sets up the web service,
+   a 1GB persistent disk, and the environment variable list automatically.
+4. Render will prompt for the env vars marked "sync: false" in `render.yaml` (`ADMIN_EMAIL`,
+   `ADMIN_PASSWORD`, `SMTP_*`, `SENDMODE_*`, `GOOGLE_*`, etc.) — fill these in from your local
+   `.env`. `SESSION_SECRET` is generated for you automatically; don't reuse your local dev one.
+5. Deploy. Once it's live, copy the `https://your-app.onrender.com` URL Render gives you and set
+   `PUBLIC_BASE_URL` to it (in Render's dashboard, then redeploy) — this is what shows up in
+   customer emails and is the URL to link a "Reserve a Table" button to.
+6. If you set up Google Calendar sync locally via `google-service-account.json`, that file is
+   gitignored (it's a private key) — you'll need to add its contents as an env var or secret file
+   on Render instead of relying on `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` pointing at a local file.
+
+**Why the persistent disk matters:** most hosts (including Render's web services) wipe local disk
+on every redeploy and restart. Without persistent storage, `data/db.json` — every booking, staff
+account, timesheet entry — would reset to empty each time you deploy a code change. `render.yaml`
+mounts a persistent disk and sets `PERSIST_DIR`, which `src/persist.js` uses to transparently
+redirect `data/`, staff avatars, kiosk selfies, and report attachments onto that disk. This was
+tested end-to-end (simulating a redeploy by wiping local files and confirming existing accounts
+and data survive) before being added here.
 
 ## Notes on the booking capacity logic
 
