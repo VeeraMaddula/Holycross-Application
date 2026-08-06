@@ -8,7 +8,7 @@
 //   when it's actually over by watching for the last Bar Staff to clock out
 //   (see notify.checkClosingDutiesOnClockOut). `end` is null for these.
 const DUTY_WINDOWS = [
-  { section: 'opening', sectionTitle: 'Opening Duties', days: [0, 1, 2, 3, 4, 5, 6], start: '08:30', end: '09:05', endMode: 'fixed' },
+  { section: 'opening', sectionTitle: 'Opening Duties', days: [0, 1, 2, 3, 4, 5, 6], start: '16:07', end: '17:00', endMode: 'fixed' }, // TEMP TEST WINDOW — was 08:30-09:05, restore before real use
   { section: 'after_breakfast', sectionTitle: 'After Breakfast Duties', days: [0, 1, 2, 3, 4, 5, 6], start: '11:35', end: '12:15', endMode: 'fixed' },
   { section: 'after_carvery', sectionTitle: 'After Carvery Duties', days: [5, 6], start: '15:00', end: '15:30', endMode: 'fixed' }, // Fri, Sat only
   { section: 'closing', sectionTitle: 'Closing Duties', days: [1, 2], start: '18:00', end: null, endMode: 'lastClockout' }, // Mon, Tue
