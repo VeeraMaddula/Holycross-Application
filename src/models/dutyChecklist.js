@@ -115,6 +115,13 @@ function getDutyReport(date, section) {
   return (db.dutyReports || []).find(r => r.date === date && r.section === section) || null;
 }
 
+// Every duty report ever recorded (submitted or auto-swept), newest first —
+// used by the manager-facing Logs page (src/routes/logs.js).
+function listAllDutyReports() {
+  const db = readDb();
+  return (db.dutyReports || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
 // What the kiosk's duties tab should show right now: which section (if
 // any) is in its scheduled window today, its checklist, and progress — or
 // { active: false } if nothing's scheduled, or if today's occurrence of
@@ -140,5 +147,6 @@ function getDutyPanelState(now = new Date()) {
 }
 
 module.exports = {
-  getDutiesChecklist, toggleDutyTask, getDutyPanelState, recordDutyReport, getDutyReport, getBarStaffOnShiftNames
+  getDutiesChecklist, toggleDutyTask, getDutyPanelState, recordDutyReport, getDutyReport, getBarStaffOnShiftNames,
+  listAllDutyReports
 };

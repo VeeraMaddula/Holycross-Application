@@ -16,6 +16,22 @@ function getBooking(id) {
   return db.bookings.find(b => b.id === Number(id));
 }
 
+// Every booking's history entries flattened into one newest-first feed —
+// each booking already keeps its own { at, event } audit trail (see
+// createBooking/approveBooking/updateBooking/updatePayment/setStatus
+// below); this just merges all of them for the manager-facing Logs page
+// (src/routes/logs.js) instead of requiring a click into each booking.
+function listBookingHistory() {
+  const db = readDb();
+  const entries = [];
+  (db.bookings || []).forEach(b => {
+    (b.history || []).forEach(h => {
+      entries.push({ at: h.at, event: h.event, bookingId: b.id, customerName: b.customerName, date: b.date, time: b.time });
+    });
+  });
+  return entries.sort((a, b) => new Date(b.at) - new Date(a.at));
+}
+
 function findConflict(db, candidate, excludeId) {
   const slotDuration = db.settings.slotDurationMinutes;
   const candRange = bookingRange(candidate, slotDuration);
@@ -206,5 +222,5 @@ function deleteBooking(id) {
 
 module.exports = {
   listBookings, getBooking, findConflict, findBestAvailableTable, createBooking,
-  approveBooking, updateBooking, updatePayment, setStatus, deleteBooking
+  approveBooking, updateBooking, updatePayment, setStatus, deleteBooking, listBookingHistory
 };

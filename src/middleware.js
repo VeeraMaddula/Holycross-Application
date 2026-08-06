@@ -1,3 +1,5 @@
+const { MANAGER_ROLES } = require('./roles');
+
 // Bar Staff and Kitchen Staff — both get Requests access automatically.
 // (Page access otherwise differs between them; see server.js for Kitchen
 // Staff's narrower allow-list.)
@@ -98,4 +100,18 @@ function requireCashSafeAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, STAFF_ROLES };
+// Logs page access = every manager-tier role (Admin, Senior/General/Floor
+// Manager, Staff Manager — see MANAGER_ROLES in src/roles.js) automatically,
+// plus anyone individually granted access via the Users page — same pattern
+// as requireCashSafeAccess above. Bar/Kitchen Staff and the Kiosk/Bot
+// account never see this unless a manager explicitly switches it on for
+// them. This page shows clock in/out, duties, report, request, and booking
+// history in one place, including staff photos — deliberately not staff-
+// visible by default.
+function requireLogsAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (MANAGER_ROLES.includes(u.role) || u.canViewLogs)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, STAFF_ROLES };

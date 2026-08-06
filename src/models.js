@@ -55,6 +55,7 @@ module.exports = {
   setStatus: bookings.setStatus,
   updatePayment: bookings.updatePayment,
   deleteBooking: bookings.deleteBooking,
+  listBookingHistory: bookings.listBookingHistory,
 
   // Menu / events
   getMenu: menu.getMenu,
@@ -90,6 +91,7 @@ module.exports = {
   setUserFunctionBookingAccess: users.setUserFunctionBookingAccess,
   setUserNotificationsAccess: users.setUserNotificationsAccess,
   setUserCashSafeAccess: users.setUserCashSafeAccess,
+  setUserLogsAccess: users.setUserLogsAccess,
   setUserColor: users.setUserColor,
   acceptPrivacyPolicy: users.acceptPrivacyPolicy,
 
@@ -141,6 +143,7 @@ module.exports = {
   REQUEST_TYPES: requests.REQUEST_TYPES,
   createRequest: requests.createRequest,
   listRequestsForUser: requests.listRequestsForUser,
+  listAllRequests: requests.listAllRequests,
 
   // Bar Staff Duties checklist
   getDutiesChecklist: dutyChecklist.getDutiesChecklist,
@@ -149,6 +152,7 @@ module.exports = {
   recordDutyReport: dutyChecklist.recordDutyReport,
   getDutyReport: dutyChecklist.getDutyReport,
   getBarStaffOnShiftNames: dutyChecklist.getBarStaffOnShiftNames,
+  listAllDutyReports: dutyChecklist.listAllDutyReports,
 
   // Staff Reports ("Report an Issue")
   REPORT_CATEGORIES: staffReports.REPORT_CATEGORIES,
@@ -156,6 +160,7 @@ module.exports = {
   listReportsForUser: staffReports.listReportsForUser,
   getReport: staffReports.getReport,
   markReportReviewed: staffReports.markReportReviewed,
+  listAllReports: staffReports.listAllReports,
 
   // Shared helper (used by a couple of route files directly)
   toMinutes

@@ -99,6 +99,12 @@
           Cash Safe Log
         </a>
       <% } %>
+      <% if (currentUser && (['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff_manager'].includes(currentUser.role) || currentUser.canViewLogs)) { %>
+        <a href="/logs" class="<%= currentPath.startsWith('/logs') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M9 7h7M9 11h7"/></svg>
+          Logs
+        </a>
+      <% } %>
       <% if (currentUser && currentUser.role !== 'kiosk') { %>
         <a href="/accept-privacy" class="<%= currentPath === '/accept-privacy' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>

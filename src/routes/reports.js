@@ -113,14 +113,20 @@ router.post('/:id/reviewed', (req, res) => {
   res.redirect('/reports');
 });
 
-// Only the person who filed the report, the person it was sent to, or an
-// Admin can ever fetch an attached file — everyone else gets a 403, even
-// if they guess a valid-looking URL.
+// The person who filed the report, the person it was sent to, an Admin, or
+// anyone with access to the Logs page (every manager-tier role, or a
+// specific staff member individually granted it — see requireLogsAccess in
+// src/middleware.js) can fetch an attached file — everyone else gets a 403,
+// even if they guess a valid-looking URL. The Logs-access allowance exists
+// so the Reports section of /logs can actually show evidence thumbnails to
+// managers who weren't the original reporter/recipient.
 router.get('/file/:reportId/:filename', (req, res) => {
   const report = models.getReport(req.params.reportId);
   if (!report) return res.status(404).render('404');
   const uid = Number(req.session.userId);
-  const isAllowed = req.session.role === 'admin' || report.reportedByUserId === uid || report.recipientUserId === uid;
+  const cu = res.locals.currentUser;
+  const isAllowed = req.session.role === 'admin' || report.reportedByUserId === uid || report.recipientUserId === uid
+    || (cu && (MANAGER_ROLES.includes(cu.role) || cu.canViewLogs));
   if (!isAllowed) return res.status(403).render('403');
   const file = report.files.find(f => f.path === req.params.filename);
   if (!file) return res.status(404).render('404');

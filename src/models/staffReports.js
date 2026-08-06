@@ -59,6 +59,15 @@ function getReport(id) {
   return (db.reports || []).find(r => r.id === Number(id)) || null;
 }
 
+// Every report ever filed, newest first — used by the manager-facing Logs
+// page (src/routes/logs.js). Unlike listReportsForUser, this ignores who
+// filed/received each one; access to the Logs page itself is what keeps
+// this from being open to just anyone.
+function listAllReports() {
+  const db = readDb();
+  return (db.reports || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
 // Only the recipient can mark their own report reviewed — lets them track
 // what they've already dealt with without changing anything the reporter sees.
 function markReportReviewed(id, reviewerUserId) {

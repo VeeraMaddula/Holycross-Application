@@ -47,4 +47,11 @@ function listRequestsForUser(userId) {
   };
 }
 
-module.exports = { REQUEST_TYPES, createRequest, listRequestsForUser };
+// Every request ever sent, newest first — used by the manager-facing Logs
+// page (src/routes/logs.js), same reasoning as staffReports.listAllReports.
+function listAllRequests() {
+  const db = readDb();
+  return (db.requests || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+module.exports = { REQUEST_TYPES, createRequest, listRequestsForUser, listAllRequests };

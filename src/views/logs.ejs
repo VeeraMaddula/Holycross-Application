@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head><title>Logs - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Logs</h2>
+    <p class="muted">Everything staff have logged in one place — clock in/out, duties, reports, requests, bookings, and notifications. Only visible to managers and Admin, or anyone individually granted access on the Users page.</p>
+
+    <div class="logs-tabs" id="logsTabs">
+      <button type="button" class="logs-tab-btn active" data-tab="clock">Clock In/Out <span class="logs-tab-count"><%= clockEntries.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="duties">Duties <span class="logs-tab-count"><%= dutyReports.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="reports">Reports <span class="logs-tab-count"><%= reports.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="requests">Requests <span class="logs-tab-count"><%= requests.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="bookings">Bookings <span class="logs-tab-count"><%= bookingHistory.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="notifications">Notifications <span class="logs-tab-count"><%= notifications.length %></span></button>
+    </div>
+
+    <div class="card logs-section" id="logs-clock">
+      <h3 style="margin-top:0">Clock In/Out</h3>
+      <% if (!clockEntries.length) { %><p class="muted">No clock entries yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>Photo</th><th>Staff</th><th>Action</th><th>When</th><th></th></tr></thead>
+          <tbody>
+          <% clockEntries.forEach(function(e) { %>
+            <tr>
+              <td>
+                <% if (e.selfiePath) { %>
+                  <a href="<%= e.selfiePath %>" target="_blank"><img src="<%= e.selfiePath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px"></a>
+                <% } else { %><span class="muted">&mdash;</span><% } %>
+              </td>
+              <td><%= e.userName %></td>
+              <td>
+                <span class="badge <%= e.action === 'clock_in' ? 'confirmed' : (e.action === 'clock_out' ? 'cancelled' : 'pending_approval') %>">
+                  <%= e.action === 'clock_in' ? 'Clocked in' : e.action === 'clock_out' ? 'Clocked out' : e.action === 'break_start' ? 'Break started' : 'Break ended' %>
+                </span>
+              </td>
+              <td><%= new Date(e.at).toLocaleString() %></td>
+              <td><% if (e.manuallyAdded || e.edited) { %><span class="muted" style="font-size:12px">edited by <%= e.editedBy %></span><% } %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card logs-section" id="logs-duties" style="display:none">
+      <h3 style="margin-top:0">Duties</h3>
+      <% if (!dutyReports.length) { %><p class="muted">No duty reports yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Section</th><th>Status</th><th>Submitted by</th><th>Photo</th><th>Reason / missing</th></tr></thead>
+          <tbody>
+          <% dutyReports.forEach(function(r) { %>
+            <tr>
+              <td><%= r.date %></td>
+              <td><%= r.sectionTitle %></td>
+              <td><span class="badge <%= r.complete ? 'confirmed' : 'pending_approval' %>"><%= r.complete ? 'Complete' : 'Incomplete' %></span>
+                <% if (r.trigger === 'auto-sweep' || r.trigger === 'auto') { %><span class="muted" style="font-size:12px"> (auto)</span><% } %>
+              </td>
+              <td><%= r.submittedByName || '—' %></td>
+              <td>
+                <% if (r.photoPath) { %>
+                  <a href="<%= r.photoPath %>" target="_blank"><img src="<%= r.photoPath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px"></a>
+                <% } else { %><span class="muted">&mdash;</span><% } %>
+              </td>
+              <td>
+                <% if (r.reason) { %><%= r.reason %><% } %>
+                <% if (r.missingTaskTexts && r.missingTaskTexts.length) { %>
+                  <div class="muted" style="font-size:12px;margin-top:2px"><%= r.missingTaskTexts.length %> task(s) not ticked</div>
+                <% } %>
+                <% if (!r.reason && (!r.missingTaskTexts || !r.missingTaskTexts.length)) { %><span class="muted">&mdash;</span><% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card logs-section" id="logs-reports" style="display:none">
+      <h3 style="margin-top:0">Reports</h3>
+      <% if (!reports.length) { %><p class="muted">No reports filed yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Category</th><th>Details</th><th>Evidence</th><th>Sent</th><th>Status</th></tr></thead>
+          <tbody>
+          <% reports.forEach(function(r) { %>
+            <tr>
+              <td><%= r.reportedByName %></td>
+              <td><%= r.recipientName %></td>
+              <td><span class="badge pending_approval"><%= r.categoryLabel %></span></td>
+              <td><%= r.details %></td>
+              <td>
+                <% if (r.files && r.files.length) { %>
+                  <% r.files.forEach(function(f) { %>
+                    <% if (f.mimeType && f.mimeType.indexOf('image/') === 0) { %>
+                      <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank"><img src="/reports/file/<%= r.id %>/<%= f.path %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin:0 4px 4px 0"></a>
+                    <% } else { %>
+                      <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank" style="display:block;font-size:12.5px"><%= f.originalName %></a>
+                    <% } %>
+                  <% }) %>
+                <% } else { %><span class="muted">&mdash;</span><% } %>
+              </td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+              <td><span class="badge <%= r.status === 'reviewed' ? 'confirmed' : 'pending_approval' %>"><%= r.status === 'reviewed' ? 'Reviewed' : 'Sent' %></span></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card logs-section" id="logs-requests" style="display:none">
+      <h3 style="margin-top:0">Requests</h3>
+      <% if (!requests.length) { %><p class="muted">No requests sent yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Type</th><th>Details</th><th>Sent</th></tr></thead>
+          <tbody>
+          <% requests.forEach(function(r) { %>
+            <tr>
+              <td><%= r.requestedByName %></td>
+              <td><%= r.recipientName %></td>
+              <td><span class="badge confirmed"><%= r.typeLabel %></span></td>
+              <td><%= r.details %></td>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card logs-section" id="logs-bookings" style="display:none">
+      <h3 style="margin-top:0">Bookings</h3>
+      <% if (!bookingHistory.length) { %><p class="muted">No booking activity yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>When</th><th>Booking</th><th>Event</th></tr></thead>
+          <tbody>
+          <% bookingHistory.forEach(function(h) { %>
+            <tr>
+              <td><%= new Date(h.at).toLocaleString() %></td>
+              <td><a href="/bookings/<%= h.bookingId %>">#<%= h.bookingId %> &mdash; <%= h.customerName %></a></td>
+              <td><%= h.event %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card logs-section" id="logs-notifications" style="display:none">
+      <h3 style="margin-top:0">Notifications</h3>
+      <% if (!notifications.length) { %><p class="muted">No notifications logged yet.</p><% } else { %>
+        <table>
+          <thead><tr><th>When</th><th>Type</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
+          <tbody>
+          <% notifications.forEach(function(n) { %>
+            <tr>
+              <td><%= new Date(n.sentAt).toLocaleString() %></td>
+              <td><%= n.type %><% if (n.bookingId) { %> <span class="muted" style="font-size:12px">#<%= n.bookingId %></span><% } %></td>
+              <td><%= n.recipient %></td>
+              <td><%= n.subject %></td>
+              <td><span class="badge <%= n.status === 'sent' ? 'confirmed' : (n.status === 'failed' ? 'cancelled' : 'pending_approval') %>"><%= n.status %></span></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var tabs = document.querySelectorAll('.logs-tab-btn');
+  var sections = document.querySelectorAll('.logs-section');
+  tabs.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      tabs.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var target = 'logs-' + btn.getAttribute('data-tab');
+      sections.forEach(function(s) { s.style.display = s.id === target ? 'block' : 'none'; });
+    });
+  });
+})();
+</script>
+</body>
+</html>

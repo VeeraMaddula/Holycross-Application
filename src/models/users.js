@@ -74,6 +74,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canBookFunctions: false,
     canViewNotifications: false,
     canManageCashSafe: false,
+    canViewLogs: false,
     privacyPolicyVersion: null,
     privacyPolicyAcceptedAt: null,
     color: defaultColorForId(id),
@@ -189,6 +190,21 @@ function setUserCashSafeAccess(id, allowed) {
   return { user: u };
 }
 
+// Logs page access — Admin and every manager-tier role (see MANAGER_ROLES
+// in src/roles.js) already get in automatically via requireLogsAccess; this
+// toggle is only for individually granting a specific Bar/Kitchen Staff
+// member access, same pattern as setUserCashSafeAccess above. Off by
+// default — a staff member never sees the Logs button until a manager
+// switches this on for them from the Users page.
+function setUserLogsAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canViewLogs = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
 function setUserAvatar(id, avatarPath) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
@@ -227,5 +243,5 @@ module.exports = {
   activeAdminCount, listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier,
   getUserById, createUser, updateUserProfile, setUserColor, setUserTimesheetAccess, setUserRosterAccess,
   setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, acceptPrivacyPolicy,
-  setUserCashSafeAccess, setUserAvatar, setUserActive, setUserRole
+  setUserCashSafeAccess, setUserLogsAccess, setUserAvatar, setUserActive, setUserRole
 };
