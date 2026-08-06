@@ -66,6 +66,23 @@
   <div class="kiosk-duties-panel-footer" id="dutiesPanelFooter">
     <button type="button" class="btn" id="dutiesSubmitBtn">Submit</button>
   </div>
+  <div class="kiosk-duties-reason" id="dutiesWhoBox" style="display:none">
+    <p class="muted" style="margin:0 0 8px">Who's submitting this?</p>
+    <select id="dutiesWhoSelect"></select>
+    <div class="kiosk-duties-reason-actions">
+      <button type="button" class="btn secondary" id="dutiesWhoCancel">Back</button>
+      <button type="button" class="btn" id="dutiesWhoContinue">Continue</button>
+    </div>
+  </div>
+  <div class="kiosk-duties-reason" id="dutiesCameraBox" style="display:none">
+    <video id="dutiesCameraVideo" autoplay playsinline muted class="kiosk-camera-video"></video>
+    <canvas id="dutiesCameraCanvas" style="display:none"></canvas>
+    <p class="muted" id="dutiesCameraStatus" style="margin:10px 0">Starting camera&hellip;</p>
+    <div class="kiosk-action-buttons">
+      <button type="button" class="kiosk-action-btn kiosk-btn-in" id="dutiesCaptureBtn" disabled>Take photo</button>
+    </div>
+    <button type="button" class="btn secondary" id="dutiesCameraCancel">Cancel</button>
+  </div>
   <div class="kiosk-duties-reason" id="dutiesReasonBox" style="display:none">
     <p class="muted" style="margin:0 0 8px">Some duties aren't ticked — why? This will be sent to the managers.</p>
     <textarea id="dutiesReasonText" rows="3" placeholder="e.g. Short-staffed this morning, will finish by 9:15"></textarea>
@@ -459,11 +476,153 @@
   var dutiesState = null;
   var dutiesPanelOpen = false;
 
+  // After Breakfast Duties and After Carvery Duties ask "who's submitting?"
+  // and take a live photo as part of Submit; Opening and Closing keep the
+  // plain flow they've always had.
+  var PHOTO_REQUIRED_SECTIONS = ['after_breakfast', 'after_carvery'];
+  var dutiesWhoBox = document.getElementById('dutiesWhoBox');
+  var dutiesWhoSelect = document.getElementById('dutiesWhoSelect');
+  var dutiesCameraBox = document.getElementById('dutiesCameraBox');
+  var dutiesCameraVideo = document.getElementById('dutiesCameraVideo');
+  var dutiesCameraCanvas = document.getElementById('dutiesCameraCanvas');
+  var dutiesCameraStatus = document.getElementById('dutiesCameraStatus');
+  var dutiesCaptureBtn = document.getElementById('dutiesCaptureBtn');
+  var dutiesCameraStream = null;
+  var dutiesSubmitterUserId = null, dutiesSubmitterName = null, dutiesPhotoBlob = null;
+
   function showDutiesStage(stage) {
     dutiesPanelBody.style.display = stage === 'checklist' ? 'block' : 'none';
     dutiesPanelFooter.style.display = stage === 'checklist' ? 'flex' : 'none';
+    dutiesWhoBox.style.display = stage === 'who' ? 'block' : 'none';
+    dutiesCameraBox.style.display = stage === 'camera' ? 'block' : 'none';
     dutiesReasonBox.style.display = stage === 'reason' ? 'block' : 'none';
     dutiesDoneMsg.style.display = stage === 'done' ? 'block' : 'none';
+  }
+
+  function resetDutiesPhotoFlow() {
+    dutiesSubmitterUserId = null;
+    dutiesSubmitterName = null;
+    dutiesPhotoBlob = null;
+  }
+
+  function stopDutiesCamera() {
+    if (dutiesCameraStream) {
+      dutiesCameraStream.getTracks().forEach(function(t) { t.stop(); });
+      dutiesCameraStream = null;
+    }
+  }
+
+  function startDutiesWho() {
+    dutiesWhoSelect.innerHTML = '';
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select your name…';
+    dutiesWhoSelect.appendChild(placeholder);
+    document.querySelectorAll('.kiosk-tile').forEach(function(tile) {
+      var opt = document.createElement('option');
+      opt.value = tile.getAttribute('data-user-id');
+      opt.textContent = tile.getAttribute('data-user-name');
+      dutiesWhoSelect.appendChild(opt);
+    });
+    dutiesWhoSelect.value = '';
+    showDutiesStage('who');
+  }
+
+  function startDutiesCamera() {
+    showDutiesStage('camera');
+    dutiesCameraStatus.textContent = 'Starting camera…';
+    dutiesCaptureBtn.disabled = true;
+    dutiesCaptureBtn.textContent = 'Take photo';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      dutiesCameraStatus.textContent = 'Camera not supported on this device/browser.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then(function(stream) {
+        dutiesCameraStream = stream;
+        dutiesCameraVideo.srcObject = stream;
+        dutiesCameraStatus.textContent = 'Look at the camera, then tap to continue.';
+        dutiesCaptureBtn.disabled = false;
+      })
+      .catch(function(err) {
+        dutiesCameraStatus.textContent = 'Could not access the camera: ' + err.message + '.';
+      });
+  }
+
+  document.getElementById('dutiesWhoCancel').addEventListener('click', function() {
+    resetDutiesPhotoFlow();
+    showDutiesStage('checklist');
+  });
+
+  document.getElementById('dutiesWhoContinue').addEventListener('click', function() {
+    var opt = dutiesWhoSelect.selectedOptions[0];
+    if (!opt || !opt.value) { dutiesWhoSelect.focus(); return; }
+    dutiesSubmitterUserId = opt.value;
+    dutiesSubmitterName = opt.textContent;
+    startDutiesCamera();
+  });
+
+  document.getElementById('dutiesCameraCancel').addEventListener('click', function() {
+    stopDutiesCamera();
+    resetDutiesPhotoFlow();
+    showDutiesStage('checklist');
+  });
+
+  dutiesCaptureBtn.addEventListener('click', function() {
+    if (!dutiesCameraStream) return;
+    dutiesCaptureBtn.disabled = true;
+    dutiesCaptureBtn.textContent = 'Saving…';
+    dutiesCameraCanvas.width = dutiesCameraVideo.videoWidth || 480;
+    dutiesCameraCanvas.height = dutiesCameraVideo.videoHeight || 480;
+    dutiesCameraCanvas.getContext('2d').drawImage(dutiesCameraVideo, 0, 0, dutiesCameraCanvas.width, dutiesCameraCanvas.height);
+    dutiesCameraCanvas.toBlob(function(blob) {
+      dutiesPhotoBlob = blob;
+      stopDutiesCamera();
+      dutiesCaptureBtn.disabled = false;
+      dutiesCaptureBtn.textContent = 'Take photo';
+      var hasMissing = dutiesState && dutiesState.tasks.some(function(t) { return !t.done; });
+      if (hasMissing) {
+        showDutiesStage('reason');
+      } else {
+        submitDutiesWithPhoto('');
+      }
+    }, 'image/jpeg', 0.85);
+  });
+
+  function submitDutiesWithPhoto(reason) {
+    if (!dutiesState || !dutiesPhotoBlob || !dutiesSubmitterUserId) return;
+    var formData = new FormData();
+    formData.append('date', dutiesState.date);
+    formData.append('section', dutiesState.section);
+    formData.append('reason', reason || '');
+    formData.append('submittedByUserId', dutiesSubmitterUserId);
+    formData.append('submittedByName', dutiesSubmitterName || '');
+    formData.append('photo', dutiesPhotoBlob, 'duty.jpg');
+    fetch('/kiosk/duties/submit', { method: 'POST', body: formData, headers: { Accept: 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.needsReason) {
+          // Shouldn't normally happen (already checked client-side before
+          // getting here), but handle it defensively rather than getting stuck.
+          showDutiesStage('reason');
+          return;
+        }
+        finishDutiesSubmit();
+      })
+      .catch(function() {
+        dutiesCameraStatus.textContent = 'Could not reach the server — please try again.';
+        showDutiesStage('who');
+      });
+  }
+
+  function finishDutiesSubmit() {
+    showDutiesStage('done');
+    resetDutiesPhotoFlow();
+    setTimeout(function() {
+      dutiesPanelOpen = false;
+      dutiesPanel.classList.remove('open');
+      fetchDutiesStatus();
+    }, 1800);
   }
 
   function renderDutiesTab() {
@@ -530,6 +689,7 @@
   });
 
   document.getElementById('dutiesCollapseBtn').addEventListener('click', function() {
+    stopDutiesCamera();
     dutiesPanelOpen = false;
     dutiesPanel.classList.remove('open');
     renderDutiesTab();
@@ -545,21 +705,29 @@
           showDutiesStage('reason');
           return;
         }
-        showDutiesStage('done');
-        setTimeout(function() {
-          dutiesPanelOpen = false;
-          dutiesPanel.classList.remove('open');
-          fetchDutiesStatus();
-        }, 1800);
+        finishDutiesSubmit();
       });
   }
 
-  document.getElementById('dutiesSubmitBtn').addEventListener('click', function() { submitDuties(''); });
-  document.getElementById('dutiesReasonCancel').addEventListener('click', function() { showDutiesStage('checklist'); });
+  document.getElementById('dutiesSubmitBtn').addEventListener('click', function() {
+    if (dutiesState && PHOTO_REQUIRED_SECTIONS.indexOf(dutiesState.section) !== -1) {
+      startDutiesWho();
+    } else {
+      submitDuties('');
+    }
+  });
+  document.getElementById('dutiesReasonCancel').addEventListener('click', function() {
+    resetDutiesPhotoFlow();
+    showDutiesStage('checklist');
+  });
   document.getElementById('dutiesReasonSend').addEventListener('click', function() {
     var reason = document.getElementById('dutiesReasonText').value.trim();
     if (!reason) return;
-    submitDuties(reason);
+    if (dutiesPhotoBlob) {
+      submitDutiesWithPhoto(reason);
+    } else {
+      submitDuties(reason);
+    }
   });
 })();
 </script>

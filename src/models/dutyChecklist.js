@@ -74,13 +74,16 @@ function getBarStaffOnShiftNames() {
 // notify.js) whether this call just created a fresh incomplete report that
 // still needs emailing — recordDutyReport itself never sends anything, to
 // keep this module free of any dependency on notify.js.
-function recordDutyReport({ date, section, sectionTitle, complete, reason, missingTaskTexts, staffOnShiftNames, trigger }) {
+function recordDutyReport({ date, section, sectionTitle, complete, reason, missingTaskTexts, staffOnShiftNames, trigger, submittedByUserId, submittedByName, photoPath }) {
   const db = readDb();
   if (!db.dutyReports) db.dutyReports = [];
   let rec = db.dutyReports.find(r => r.date === date && r.section === section);
   if (rec) {
-    if (reason && !rec.reason) {
-      rec.reason = reason;
+    let changed = false;
+    if (reason && !rec.reason) { rec.reason = reason; changed = true; }
+    if (submittedByUserId && !rec.submittedByUserId) { rec.submittedByUserId = Number(submittedByUserId); rec.submittedByName = submittedByName || ''; changed = true; }
+    if (photoPath && !rec.photoPath) { rec.photoPath = photoPath; changed = true; }
+    if (changed) {
       rec.updatedAt = new Date().toISOString();
       writeDb(db);
     }
@@ -97,6 +100,9 @@ function recordDutyReport({ date, section, sectionTitle, complete, reason, missi
     missingTaskTexts: missingTaskTexts || [],
     staffOnShiftNames: staffOnShiftNames || [],
     trigger: trigger || 'auto',
+    submittedByUserId: submittedByUserId ? Number(submittedByUserId) : null,
+    submittedByName: submittedByName || '',
+    photoPath: photoPath || '',
     createdAt: new Date().toISOString()
   };
   db.dutyReports.push(rec);

@@ -45,6 +45,7 @@ function setupPersistence() {
   ensureLink(path.join(root, 'data'), path.join(base, 'data'));
   ensureLink(path.join(root, 'public', 'img', 'avatars'), path.join(base, 'avatars'));
   ensureLink(path.join(root, 'public', 'img', 'clock-selfies'), path.join(base, 'clock-selfies'));
+  ensureLink(path.join(root, 'public', 'img', 'duty-photos'), path.join(base, 'duty-photos'));
   ensureLink(path.join(root, 'uploads', 'reports'), path.join(base, 'reports'));
 }
 

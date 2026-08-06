@@ -35,6 +35,33 @@ const upload = multer({
   }
 });
 
+// Separate folder for the After Breakfast / After Carvery Duties "who's
+// submitting + live photo" step (src/persist.js also needs to know about
+// this directory so it survives redeploys on a hosted instance).
+const DUTY_PHOTO_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'duty-photos');
+fs.mkdirSync(DUTY_PHOTO_DIR, { recursive: true });
+
+const dutyPhotoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, DUTY_PHOTO_DIR),
+    filename: (req, file, cb) => {
+      const ext = ALLOWED_TYPES[file.mimetype] || '.jpg';
+      cb(null, `duty-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
+    }
+  }),
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_TYPES[file.mimetype]) return cb(new Error('Please capture a photo to continue.'));
+    cb(null, true);
+  }
+});
+
+// These two sections specifically ask "who's submitting?" and take a live
+// photo as part of Submit — Opening and Closing don't, since they close out
+// from whoever's already at the PIN-gated clock pad rather than the
+// ambient duties panel.
+const PHOTO_REQUIRED_SECTIONS = ['after_breakfast', 'after_carvery'];
+
 router.get('/', (req, res) => {
   res.render('kiosk', { staff: models.getKioskRoster() });
 });
@@ -185,30 +212,58 @@ router.post('/duties/toggle', (req, res) => {
 // something's still unticked and no reason was sent yet, it responds
 // asking for one instead of submitting — the kiosk then shows the "why not
 // done?" prompt and calls this again with the reason filled in.
-router.post('/duties/submit', async (req, res) => {
-  const { date, section, reason } = req.body;
-  if (!date || !section) return res.status(400).json({ error: 'Missing date/section.' });
-  const checklist = models.getDutiesChecklist(date);
-  const sectionData = checklist.sections.find(s => s.key === section);
-  if (!sectionData) return res.status(400).json({ error: 'Unknown duties section.' });
-  const missing = sectionData.tasks.filter(t => !t.done);
-  if (missing.length && !(reason && reason.trim())) {
-    return res.json({ ok: true, needsReason: true, missing: missing.map(t => t.text) });
-  }
-  const { report, isNewIncomplete } = models.recordDutyReport({
-    date,
-    section,
-    sectionTitle: sectionData.title,
-    complete: missing.length === 0,
-    reason: missing.length ? reason.trim() : '',
-    missingTaskTexts: missing.map(t => t.text),
-    staffOnShiftNames: models.getBarStaffOnShiftNames(),
-    trigger: 'manual'
+//
+// After Breakfast Duties and After Carvery Duties are always sent as
+// multipart/form-data with a "who submitted this" user id and a live photo
+// (dutyPhotoUpload.single('photo') only actually parses the request if the
+// content type is multipart — a plain urlencoded Opening/Closing submit
+// passes straight through untouched, same trick /action uses above).
+router.post('/duties/submit', (req, res) => {
+  dutyPhotoUpload.single('photo')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
+
+    const { date, section, reason, submittedByUserId, submittedByName } = req.body;
+    if (!date || !section) return res.status(400).json({ error: 'Missing date/section.' });
+    const checklist = models.getDutiesChecklist(date);
+    const sectionData = checklist.sections.find(s => s.key === section);
+    if (!sectionData) return res.status(400).json({ error: 'Unknown duties section.' });
+
+    let submitter = null;
+    let photoPath = '';
+    if (PHOTO_REQUIRED_SECTIONS.includes(section)) {
+      submitter = models.getUserById(submittedByUserId);
+      if (!submitter) {
+        if (req.file) fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ error: 'Please select who is submitting this.' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: 'A photo is required to submit this.' });
+      }
+      photoPath = `/img/duty-photos/${req.file.filename}`;
+    }
+
+    const missing = sectionData.tasks.filter(t => !t.done);
+    if (missing.length && !(reason && reason.trim())) {
+      return res.json({ ok: true, needsReason: true, missing: missing.map(t => t.text) });
+    }
+    const { report, isNewIncomplete } = models.recordDutyReport({
+      date,
+      section,
+      sectionTitle: sectionData.title,
+      complete: missing.length === 0,
+      reason: missing.length ? reason.trim() : '',
+      missingTaskTexts: missing.map(t => t.text),
+      staffOnShiftNames: models.getBarStaffOnShiftNames(),
+      trigger: 'manual',
+      submittedByUserId: submitter ? submitter.id : null,
+      submittedByName: submitter ? submitter.name : (submittedByName || ''),
+      photoPath
+    });
+    if (isNewIncomplete) {
+      await notify.notifyManagersDutyReport(report);
+    }
+    res.json({ ok: true, submitted: true });
   });
-  if (isNewIncomplete) {
-    await notify.notifyManagersDutyReport(report);
-  }
-  res.json({ ok: true, submitted: true });
 });
 
 module.exports = router;

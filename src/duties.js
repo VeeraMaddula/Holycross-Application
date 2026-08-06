@@ -48,7 +48,7 @@ const DUTY_SECTIONS = [
       { id: 'carvery-1', text: 'Close carvery rope at 3 PM' },
       { id: 'carvery-2', text: 'Get specials from the kitchen' },
       { id: 'carvery-3', text: 'Put Bar & kids menus on the door table' },
-      { id: 'carvery-4', text: "Confirm Fish of the Day, Pasta of the Week, Roast of the Week and any 86'd items with the kitchen" },
+      { id: 'carvery-4', text: 'Confirm Fish of the Day, Pasta of the Week, Roast of the Week and any missing items with the kitchen' },
       { id: 'carvery-5', text: 'Start taking orders around 3:20–3:30 PM once kitchen is ready' },
       { id: 'carvery-6', text: 'Handle deliveries/stock with a senior staff member covering the till' },
       { id: 'carvery-7', text: 'Clean and wrap cutlery when free' }
