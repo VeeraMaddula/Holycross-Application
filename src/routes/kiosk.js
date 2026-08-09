@@ -15,6 +15,15 @@ const { kioskPinLimiter, forgotLimiter } = require('../rateLimiters');
 const AVATAR_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'avatars');
 fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
+// A permanent archive of every clock-in/break photo, separate from
+// AVATAR_DIR above — the avatars/ copy becomes the person's "live" tile
+// picture and gets deleted the moment their NEXT clock action happens (see
+// dropLiveShiftFile below), so it can't be relied on to still exist by the
+// time anyone looks at historical clock entries (e.g. the Logs page).
+// Nothing ever deletes from here.
+const CLOCK_SELFIE_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'clock-selfies');
+fs.mkdirSync(CLOCK_SELFIE_DIR, { recursive: true });
+
 const ALLOWED_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
 const upload = multer({
@@ -159,11 +168,20 @@ router.post('/action', kioskPinLimiter, (req, res) => {
     }
 
     let effectiveAvatarPath;
+    let archivedSelfiePath = '';
     if (PHOTO_ACTIONS.includes(action)) {
       if (!req.file) return res.status(400).json({ error: 'A photo is required for this step.' });
       dropLiveShiftFile();
       effectiveAvatarPath = `/img/avatars/${req.file.filename}`;
       models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
+      // Permanent copy for the clock-entry log — see CLOCK_SELFIE_DIR above.
+      const archiveFilename = `selfie-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${path.extname(req.file.filename)}`;
+      try {
+        fs.copyFileSync(req.file.path, path.join(CLOCK_SELFIE_DIR, archiveFilename));
+        archivedSelfiePath = `/img/clock-selfies/${archiveFilename}`;
+      } catch (err) {
+        console.error('Failed to archive clock-in selfie:', err.message);
+      }
     } else {
       // clock_out — revert to their saved profile picture (may be '').
       dropLiveShiftFile();
@@ -175,7 +193,7 @@ router.post('/action', kioskPinLimiter, (req, res) => {
       userId: user.id,
       userName: user.name,
       action,
-      selfiePath: PHOTO_ACTIONS.includes(action) ? effectiveAvatarPath : ''
+      selfiePath: archivedSelfiePath
     });
 
     // If a Bar Staff member just clocked out and that leaves nobody from

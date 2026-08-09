@@ -87,6 +87,7 @@ const DEFAULT_DATA = {
   requests: [],
   dutyCompletions: [],
   dutyReports: [],
+  dutySections: [],
   reports: [],
   cashLogs: [],
   cashLodgementHistory: [],

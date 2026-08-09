@@ -81,4 +81,4 @@ function markReportReviewed(id, reviewerUserId) {
   return { report: r };
 }
 
-module.exports = { REPORT_CATEGORIES, createReport, listReportsForUser, getReport, markReportReviewed };
+module.exports = { REPORT_CATEGORIES, createReport, listReportsForUser, getReport, markReportReviewed, listAllReports };

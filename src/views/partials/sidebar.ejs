@@ -81,7 +81,7 @@
           Requests
         </a>
       <% } %>
-      <% if (currentUser && ['bar_staff', 'admin', 'senior_manager'].includes(currentUser.role)) { %>
+      <% if (currentUser && (currentUser.role === 'bar_staff' || ['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff_manager'].includes(currentUser.role) || currentUser.canEditDuties)) { %>
         <a href="/duties" class="<%= currentPath.startsWith('/duties') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           Duties

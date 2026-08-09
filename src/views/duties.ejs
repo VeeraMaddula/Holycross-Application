@@ -22,8 +22,13 @@
             <div class="duty-progress-fill" style="width: <%= checklist.totalCount ? Math.round(checklist.doneCount / checklist.totalCount * 100) : 0 %>%"></div>
           </div>
         </div>
+        <% if (canEdit) { %>
+          <button type="button" class="btn small secondary" id="dutiesEditToggle">Edit duties</button>
+        <% } %>
       </div>
     </div>
+
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
 
     <% checklist.sections.forEach(section => { %>
       <div class="card duty-section-card">
@@ -46,12 +51,51 @@
                   <span class="duty-task-meta">— <%= task.completedByName %>, <%= new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
                 <% } %>
               </div>
+              <% if (canEdit) { %>
+                <div class="duty-task-edit-controls" style="display:none">
+                  <form method="POST" action="/duties/tasks/<%= task.id %>" class="duty-task-edit-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="date" value="<%= checklist.date %>">
+                    <input type="text" name="text" value="<%= task.text %>" required>
+                    <button type="submit" class="btn small">Save</button>
+                  </form>
+                  <form method="POST" action="/duties/tasks/<%= task.id %>/delete" onsubmit="return confirm('Remove this task? It stays on any already-submitted report, this only removes it from the live checklist going forward.')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="date" value="<%= checklist.date %>">
+                    <button type="submit" class="btn small secondary">Delete</button>
+                  </form>
+                </div>
+              <% } %>
             </li>
           <% }) %>
         </ul>
+        <% if (canEdit) { %>
+          <form method="POST" action="/duties/tasks" class="duty-task-add-form" style="display:none">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="date" value="<%= checklist.date %>">
+            <input type="hidden" name="section" value="<%= section.key %>">
+            <input type="text" name="text" placeholder="New task…" required>
+            <button type="submit" class="btn small">Add task</button>
+          </form>
+        <% } %>
       </div>
     <% }) %>
   </div>
 </div>
+<% if (canEdit) { %>
+<script>
+(function() {
+  var toggle = document.getElementById('dutiesEditToggle');
+  var editing = false;
+  toggle.addEventListener('click', function() {
+    editing = !editing;
+    toggle.textContent = editing ? 'Done editing' : 'Edit duties';
+    document.querySelectorAll('.duty-task-edit-controls, .duty-task-add-form').forEach(function(el) {
+      el.style.display = editing ? 'flex' : 'none';
+    });
+  });
+})();
+</script>
+<% } %>
 </body>
 </html>

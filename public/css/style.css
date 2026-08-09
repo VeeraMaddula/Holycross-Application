@@ -352,6 +352,11 @@ textarea { resize: vertical; min-height: 70px; }
 .duty-task-text { flex: 1; }
 .duty-task.done .duty-task-text { color: var(--muted); text-decoration: line-through; }
 .duty-task-meta { font-size: 12px; color: var(--muted); text-decoration: none; display: inline-block; }
+.duty-task-edit-controls { align-items: center; gap: 6px; flex-shrink: 0; }
+.duty-task-edit-controls form { display: flex; align-items: center; gap: 6px; margin: 0; }
+.duty-task-edit-controls input[type="text"] { width: 220px; padding: 5px 8px; font-size: 13px; }
+.duty-task-add-form { align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.duty-task-add-form input[type="text"] { flex: 1; }
 .music-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .music-tag { background: #eef3ee; color: var(--accent-dark); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
 

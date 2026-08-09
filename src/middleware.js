@@ -71,12 +71,27 @@ function requireKioskPageAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-// Duties checklist access = Bar Staff (it's their sheet), plus Admin and
-// Senior Manager so they can check in on it / preview it, same reasoning as
-// requireKioskPageAccess above. Kitchen Staff and everyone else don't see it.
+// Duties checklist access = Bar Staff (it's their sheet), plus every
+// manager-tier role (Admin, Senior/General/Floor Manager, Staff Manager —
+// see MANAGER_ROLES in src/roles.js) so they can check in on it, preview
+// it, and — for the ones with duties-edit access — edit the task list
+// itself (see requireDutiesEditAccess below). Kitchen Staff and everyone
+// else still don't see it. This used to be Admin/Senior Manager only;
+// widened so every manager can actually reach the Edit duties button.
 function requireDutiesAccess(req, res, next) {
   const u = res.locals.currentUser;
-  if (u && (u.role === 'bar_staff' || u.role === 'admin' || u.role === 'senior_manager')) return next();
+  if (u && (u.role === 'bar_staff' || MANAGER_ROLES.includes(u.role) || u.canEditDuties)) return next();
+  return res.status(403).render('403');
+}
+
+// Editing the duties TASK LIST (adding/renaming/removing tasks, not just
+// ticking them off day-to-day) = every manager-tier role automatically,
+// plus anyone individually granted it via the Users page — same pattern as
+// requireCashSafeAccess/requireLogsAccess above. Bar/Kitchen Staff never
+// get this unless a manager explicitly switches it on for them.
+function requireDutiesEditAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (MANAGER_ROLES.includes(u.role) || u.canEditDuties)) return next();
   return res.status(403).render('403');
 }
 
@@ -114,4 +129,4 @@ function requireLogsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, STAFF_ROLES };
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, STAFF_ROLES };

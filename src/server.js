@@ -153,10 +153,11 @@ app.use((req, res, next) => {
           canViewNotifications: !!dbUser.canViewNotifications,
           canManageCashSafe: !!dbUser.canManageCashSafe,
           canViewLogs: !!dbUser.canViewLogs,
+          canEditDuties: !!dbUser.canEditDuties,
           privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
           privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
   } else {
     res.locals.currentUser = null;
   }

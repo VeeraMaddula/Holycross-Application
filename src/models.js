@@ -29,6 +29,7 @@ const calendarSync = require('./models/calendarSync');
 const clockEntries = require('./models/clockEntries');
 const roster = require('./models/roster');
 const dutyChecklist = require('./models/dutyChecklist');
+const dutyTasks = require('./models/dutyTasks');
 const requests = require('./models/requests');
 const staffReports = require('./models/staffReports');
 const admin = require('./models/admin');
@@ -92,6 +93,7 @@ module.exports = {
   setUserNotificationsAccess: users.setUserNotificationsAccess,
   setUserCashSafeAccess: users.setUserCashSafeAccess,
   setUserLogsAccess: users.setUserLogsAccess,
+  setUserDutiesEditAccess: users.setUserDutiesEditAccess,
   setUserColor: users.setUserColor,
   acceptPrivacyPolicy: users.acceptPrivacyPolicy,
 
@@ -153,6 +155,12 @@ module.exports = {
   getDutyReport: dutyChecklist.getDutyReport,
   getBarStaffOnShiftNames: dutyChecklist.getBarStaffOnShiftNames,
   listAllDutyReports: dutyChecklist.listAllDutyReports,
+
+  // Bar Staff Duties task definitions (add/edit/remove tasks)
+  getDutySections: dutyTasks.getDutySections,
+  addDutyTask: dutyTasks.addDutyTask,
+  updateDutyTask: dutyTasks.updateDutyTask,
+  deleteDutyTask: dutyTasks.deleteDutyTask,
 
   // Staff Reports ("Report an Issue")
   REPORT_CATEGORIES: staffReports.REPORT_CATEGORIES,

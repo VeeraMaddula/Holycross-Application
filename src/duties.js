@@ -1,10 +1,15 @@
 // Bar Staff duty checklist — content taken directly from the printed
 // "Bar Duties" sheet, split into its 4 natural sections (Opening, After
-// Breakfast, After Carvery, Closing). Purely static reference data; the
-// day-to-day tick/untick state lives in db.json (see models.js duty
-// functions), keyed by each task's stable `id` below so re-ordering or
-// lightly editing task text later won't orphan anyone's ticks for today.
-const DUTY_SECTIONS = [
+// Breakfast, After Carvery, Closing). This is only the SEED/default task
+// list now — managers can add, edit, or remove individual tasks from the
+// Duties page (see src/models/dutyTasks.js), which copies this array into
+// the database on first access and reads/writes from there afterwards.
+// Section keys/titles themselves stay fixed here since they're tied to the
+// schedule in dutyWindows.js; only the tasks inside each section are
+// editable. The day-to-day tick/untick state lives separately in db.json
+// (see src/models/dutyChecklist.js), keyed by each task's stable `id`
+// below so editing a task's text later won't orphan anyone's ticks for today.
+const DEFAULT_DUTY_SECTIONS = [
   {
     key: 'opening',
     title: 'Opening Duties',
@@ -95,12 +100,10 @@ const DUTY_SECTIONS = [
   }
 ];
 
-const TASK_COUNT = DUTY_SECTIONS.reduce((sum, s) => sum + s.tasks.length, 0);
-
 // Who gets emailed when a duties window closes with something not ticked
 // off (or a Bar Staff member explains a miss via the kiosk's Submit
 // button) — General Manager, Senior Manager, and Floor Manager specifically,
 // not the wider MANAGER_ROLES list (no Admin, no Staff Manager).
 const DUTY_ESCALATION_ROLES = ['general_manager', 'senior_manager', 'floor_manager'];
 
-module.exports = { DUTY_SECTIONS, TASK_COUNT, DUTY_ESCALATION_ROLES };
+module.exports = { DEFAULT_DUTY_SECTIONS, DUTY_ESCALATION_ROLES };

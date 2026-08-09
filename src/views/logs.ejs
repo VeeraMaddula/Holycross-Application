@@ -27,7 +27,7 @@
             <tr>
               <td>
                 <% if (e.selfiePath) { %>
-                  <a href="<%= e.selfiePath %>" target="_blank"><img src="<%= e.selfiePath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px"></a>
+                  <a href="<%= e.selfiePath %>" target="_blank"><img src="<%= e.selfiePath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px" onerror="this.closest('a').outerHTML='<span class=&quot;muted&quot;>photo no longer available</span>'"></a>
                 <% } else { %><span class="muted">&mdash;</span><% } %>
               </td>
               <td><%= e.userName %></td>
@@ -61,7 +61,7 @@
               <td><%= r.submittedByName || '—' %></td>
               <td>
                 <% if (r.photoPath) { %>
-                  <a href="<%= r.photoPath %>" target="_blank"><img src="<%= r.photoPath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px"></a>
+                  <a href="<%= r.photoPath %>" target="_blank"><img src="<%= r.photoPath %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px" onerror="this.closest('a').outerHTML='<span class=&quot;muted&quot;>photo no longer available</span>'"></a>
                 <% } else { %><span class="muted">&mdash;</span><% } %>
               </td>
               <td>
@@ -94,7 +94,7 @@
                 <% if (r.files && r.files.length) { %>
                   <% r.files.forEach(function(f) { %>
                     <% if (f.mimeType && f.mimeType.indexOf('image/') === 0) { %>
-                      <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank"><img src="/reports/file/<%= r.id %>/<%= f.path %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin:0 4px 4px 0"></a>
+                      <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank"><img src="/reports/file/<%= r.id %>/<%= f.path %>" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin:0 4px 4px 0" onerror="this.closest('a').outerHTML='<span class=&quot;muted&quot;>photo no longer available</span>'"></a>
                     <% } else { %>
                       <a href="/reports/file/<%= r.id %>/<%= f.path %>" target="_blank" style="display:block;font-size:12.5px"><%= f.originalName %></a>
                     <% } %>

@@ -6,7 +6,7 @@
 // closing checks that ran late or incomplete).
 const { readDb, writeDb } = require('../db');
 const { toDateStr } = require('../dateUtils');
-const { DUTY_SECTIONS, TASK_COUNT } = require('../duties');
+const dutyTasks = require('./dutyTasks');
 const dutyWindows = require('../dutyWindows');
 const { listAllStaffStatus } = require('./clockEntries');
 
@@ -25,17 +25,20 @@ function getDutyCompletionsForDate(date) {
 // duties view needs in one call.
 function getDutiesChecklist(date) {
   const completions = getDutyCompletionsForDate(date);
+  const sectionDefs = dutyTasks.getDutySections();
   let doneCount = 0;
-  const sections = DUTY_SECTIONS.map(section => {
+  let totalCount = 0;
+  const sections = sectionDefs.map(section => {
     const tasks = section.tasks.map(t => {
       const done = completions[t.id];
       if (done) doneCount++;
+      totalCount++;
       return { ...t, done: !!done, completedByName: done ? done.completedByName : '', completedAt: done ? done.completedAt : null };
     });
     const sectionDone = tasks.filter(t => t.done).length;
     return { key: section.key, title: section.title, tasks, doneCount: sectionDone, totalCount: tasks.length };
   });
-  return { date, sections, doneCount, totalCount: TASK_COUNT };
+  return { date, sections, doneCount, totalCount };
 }
 
 // Ticks a task on, or unticks it if it was already done — a plain toggle,

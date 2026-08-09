@@ -75,6 +75,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canViewNotifications: false,
     canManageCashSafe: false,
     canViewLogs: false,
+    canEditDuties: false,
     privacyPolicyVersion: null,
     privacyPolicyAcceptedAt: null,
     color: defaultColorForId(id),
@@ -205,6 +206,20 @@ function setUserLogsAccess(id, allowed) {
   return { user: u };
 }
 
+// Editing the duties TASK LIST (add/edit/remove tasks, not just ticking
+// them off) — every manager-tier role gets this automatically (see
+// requireDutiesEditAccess in src/middleware.js); this toggle is only for
+// individually granting a specific Bar/Kitchen Staff member the same
+// capability, same pattern as setUserCashSafeAccess/setUserLogsAccess above.
+function setUserDutiesEditAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canEditDuties = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
 function setUserAvatar(id, avatarPath) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
@@ -243,5 +258,5 @@ module.exports = {
   activeAdminCount, listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier,
   getUserById, createUser, updateUserProfile, setUserColor, setUserTimesheetAccess, setUserRosterAccess,
   setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, acceptPrivacyPolicy,
-  setUserCashSafeAccess, setUserLogsAccess, setUserAvatar, setUserActive, setUserRole
+  setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserAvatar, setUserActive, setUserRole
 };
