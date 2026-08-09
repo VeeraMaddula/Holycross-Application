@@ -80,10 +80,38 @@
     var cancelBtn = document.getElementById('cancelCropBtn');
     var plainUploadRow = document.getElementById('plainUploadRow');
     var errorBox = document.getElementById('uploadError');
+    var avatarForm = document.getElementById('avatarForm');
     var cropper = null;
 
-    // If the CropperJS CDN script failed to load, silently fall back to the
-    // plain "Upload without cropping" form submit — nothing else to wire up.
+    // Multipart forms can't rely on the hidden _csrf field alone — the CSRF
+    // check runs before multer parses a multipart body, so req.body._csrf is
+    // never populated in time for a plain browser form submission. This
+    // catches the "Upload without cropping" fallback button (and any native
+    // submit if CropperJS below fails to load) and resubmits it via fetch
+    // with the token as a header instead — registered before the Cropper
+    // early-return below so it's wired up either way.
+    if (avatarForm) {
+      avatarForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var fd = new FormData(avatarForm);
+        fetch(avatarForm.action, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-CSRF-Token': '<%= csrfToken %>' }
+        }).then(function(res) { return res.text(); })
+          .then(function(html) {
+            document.open();
+            document.write(html);
+            document.close();
+          })
+          .catch(function() {
+            alert('Something went wrong uploading this — please try again.');
+          });
+      });
+    }
+
+    // If the CropperJS CDN script failed to load, the crop UI below never
+    // gets wired up — the submit handler above still covers a plain upload.
     if (typeof Cropper === 'undefined') return;
 
     function showError(message) {

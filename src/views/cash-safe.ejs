@@ -214,6 +214,30 @@
     overlay.classList.add('open');
     startCamera();
   });
+
+  // Multipart forms can't rely on the hidden _csrf field alone — the CSRF
+  // check runs before multer parses a multipart body, so req.body._csrf is
+  // never populated in time for a plain browser form submission. Submitting
+  // via fetch with the token as a header (same trick the kiosk page and
+  // profile picture upload already use) is what actually makes this work.
+  var cashSafeForm = document.getElementById('cashSafeForm');
+  cashSafeForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fd = new FormData(cashSafeForm);
+    fetch(cashSafeForm.action, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-CSRF-Token': '<%= csrfToken %>' }
+    }).then(function(res) { return res.text(); })
+      .then(function(html) {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(function() {
+        alert('Something went wrong submitting this — please try again.');
+      });
+  });
 })();
 </script>
 </body>

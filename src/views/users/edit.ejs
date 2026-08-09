@@ -66,7 +66,7 @@
               <%= user.name.split(' ').map(p => p[0]).join('').toUpperCase() %>
             </span>
           <% } %>
-          <form method="POST" action="/users/<%= user.id %>/avatar" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <form method="POST" action="/users/<%= user.id %>/avatar" enctype="multipart/form-data" id="userAvatarForm" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required>
             <button class="btn small" type="submit">Upload</button>
@@ -97,5 +97,33 @@
     <% } %>
   </div>
 </div>
+<script>
+// Multipart forms can't rely on the hidden _csrf field alone — the CSRF
+// check runs before multer parses a multipart body, so req.body._csrf is
+// never populated in time for a plain browser form submission. Submitting
+// via fetch with the token as a header (same trick the kiosk page and
+// profile picture upload already use) is what actually makes this work.
+(function() {
+  var form = document.getElementById('userAvatarForm');
+  if (!form) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fd = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-CSRF-Token': '<%= csrfToken %>' }
+    }).then(function(res) { return res.text(); })
+      .then(function(html) {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(function() {
+        alert('Something went wrong uploading this — please try again.');
+      });
+  });
+})();
+</script>
 </body>
 </html>

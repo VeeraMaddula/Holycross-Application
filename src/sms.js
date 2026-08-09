@@ -101,7 +101,25 @@ function newRequestSms(request) {
   return `The Holy Cross: New ${request.typeLabel} request from ${request.requestedByName} - "${preview}". Check the app.`;
 }
 
+// Shift Marketplace — sent to the original owner when someone else picks
+// up (no swap) the shift they dropped.
+function shiftDropPickedUpSms(shift, pickedUpByName) {
+  return `The Holy Cross: ${pickedUpByName} picked up your dropped shift on ${shift.date} (${shift.startTime}-${shift.endTime}). It's off your schedule now.`;
+}
+
+// Shift Marketplace — sent to whoever just picked up a dropped shift.
+function shiftClaimedSms(shift) {
+  return `The Holy Cross: You picked up the shift on ${shift.date}, ${shift.startTime}-${shift.endTime}. Check My Shifts.`;
+}
+
+// Shift Marketplace — sent to each party of an exchange, about their own
+// new shift.
+function shiftExchangeSms(newShift, oldDate) {
+  return `The Holy Cross: Shift exchanged - you're now on ${newShift.date} from ${newShift.startTime} to ${newShift.endTime}, instead of ${oldDate}.`;
+}
+
 module.exports = {
   isConfigured, sendSms, normalizePhone, bookingConfirmationSms, bookingReminderSms, cancellationSms,
-  shiftAssignedSms, shiftUpdatedSms, newRequestSms
+  shiftAssignedSms, shiftUpdatedSms, newRequestSms,
+  shiftDropPickedUpSms, shiftClaimedSms, shiftExchangeSms
 };

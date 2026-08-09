@@ -259,6 +259,50 @@ function newRequestEmail(request) {
   return { subject, text };
 }
 
+// Shift Marketplace — sent to the original shift owner once someone else
+// picks up (takes over outright, no swap) the shift they dropped.
+function shiftDropPickedUpEmail(shift, pickedUpByName) {
+  const subject = `Your dropped shift was picked up: ${shift.date} ${shift.startTime}-${shift.endTime}`;
+  const text = `Hi,\n\n${pickedUpByName} picked up the shift you dropped on ${shift.date} (${shift.startTime}-${shift.endTime}).\n\nIt's no longer on your schedule — check My Shifts in the app to confirm.`;
+  return { subject, text };
+}
+
+// Shift Marketplace — sent to whoever just picked up a dropped shift,
+// confirming it's now theirs.
+function shiftClaimedEmail(shift, userName) {
+  const subject = `You picked up a shift: ${shift.date} ${shift.startTime}-${shift.endTime}`;
+  const text = `Hi ${userName},\n\nYou picked up the shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nIt's now on your schedule — check My Shifts in the app.`;
+  return { subject, text };
+}
+
+// Shift Marketplace — sent to BOTH parties of an exchange, each told about
+// their own new shift and what they gave up. Call once per recipient with
+// their own new shift / old shift date.
+function shiftExchangeEmail(newShift, userName, oldShiftDate) {
+  const subject = `Shift exchanged: now ${newShift.date} ${newShift.startTime}-${newShift.endTime}`;
+  const text = `Hi ${userName},\n\nYour shift exchange went through. You're now down for ${newShift.date} from ${newShift.startTime} to ${newShift.endTime}, in place of your shift on ${oldShiftDate}.\n\nCheck My Shifts in the app for your full schedule.`;
+  return { subject, text };
+}
+
+// Shift Marketplace — FYI-only email to Managers once a drop resolves.
+// There's no approval gate (it's already applied to the roster by the time
+// this sends) — this is purely so Managers know the roster changed and who
+// changed it.
+function shiftChangeManagerEmail({ kind, dropperName, claimantName, droppedShift, offerShift }) {
+  if (kind === 'exchanged') {
+    const subject = `Shift exchange: ${dropperName} and ${claimantName}`;
+    const text = `${dropperName} and ${claimantName} exchanged shifts via the Shift Marketplace.\n\n`
+      + `${claimantName} is now down for ${droppedShift.date} (${droppedShift.startTime}-${droppedShift.endTime}), previously ${dropperName}'s.\n`
+      + `${dropperName} is now down for ${offerShift.date} (${offerShift.startTime}-${offerShift.endTime}), previously ${claimantName}'s.\n\n`
+      + `The roster has already been updated — this is an FYI, no action needed.`;
+    return { subject, text };
+  }
+  const subject = `Shift picked up: ${claimantName} took ${dropperName}'s shift`;
+  const text = `${dropperName} dropped their shift on ${droppedShift.date} (${droppedShift.startTime}-${droppedShift.endTime}) via the Shift Marketplace, and ${claimantName} picked it up.\n\n`
+    + `The roster has already been updated — this is an FYI, no action needed.`;
+  return { subject, text };
+}
+
 async function notifyAdminNewBooking(booking, tableName) {
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
   if (!adminEmail) return;
@@ -291,6 +335,17 @@ async function notifyAllStaffNewPublicBooking(booking, table) {
   const { subject, text } = newPublicBookingRequestEmail(booking, table);
   for (const s of staff) {
     await sendEmail({ to: s.email, subject, text, type: 'public-booking-request', bookingId: booking.id });
+  }
+}
+
+// Shift Marketplace — Managers only, email-only (matches every other
+// manager-notification function in this file), fire-and-forget from the
+// caller's perspective.
+async function notifyManagersShiftChange(payload) {
+  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const { subject, text } = shiftChangeManagerEmail(payload);
+  for (const m of managers) {
+    await sendEmail({ to: m.email, subject, text, type: 'shift-marketplace' });
   }
 }
 
@@ -448,8 +503,10 @@ module.exports = {
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
+  shiftDropPickedUpEmail, shiftClaimedEmail, shiftExchangeEmail, shiftChangeManagerEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
   notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
+  notifyManagersShiftChange,
   runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };

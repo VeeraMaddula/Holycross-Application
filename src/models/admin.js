@@ -18,6 +18,7 @@ function clearOperationalData() {
   db.requests = [];
   db.dutyCompletions = [];
   db.dutyReports = [];
+  db.shiftDrops = [];
   db.reports = [];
   db.cashLogs = [];
   db.cashLodgementHistory = [];
@@ -27,6 +28,7 @@ function clearOperationalData() {
   db.meta.nextTimeEntryId = 1;
   db.meta.nextRosterShiftId = 1;
   db.meta.nextRequestId = 1;
+  db.meta.nextShiftDropId = 1;
   db.meta.lastGoogleSyncAt = null;
   writeDb(db);
 }

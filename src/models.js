@@ -30,6 +30,7 @@ const clockEntries = require('./models/clockEntries');
 const roster = require('./models/roster');
 const dutyChecklist = require('./models/dutyChecklist');
 const dutyTasks = require('./models/dutyTasks');
+const shiftDrops = require('./models/shiftDrops');
 const requests = require('./models/requests');
 const staffReports = require('./models/staffReports');
 const admin = require('./models/admin');
@@ -161,6 +162,14 @@ module.exports = {
   addDutyTask: dutyTasks.addDutyTask,
   updateDutyTask: dutyTasks.updateDutyTask,
   deleteDutyTask: dutyTasks.deleteDutyTask,
+
+  // Shift Marketplace (drop / pick up / exchange roster shifts)
+  listOpenDrops: shiftDrops.listOpenDrops,
+  getDrop: shiftDrops.getDrop,
+  dropShift: shiftDrops.dropShift,
+  cancelDrop: shiftDrops.cancelDrop,
+  pickUpDrop: shiftDrops.pickUpDrop,
+  exchangeDrop: shiftDrops.exchangeDrop,
 
   // Staff Reports ("Report an Issue")
   REPORT_CATEGORIES: staffReports.REPORT_CATEGORIES,

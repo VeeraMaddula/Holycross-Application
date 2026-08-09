@@ -39,6 +39,72 @@
     </div>
 
     <div class="card">
+      <h3 style="margin-top:0">Shift Marketplace</h3>
+      <p class="muted">Can't make one of your upcoming shifts? Drop it here — anyone can pick it up or offer a swap. Once it's resolved, the roster updates straight away and everyone involved (plus a manager, FYI) gets an email and text.</p>
+
+      <h4>Drop one of your shifts</h4>
+      <% if (!myShifts.length) { %>
+        <p class="muted">You don't have any upcoming shifts in the next 4 weeks to drop.</p>
+      <% } else { %>
+        <form method="POST" action="/requests/shift-drops" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field" style="margin:0">
+            <label>Shift</label>
+            <select name="shiftId" required>
+              <% myShifts.forEach(s => { %>
+                <option value="<%= s.id %>"><%= s.date %>, <%= s.startLabel %>–<%= s.endLabel %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button class="btn" type="submit">Drop this shift</button>
+        </form>
+      <% } %>
+
+      <h4>Available shifts</h4>
+      <% if (!openDrops.length) { %>
+        <p class="muted">No dropped shifts right now.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Time</th><th>Dropped by</th><th>Action</th></tr></thead>
+          <tbody>
+          <% openDrops.forEach(d => { %>
+            <tr>
+              <td><%= d.shift.date %></td>
+              <td><%= formatTime12(d.shift.startTime) %>–<%= formatTime12(d.shift.endTime) %></td>
+              <td><%= d.droppedByName %></td>
+              <td>
+                <% if (d.droppedByUserId === currentUserId) { %>
+                  <form method="POST" action="/requests/shift-drops/<%= d.id %>/cancel" style="display:inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn small secondary" type="submit">Cancel</button>
+                  </form>
+                <% } else { %>
+                  <form method="POST" action="/requests/shift-drops/<%= d.id %>/pickup" style="display:inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn small" type="submit">Pick up</button>
+                  </form>
+                  <% if (myShifts.length) { %>
+                    <button type="button" class="btn small secondary" onclick="var f=document.getElementById('exchange-form-<%= d.id %>'); f.style.display = f.style.display === 'none' ? 'flex' : 'none';">Offer exchange</button>
+                    <form id="exchange-form-<%= d.id %>" method="POST" action="/requests/shift-drops/<%= d.id %>/exchange" style="display:none;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <select name="offerShiftId" required>
+                        <% myShifts.forEach(s => { %>
+                          <option value="<%= s.id %>"><%= s.date %>, <%= s.startLabel %>–<%= s.endLabel %></option>
+                        <% }) %>
+                      </select>
+                      <button class="btn" type="submit">Confirm swap</button>
+                    </form>
+                  <% } %>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
       <h3 style="margin-top:0">Sent to you</h3>
       <% if (!received.length) { %>
         <p class="muted">No requests yet.</p>
