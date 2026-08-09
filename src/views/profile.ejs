@@ -66,6 +66,135 @@
         </form>
       <% } %>
     </div>
+
+    <div class="card" style="max-width:480px">
+      <h3 style="margin-top:0">Your information</h3>
+      <dl class="detail-grid">
+        <dt>Full name</dt><dd><%= profileUser.name %></dd>
+        <dt>Username</dt><dd><%= profileUser.username || '—' %></dd>
+        <dt>Email</dt><dd><%= profileUser.email || '—' %></dd>
+        <dt>Phone</dt><dd><%= profileUser.phone || '—' %></dd>
+        <dt>Role</dt><dd><%= roleObj ? roleObj.label : profileUser.role %></dd>
+        <dt>Date of birth</dt><dd><%= profileUser.dob || '—' %></dd>
+        <dt>Sex</dt><dd><%= profileUser.sex ? (profileUser.sex.charAt(0).toUpperCase() + profileUser.sex.slice(1)) : '—' %></dd>
+        <dt>Location</dt><dd><%= profileUser.location || '—' %></dd>
+      </dl>
+      <p class="muted" style="margin-top:2px">Spotted something wrong here? Ask a manager to update it from the Users page.</p>
+    </div>
+
+    <div class="card" style="max-width:640px">
+      <h3 style="margin-top:0">This week</h3>
+      <p class="muted" style="margin-top:0">Hours worked, Monday to Sunday — a day with no clock-in shows as Off.</p>
+      <div class="week-hours-grid">
+        <% weekDays.forEach(d => { %>
+          <div class="week-hours-day<%= d.isToday ? ' is-today' : '' %>">
+            <div class="wh-name"><%= d.dayName.slice(0, 3) %></div>
+            <div class="wh-date"><%= d.shortDate %></div>
+            <div class="wh-hours<%= d.minutes <= 0 ? ' is-off' : '' %>"><%= d.label %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <% if (profileUser.role !== 'kiosk') { %>
+    <div class="card" style="max-width:480px">
+      <h3 style="margin-top:0">Security</h3>
+      <p class="muted" style="margin-top:0">Change your login password or your kiosk clock-in PIN. Both need a code we email to <%= profileUser.email || 'your account email' %> first.</p>
+      <div class="actions-row">
+        <button type="button" class="btn secondary" id="openPasswordModalBtn">Change password</button>
+        <button type="button" class="btn secondary" id="openPinModalBtn">Change PIN</button>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<!-- ---- Change password modal ---- -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal-box">
+    <div class="modal-step active" id="passwordStep1">
+      <h3>Change password</h3>
+      <p class="modal-note">We'll email a 6-digit verification code to the address on file for your account.</p>
+      <div id="passwordStep1Error" class="error-box" style="display:none"></div>
+      <div class="actions-row">
+        <button type="button" class="btn" id="sendPasswordCodeBtn">Send code to my email</button>
+        <button type="button" class="btn secondary" id="cancelPasswordModal1">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-step" id="passwordStep2">
+      <h3>Enter code &amp; new password</h3>
+      <p class="modal-note" id="passwordSentNote">Code sent — check your email. It expires in 10 minutes.</p>
+      <div id="passwordStep2Error" class="error-box" style="display:none"></div>
+      <div class="field">
+        <label>Verification code</label>
+        <input type="text" id="passwordCodeInput" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="123456">
+      </div>
+      <div class="field">
+        <label>New password</label>
+        <input type="password" id="newPasswordInput" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>Confirm new password</label>
+        <input type="password" id="confirmPasswordInput" autocomplete="new-password">
+      </div>
+      <p class="muted" style="margin-top:-6px;margin-bottom:14px">Password must be 8-16 characters and include at least one uppercase letter, one lowercase letter, and one special character.</p>
+      <div class="actions-row">
+        <button type="button" class="btn" id="confirmPasswordBtn">Change password</button>
+        <button type="button" class="btn secondary" id="resendPasswordCodeBtn">Resend code</button>
+        <button type="button" class="btn secondary" id="cancelPasswordModal2">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-step" id="passwordStepDone">
+      <h3>Password changed</h3>
+      <p class="modal-note">Your password has been updated. Use it next time you log in.</p>
+      <div class="actions-row">
+        <button type="button" class="btn" id="closePasswordModalDone">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- Change PIN modal ---- -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal-box">
+    <div class="modal-step active" id="pinStep1">
+      <h3>Change kiosk PIN</h3>
+      <p class="modal-note">We'll email a 6-digit verification code to the address on file for your account.</p>
+      <div id="pinStep1Error" class="error-box" style="display:none"></div>
+      <div class="actions-row">
+        <button type="button" class="btn" id="sendPinCodeBtn">Send code to my email</button>
+        <button type="button" class="btn secondary" id="cancelPinModal1">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-step" id="pinStep2">
+      <h3>Enter code &amp; new PIN</h3>
+      <p class="modal-note" id="pinSentNote">Code sent — check your email. It expires in 10 minutes.</p>
+      <div id="pinStep2Error" class="error-box" style="display:none"></div>
+      <div class="field">
+        <label>Verification code</label>
+        <input type="text" id="pinCodeInput" inputmode="numeric" pattern="\d{6}" maxlength="6" placeholder="123456">
+      </div>
+      <div class="field">
+        <label>New PIN</label>
+        <input type="text" id="newPinInput" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="1234">
+      </div>
+      <div class="field">
+        <label>Confirm new PIN</label>
+        <input type="text" id="confirmPinInput" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="1234">
+      </div>
+      <div class="actions-row">
+        <button type="button" class="btn" id="confirmPinBtn">Change PIN</button>
+        <button type="button" class="btn secondary" id="resendPinCodeBtn">Resend code</button>
+        <button type="button" class="btn secondary" id="cancelPinModal2">Cancel</button>
+      </div>
+    </div>
+    <div class="modal-step" id="pinStepDone">
+      <h3>PIN changed</h3>
+      <p class="modal-note">Your kiosk clock-in PIN has been updated.</p>
+      <div class="actions-row">
+        <button type="button" class="btn" id="closePinModalDone">Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -191,6 +320,165 @@
       }, 'image/jpeg', 0.92);
     });
   })();
+</script>
+
+<script>
+(function() {
+  var CSRF = '<%= csrfToken %>';
+
+  // Shared plumbing for the two "send code -> enter code + new value" modals
+  // (Change password / Change PIN) — same two-step shape, just different
+  // endpoints and fields, so one small factory wires both up instead of
+  // duplicating the fetch/step-switching logic twice.
+  function setupChangeModal(opts) {
+    var overlay = document.getElementById(opts.modalId);
+    var openBtn = document.getElementById(opts.openBtnId);
+    var step1 = document.getElementById(opts.step1Id);
+    var step2 = document.getElementById(opts.step2Id);
+    var stepDone = document.getElementById(opts.stepDoneId);
+    var err1 = document.getElementById(opts.err1Id);
+    var err2 = document.getElementById(opts.err2Id);
+    var sentNote = document.getElementById(opts.sentNoteId);
+    if (!overlay || !openBtn) return;
+
+    function showStep(step) {
+      [step1, step2, stepDone].forEach(function(s) { s.classList.remove('active'); });
+      step.classList.add('active');
+    }
+    function showError(box, message) {
+      box.textContent = message;
+      box.style.display = 'block';
+    }
+    function hideError(box) {
+      box.style.display = 'none';
+    }
+    function open() {
+      overlay.classList.add('open');
+      showStep(step1);
+      hideError(err1);
+      hideError(err2);
+    }
+    function close() {
+      overlay.classList.remove('open');
+      opts.fields.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+    }
+
+    function sendCode(fromBtn) {
+      fromBtn.disabled = true;
+      var originalText = fromBtn.textContent;
+      fromBtn.textContent = 'Sending...';
+      fetch(opts.sendCodeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF }
+      })
+        .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+        .then(function(result) {
+          fromBtn.disabled = false;
+          fromBtn.textContent = originalText;
+          if (!result.ok) {
+            showError(err1, (result.data && result.data.error) || 'Could not send a code. Please try again.');
+            return;
+          }
+          sentNote.textContent = 'Code sent to ' + (result.data.maskedEmail || 'your email') + ' — check your inbox. It expires in 10 minutes.';
+          hideError(err2);
+          showStep(step2);
+        })
+        .catch(function() {
+          fromBtn.disabled = false;
+          fromBtn.textContent = originalText;
+          showError(err1, 'Something went wrong sending the code. Please check your connection and try again.');
+        });
+    }
+
+    openBtn.addEventListener('click', open);
+    document.getElementById(opts.cancel1Id).addEventListener('click', close);
+    document.getElementById(opts.cancel2Id).addEventListener('click', close);
+    document.getElementById(opts.closeDoneId).addEventListener('click', function() {
+      close();
+      window.location.reload();
+    });
+    document.getElementById(opts.sendBtnId).addEventListener('click', function() { sendCode(this); });
+    document.getElementById(opts.resendBtnId).addEventListener('click', function() { sendCode(this); });
+
+    document.getElementById(opts.confirmBtnId).addEventListener('click', function() {
+      var btn = this;
+      var body = opts.buildBody();
+      if (opts.validate) {
+        var validationError = opts.validate(body);
+        if (validationError) { showError(err2, validationError); return; }
+      }
+      btn.disabled = true;
+      var originalText = btn.textContent;
+      btn.textContent = 'Saving...';
+      fetch(opts.confirmUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify(body)
+      })
+        .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+        .then(function(result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (!result.ok) {
+            showError(err2, (result.data && result.data.error) || 'Something went wrong. Please try again.');
+            return;
+          }
+          showStep(stepDone);
+        })
+        .catch(function() {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showError(err2, 'Something went wrong. Please check your connection and try again.');
+        });
+    });
+  }
+
+  setupChangeModal({
+    modalId: 'passwordModal', openBtnId: 'openPasswordModalBtn',
+    step1Id: 'passwordStep1', step2Id: 'passwordStep2', stepDoneId: 'passwordStepDone',
+    err1Id: 'passwordStep1Error', err2Id: 'passwordStep2Error', sentNoteId: 'passwordSentNote',
+    cancel1Id: 'cancelPasswordModal1', cancel2Id: 'cancelPasswordModal2', closeDoneId: 'closePasswordModalDone',
+    sendBtnId: 'sendPasswordCodeBtn', resendBtnId: 'resendPasswordCodeBtn', confirmBtnId: 'confirmPasswordBtn',
+    sendCodeUrl: '/profile/password/send-code', confirmUrl: '/profile/password/confirm',
+    fields: ['passwordCodeInput', 'newPasswordInput', 'confirmPasswordInput'],
+    buildBody: function() {
+      return {
+        code: document.getElementById('passwordCodeInput').value.trim(),
+        password: document.getElementById('newPasswordInput').value,
+        confirmPassword: document.getElementById('confirmPasswordInput').value
+      };
+    },
+    validate: function(body) {
+      if (!body.code || body.code.length !== 6) return 'Enter the 6-digit code from your email.';
+      if (!body.password || !body.confirmPassword) return 'Enter and confirm your new password.';
+      if (body.password !== body.confirmPassword) return 'Passwords do not match.';
+      return null;
+    }
+  });
+
+  setupChangeModal({
+    modalId: 'pinModal', openBtnId: 'openPinModalBtn',
+    step1Id: 'pinStep1', step2Id: 'pinStep2', stepDoneId: 'pinStepDone',
+    err1Id: 'pinStep1Error', err2Id: 'pinStep2Error', sentNoteId: 'pinSentNote',
+    cancel1Id: 'cancelPinModal1', cancel2Id: 'cancelPinModal2', closeDoneId: 'closePinModalDone',
+    sendBtnId: 'sendPinCodeBtn', resendBtnId: 'resendPinCodeBtn', confirmBtnId: 'confirmPinBtn',
+    sendCodeUrl: '/profile/pin/send-code', confirmUrl: '/profile/pin/confirm',
+    fields: ['pinCodeInput', 'newPinInput', 'confirmPinInput'],
+    buildBody: function() {
+      return {
+        code: document.getElementById('pinCodeInput').value.trim(),
+        pin: document.getElementById('newPinInput').value,
+        confirmPin: document.getElementById('confirmPinInput').value
+      };
+    },
+    validate: function(body) {
+      if (!body.code || body.code.length !== 6) return 'Enter the 6-digit code from your email.';
+      if (!/^\d{4}$/.test(body.pin || '')) return 'PIN must be exactly 4 digits.';
+      if (body.pin !== body.confirmPin) return 'PINs do not match.';
+      return null;
+    }
+  });
+})();
 </script>
 </body>
 </html>

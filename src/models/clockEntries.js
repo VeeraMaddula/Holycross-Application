@@ -4,6 +4,7 @@
 const { readDb, writeDb } = require('../db');
 const { hashPassword, verifyPassword } = require('../password');
 const { listUsers, getUserById } = require('./users');
+const { toDateStr } = require('../dateUtils');
 
 // Status is derived from each user's most recent time entry rather than
 // stored separately, so there's a single source of truth:
@@ -215,8 +216,67 @@ function deleteClockEntry(id) {
   return { ok: true };
 }
 
+// Per-day worked minutes for one user across a Mon-Sun (or any) date range —
+// pairs each clock_in with its following clock_out (walking oldest-first,
+// same convention as timesheets.js's buildShiftTotalsByEntryId), subtracts
+// any break taken during that shift, and attributes the whole span to the
+// calendar day the clock_in happened on (a shift belongs to the day it
+// started, even if it runs past midnight). A shift still in progress right
+// now (clocked in or on break) counts up to this moment, so "today" doesn't
+// show as Off mid-shift. Powers the "this week" mini calendar on the
+// profile page — a day with 0 minutes is simply rendered as "Off" there.
+function getWeeklyHoursForUser(userId, fromDateStr, toDateStrParam) {
+  const chronological = listClockEntries({ userId }).slice().reverse(); // oldest first
+  const byDay = {};
+  let workStart = null;
+  let workStartDay = null;
+  let breakStart = null;
+  let breakMs = 0;
+
+  function addToDay(day, minutes) {
+    if (!day) return;
+    byDay[day] = (byDay[day] || 0) + Math.max(0, minutes);
+  }
+
+  for (const e of chronological) {
+    const t = new Date(e.at).getTime();
+    if (e.action === 'clock_in') {
+      workStart = t;
+      workStartDay = toDateStr(new Date(e.at));
+      breakStart = null;
+      breakMs = 0;
+    } else if (e.action === 'break_start') {
+      breakStart = t;
+    } else if (e.action === 'break_end') {
+      if (breakStart) { breakMs += t - breakStart; breakStart = null; }
+    } else if (e.action === 'clock_out') {
+      if (workStart) {
+        addToDay(workStartDay, Math.round((t - workStart) / 60000) - Math.round(breakMs / 60000));
+      }
+      workStart = null;
+      workStartDay = null;
+      breakMs = 0;
+    }
+  }
+  // Still clocked in / on break right now — count up to this moment.
+  if (workStart) {
+    addToDay(workStartDay, Math.round((Date.now() - workStart) / 60000) - Math.round(breakMs / 60000));
+  }
+
+  const days = [];
+  let cur = new Date(fromDateStr + 'T00:00:00');
+  const end = new Date(toDateStrParam + 'T00:00:00');
+  while (cur <= end) {
+    const ds = toDateStr(cur);
+    days.push({ date: ds, minutes: byDay[ds] || 0 });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
 module.exports = {
   getLatestClockEntry, getStaffStatus, getCurrentShiftStart, nextValidAction, listAllStaffStatus,
   isValidPin, setUserPin, verifyUserPin, setUserLiveShiftAvatar, getKioskRoster,
-  addClockEntry, listClockEntries, getClockEntry, addManualClockEntry, updateClockEntry, deleteClockEntry
+  addClockEntry, listClockEntries, getClockEntry, addManualClockEntry, updateClockEntry, deleteClockEntry,
+  getWeeklyHoursForUser
 };

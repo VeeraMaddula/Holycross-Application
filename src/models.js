@@ -33,6 +33,7 @@ const dutyTasks = require('./models/dutyTasks');
 const shiftDrops = require('./models/shiftDrops');
 const requests = require('./models/requests');
 const staffReports = require('./models/staffReports');
+const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
 const { toMinutes } = require('./models/shared');
 
@@ -133,6 +134,7 @@ module.exports = {
   verifyUserPin: clockEntries.verifyUserPin,
   getKioskRoster: clockEntries.getKioskRoster,
   setUserLiveShiftAvatar: clockEntries.setUserLiveShiftAvatar,
+  getWeeklyHoursForUser: clockEntries.getWeeklyHoursForUser,
 
   // Roster
   listRosterShiftsForRange: roster.listRosterShiftsForRange,
@@ -178,6 +180,11 @@ module.exports = {
   getReport: staffReports.getReport,
   markReportReviewed: staffReports.markReportReviewed,
   listAllReports: staffReports.listAllReports,
+
+  // Self-service verification codes (Profile page: change password / PIN)
+  requestVerificationCode: selfVerification.requestVerificationCode,
+  confirmPasswordChange: selfVerification.confirmPasswordChange,
+  confirmPinChange: selfVerification.confirmPinChange,
 
   // Shared helper (used by a couple of route files directly)
   toMinutes

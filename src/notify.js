@@ -145,6 +145,21 @@ function cancellationEmail(booking) {
   return { subject, text };
 }
 
+// Self-service verification code (Profile page: change password / kiosk
+// PIN). Short-lived (10 minutes — see selfVerification.js) and single-
+// purpose, so the email is deliberately plain: just the code and what it's
+// for, nothing to click.
+function selfVerificationCodeEmail(user, code, purpose) {
+  const what = purpose === 'pin' ? 'kiosk PIN' : 'password';
+  const subject = `Your verification code: ${code}`;
+  const text = `Hi ${user.name},\n\n`
+    + `Use this code to confirm changing your ${what}:\n\n${code}\n\n`
+    + `This code expires in 10 minutes.\n\n`
+    + `If you didn't request this, you can safely ignore this email — your ${what} won't change.\n\n`
+    + `For more information, please contact us on ${CONTACT_PHONE}.\n\nThe Holy Cross`;
+  return { subject, text };
+}
+
 // Sent to Manager / Floor Manager / Senior Manager (and Admin) when a Bar
 // Staff booking overlaps an existing one — the customer is NOT told it's
 // confirmed until one of these roles reviews and approves it in the app.
@@ -504,6 +519,7 @@ module.exports = {
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
   shiftDropPickedUpEmail, shiftClaimedEmail, shiftExchangeEmail, shiftChangeManagerEmail,
+  selfVerificationCodeEmail,
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
   notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
   notifyManagersShiftChange,

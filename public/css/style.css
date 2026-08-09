@@ -668,6 +668,27 @@ textarea { resize: vertical; min-height: 70px; }
 .report-evidence-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .report-evidence-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
 .report-evidence-remove { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; }
+/* ---- Generic small modal (Profile page: change password / change PIN) ---- */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(18,51,40,0.65); align-items: center; justify-content: center; z-index: 400; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--card); border-radius: 16px; padding: 24px; max-width: 380px; width: 100%; }
+.modal-box h3 { margin-top: 0; }
+.modal-step { display: none; }
+.modal-step.active { display: block; }
+.modal-note { font-size: 13px; color: var(--muted); margin: 6px 0 14px; }
+
+/* ---- Profile page: "this week" worked-hours mini calendar ---- */
+.week-hours-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 12px 0 4px; }
+.week-hours-day { text-align: center; padding: 10px 4px; border-radius: 10px; background: #f7f5ef; border: 1px solid var(--line); }
+.week-hours-day.is-today { border-color: var(--accent); background: #eef3ee; }
+.week-hours-day .wh-name { font-size: 10.5px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.03em; }
+.week-hours-day .wh-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.week-hours-day .wh-hours { font-size: 14.5px; font-weight: 700; margin-top: 6px; color: var(--accent-dark); }
+.week-hours-day .wh-hours.is-off { color: var(--muted); font-weight: 500; }
+@media (max-width: 640px) {
+  .week-hours-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
 .report-camera-overlay { display: none; position: fixed; inset: 0; background: rgba(18,51,40,0.65); align-items: center; justify-content: center; z-index: 400; padding: 20px; }
 .report-camera-overlay.open { display: flex; }
 .report-camera-box { background: var(--card); border-radius: 16px; padding: 24px; max-width: 340px; width: 100%; text-align: center; }
