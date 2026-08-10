@@ -90,6 +90,7 @@ const DEFAULT_DATA = {
   dutySections: [],
   shiftDrops: [],
   reports: [],
+  trainingItems: [],
   cashLogs: [],
   cashLodgementHistory: [],
   settings: {
@@ -108,6 +109,7 @@ const DEFAULT_DATA = {
     nextTimeEntryId: 1,
     nextRosterShiftId: 1,
     nextRequestId: 1,
+    nextTrainingItemId: 1,
     lastGoogleSyncAt: null
   }
 };

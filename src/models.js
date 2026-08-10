@@ -33,6 +33,7 @@ const dutyTasks = require('./models/dutyTasks');
 const shiftDrops = require('./models/shiftDrops');
 const requests = require('./models/requests');
 const staffReports = require('./models/staffReports');
+const trainingResources = require('./models/trainingResources');
 const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
 const { toMinutes } = require('./models/shared');
@@ -96,6 +97,7 @@ module.exports = {
   setUserCashSafeAccess: users.setUserCashSafeAccess,
   setUserLogsAccess: users.setUserLogsAccess,
   setUserDutiesEditAccess: users.setUserDutiesEditAccess,
+  setUserTrainingEditAccess: users.setUserTrainingEditAccess,
   setUserColor: users.setUserColor,
   acceptPrivacyPolicy: users.acceptPrivacyPolicy,
 
@@ -180,6 +182,18 @@ module.exports = {
   getReport: staffReports.getReport,
   markReportReviewed: staffReports.markReportReviewed,
   listAllReports: staffReports.listAllReports,
+
+  // Training & Resources (cocktail / spirit / beer recipe library)
+  TRAINING_CATEGORIES: trainingResources.CATEGORIES,
+  TRAINING_CATEGORY_LABELS: trainingResources.CATEGORY_LABELS,
+  TRAINING_FIELD_LABELS: trainingResources.FIELD_LABELS,
+  listTrainingItems: trainingResources.listItems,
+  listTrainingItemsByCategory: trainingResources.listItemsByCategory,
+  getTrainingItem: trainingResources.getItem,
+  createTrainingItem: trainingResources.createItem,
+  updateTrainingItem: trainingResources.updateItem,
+  setTrainingItemMedia: trainingResources.setItemMedia,
+  deleteTrainingItem: trainingResources.deleteItem,
 
   // Self-service verification codes (Profile page: change password / PIN)
   requestVerificationCode: selfVerification.requestVerificationCode,

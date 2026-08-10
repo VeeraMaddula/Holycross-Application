@@ -76,6 +76,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canManageCashSafe: false,
     canViewLogs: false,
     canEditDuties: false,
+    canEditTraining: false,
     privacyPolicyVersion: null,
     privacyPolicyAcceptedAt: null,
     color: defaultColorForId(id),
@@ -118,10 +119,15 @@ function updateUserProfile(id, { name, username, email, phone, dob, sex, locatio
   return { user: u };
 }
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
 function setUserColor(id, color) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
   if (!u) return { error: 'User not found.' };
+  if (color && !HEX_COLOR_RE.test(String(color).trim())) {
+    return { error: 'Color must be a hex value like #4287f5.' };
+  }
   u.color = color || defaultColorForId(u.id);
   writeDb(db);
   return { user: u };
@@ -220,6 +226,20 @@ function setUserDutiesEditAccess(id, allowed) {
   return { user: u };
 }
 
+// Editing the Training & Resources library (recipe cards, photos, videos,
+// YouTube tutorials) — every manager-tier role gets this automatically (see
+// requireTrainingEditAccess in src/middleware.js); this toggle is only for
+// individually granting a specific Bar/Kitchen Staff member the same
+// capability, same pattern as setUserCashSafeAccess/setUserDutiesEditAccess.
+function setUserTrainingEditAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canEditTraining = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
 function setUserAvatar(id, avatarPath) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
@@ -258,5 +278,6 @@ module.exports = {
   activeAdminCount, listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier,
   getUserById, createUser, updateUserProfile, setUserColor, setUserTimesheetAccess, setUserRosterAccess,
   setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, acceptPrivacyPolicy,
-  setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserAvatar, setUserActive, setUserRole
+  setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserTrainingEditAccess, setUserAvatar,
+  setUserActive, setUserRole
 };

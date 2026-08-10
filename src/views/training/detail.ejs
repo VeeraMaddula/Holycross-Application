@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head><title><%= item.name %> - Training & Resources</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <%
+      const ACCENTS = { cocktail: '#b3492f', spirit: '#a9762b', beer: '#c98a1f' };
+      const accent = ACCENTS[item.category] || '#1f4d3c';
+    %>
+    <a href="/training" class="training-back-link">&larr; Back to Training &amp; Resources</a>
+
+    <div class="training-detail-hero <%= item.photoPath ? 'has-photo' : '' %>"
+         style="--col-accent: <%= accent %><%= item.photoPath ? `; background-image: url('${item.photoPath}')` : '' %>">
+      <div class="training-detail-hero-inner">
+        <span class="training-detail-category"><%= categoryLabel %></span>
+        <h2><%= item.name %></h2>
+        <% if (item.subtitle) { %><div class="training-detail-subtitle"><%= item.subtitle %></div><% } %>
+      </div>
+    </div>
+
+    <div class="training-detail-grid">
+      <div>
+        <div class="card">
+          <div class="training-recipe-section">
+            <h4><%= fieldLabels.ingredients %></h4>
+            <div class="body-text"><%= item.ingredients %></div>
+          </div>
+          <div class="training-recipe-section">
+            <h4><%= fieldLabels.method %></h4>
+            <div class="body-text"><%= item.method %></div>
+          </div>
+          <% if (item.servingNotes) { %>
+            <div class="training-recipe-section">
+              <h4>Serving notes</h4>
+              <div class="body-text"><%= item.servingNotes %></div>
+            </div>
+          <% } %>
+        </div>
+
+        <% if (canEdit) { %>
+          <div class="training-actions-row">
+            <a href="/training/<%= item.id %>/edit" class="btn secondary">Edit recipe</a>
+            <form method="POST" action="/training/<%= item.id %>/delete" onsubmit="return confirm('Delete this recipe? This can\'t be undone.')">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn danger">Delete</button>
+            </form>
+          </div>
+        <% } %>
+      </div>
+
+      <div>
+        <% if (item.videoPath) { %>
+          <div class="training-video-panel">
+            <h4>How it's made</h4>
+            <video controls src="<%= item.videoPath %>"></video>
+          </div>
+        <% } %>
+        <% if (item.youtubeId) { %>
+          <div class="training-video-panel">
+            <h4>Tutorial</h4>
+            <iframe src="https://www.youtube-nocookie.com/embed/<%= item.youtubeId %>" title="<%= item.name %> tutorial" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <p style="margin:10px 0 0"><a href="<%= item.youtubeUrl %>" target="_blank" rel="noopener noreferrer">Open on YouTube &rarr;</a></p>
+          </div>
+        <% } %>
+        <% if (!item.videoPath && !item.youtubeId) { %>
+          <div class="training-video-panel">
+            <h4>Tutorial</h4>
+            <div class="training-no-video">No video yet<% if (canEdit) { %> — <a href="/training/<%= item.id %>/edit">add one</a><% } %></div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

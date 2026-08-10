@@ -6,3 +6,7 @@ google-service-account.json
 # Real staff/customer photos — not source code, shouldn't live in git history
 public/img/avatars/
 public/img/clock-selfies/
+
+# Cash-safe accountability photos and report-evidence uploads — same reason,
+# these are real, sensitive photos of staff/premises, not source code.
+uploads/

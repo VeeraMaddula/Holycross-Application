@@ -133,6 +133,15 @@
     var table = document.getElementById('rosterOverviewTable');
     if (!table) return;
 
+    function safeColor(c) {
+      return /^#[0-9a-fA-F]{6}$/.test(String(c || '')) ? c : '#999999';
+    }
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, function(ch) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+      });
+    }
+
     function renderRosterCells(shifts) {
       var byCell = {};
       shifts.forEach(function(s) {
@@ -149,7 +158,7 @@
           return;
         }
         td.innerHTML = list.map(function(s) {
-          return '<a class="roster-pill" href="#day-' + date + '" style="background:' + s.color + '">' + s.startLabel + '–' + s.endLabel + '</a>';
+          return '<a class="roster-pill" href="#day-' + date + '" style="background:' + safeColor(s.color) + '">' + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</a>';
         }).join('');
       });
     }

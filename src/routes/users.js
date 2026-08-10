@@ -244,6 +244,15 @@ router.post('/:id/duties-edit-access', (req, res) => {
   res.redirect('/users');
 });
 
+router.post('/:id/training-edit-access', (req, res) => {
+  const target = models.getUserById(req.params.id);
+  const result = models.setUserTrainingEditAccess(req.params.id, !(target && target.canEditTraining));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
 router.post('/:id/color', (req, res) => {
   const result = models.setUserColor(req.params.id, req.body.color);
   if (result.error) {

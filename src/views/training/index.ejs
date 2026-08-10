@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head><title>Training &amp; Resources - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <%
+      const ICONS = {
+        cocktail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-8 9-8-9Z"/><path d="M12 13v7"/><path d="M8 20h8"/></svg>',
+        spirit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6v3.5l1.5 2.5V21a1 1 0 0 1-1 1H8.5a1 1 0 0 1-1-1V8l1.5-2.5V2Z"/><path d="M9 12h6"/></svg>',
+        beer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h11v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z"/><path d="M16 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><path d="M5 8V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v3"/></svg>'
+      };
+      const TUTORIAL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8.3v7.4l6-3.7-6-3.7Z" fill="currentColor" stroke="none"/></svg>';
+      const ACCENTS = { cocktail: '#b3492f', spirit: '#a9762b', beer: '#c98a1f' };
+    %>
+    <div class="training-hero">
+      <h2>Behind the Bar</h2>
+      <p>Every recipe, spirit, and pour The Holy Cross serves — how it's built, what's in it, and a tutorial to watch when you want a refresher.</p>
+      <% if (canEdit) { %>
+        <a href="/training/new" class="btn">+ Add a new recipe</a>
+      <% } %>
+    </div>
+
+    <div class="training-columns">
+      <% categories.forEach(cat => { %>
+        <div class="training-column" style="--col-accent: <%= ACCENTS[cat.value] %>">
+          <div class="training-column-head">
+            <span class="training-column-icon"><%- ICONS[cat.value] %></span>
+            <div>
+              <div class="training-column-title"><%= cat.label %></div>
+              <div class="training-column-count"><%= grouped[cat.value].length %> on file</div>
+            </div>
+            <% if (canEdit) { %>
+              <span class="training-column-add"><a href="/training/new?category=<%= cat.value %>" title="Add <%= cat.labelSingular.toLowerCase() %>">+</a></span>
+            <% } %>
+          </div>
+
+          <% if (!grouped[cat.value].length) { %>
+            <div class="training-empty">
+              Nothing here yet.
+              <% if (canEdit) { %><br><a href="/training/new?category=<%= cat.value %>">Add the first <%= cat.labelSingular.toLowerCase() %></a><% } %>
+            </div>
+          <% } else { %>
+            <div class="training-card-list">
+              <% grouped[cat.value].forEach(item => { %>
+                <a class="training-card" href="/training/<%= item.id %>">
+                  <span class="training-card-thumb">
+                    <% if (item.photoPath) { %>
+                      <img src="<%= item.photoPath %>" alt="">
+                    <% } else { %>
+                      <%- ICONS[cat.value] %>
+                    <% } %>
+                  </span>
+                  <span class="training-card-body">
+                    <span class="training-card-name"><%= item.name %></span>
+                    <% if (item.subtitle) { %><span class="training-card-subtitle"><%= item.subtitle %></span><% } %>
+                    <% if (item.videoPath || item.youtubeId) { %>
+                      <span class="training-tutorial-tag"><%- TUTORIAL_ICON %> Watch tutorial</span>
+                    <% } %>
+                  </span>
+                </a>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head><title><%= item ? 'Edit' : 'Add' %> Recipe - Training & Resources</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <a href="<%= item ? '/training/' + item.id : '/training' %>" class="training-back-link">&larr; Back</a>
+    <h2><%= item ? 'Edit recipe' : 'Add a new recipe' %></h2>
+    <p class="muted">Fill in the details below. Photos and videos are optional but help staff learn faster — a YouTube link works great if you don't have your own footage.</p>
+    <% if (error) { %><div class="error-box" id="formError"><%= error %></div><% } else { %><div class="error-box" id="formError" style="display:none"></div><% } %>
+
+    <div class="card" style="max-width:640px">
+      <form method="POST" action="<%= item ? '/training/' + item.id : '/training' %>" enctype="multipart/form-data" id="trainingForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="field">
+          <label>Category</label>
+          <select name="category" id="categorySelect" required>
+            <% categories.forEach(c => { %>
+              <option value="<%= c.value %>" <%= category === c.value ? 'selected' : '' %>><%= c.label %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Name</label>
+            <input type="text" name="name" required value="<%= item ? item.name : '' %>" placeholder="e.g. Old Fashioned">
+          </div>
+          <div class="field">
+            <label id="subtitleLabel"><%= fieldLabels[category].subtitle %></label>
+            <input type="text" name="subtitle" value="<%= item ? item.subtitle : '' %>" placeholder="e.g. Stirred, rocks glass">
+          </div>
+        </div>
+
+        <div class="field">
+          <label id="ingredientsLabel"><%= fieldLabels[category].ingredients %></label>
+          <textarea name="ingredients" rows="4" required placeholder="One per line works well"><%= item ? item.ingredients : '' %></textarea>
+        </div>
+
+        <div class="field">
+          <label id="methodLabel"><%= fieldLabels[category].method %></label>
+          <textarea name="method" rows="4" required><%= item ? item.method : '' %></textarea>
+        </div>
+
+        <div class="field">
+          <label>Serving notes <span class="muted" style="font-weight:400">(optional)</span></label>
+          <textarea name="servingNotes" rows="2" placeholder="Glassware, garnish, serving temperature…"><%= item ? item.servingNotes : '' %></textarea>
+        </div>
+
+        <div class="field">
+          <label>YouTube tutorial link <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="url" name="youtubeUrl" value="<%= item ? item.youtubeUrl : '' %>" placeholder="https://www.youtube.com/watch?v=…">
+        </div>
+
+        <div class="field">
+          <label>Photo <span class="muted" style="font-weight:400">(optional)</span></label>
+          <% if (item && item.photoPath) { %>
+            <div class="training-current-media"><img src="<%= item.photoPath %>" alt=""><span>Current photo — choose a file to replace it.</span></div>
+          <% } %>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp">
+        </div>
+
+        <div class="field">
+          <label>How-to video <span class="muted" style="font-weight:400">(optional, up to 60MB)</span></label>
+          <% if (item && item.videoPath) { %>
+            <div class="training-current-media"><span>A video is already uploaded — choose a file to replace it.</span></div>
+          <% } %>
+          <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime">
+        </div>
+
+        <button class="btn" type="submit"><%= item ? 'Save changes' : 'Add recipe' %></button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var FIELD_LABELS = <%- JSON.stringify(fieldLabels) %>;
+  var categorySelect = document.getElementById('categorySelect');
+  var subtitleLabel = document.getElementById('subtitleLabel');
+  var ingredientsLabel = document.getElementById('ingredientsLabel');
+  var methodLabel = document.getElementById('methodLabel');
+
+  function syncLabels() {
+    var labels = FIELD_LABELS[categorySelect.value];
+    if (!labels) return;
+    subtitleLabel.textContent = labels.subtitle;
+    ingredientsLabel.textContent = labels.ingredients;
+    methodLabel.textContent = labels.method;
+  }
+  categorySelect.addEventListener('change', syncLabels);
+
+  // Multipart forms can't rely on the hidden _csrf field alone — the CSRF
+  // check runs before multer parses a multipart body. Submitting via fetch
+  // with the token as a header (same pattern used by reports.ejs,
+  // cash-safe.ejs, and profile.ejs's avatar upload) is what makes this work.
+  var form = document.getElementById('trainingForm');
+  var errorBox = document.getElementById('formError');
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    var fd = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-CSRF-Token': '<%= csrfToken %>' }
+    }).then(function(res) { return res.json().then(function(data) { return { status: res.status, data: data }; }); })
+      .then(function(result) {
+        if (result.data && result.data.ok) {
+          window.location.href = result.data.redirect || '/training';
+        } else {
+          errorBox.textContent = (result.data && result.data.error) || 'Something went wrong — please try again.';
+          errorBox.style.display = 'block';
+          window.scrollTo(0, 0);
+        }
+      })
+      .catch(function() {
+        errorBox.textContent = 'Something went wrong — please try again.';
+        errorBox.style.display = 'block';
+      });
+  });
+})();
+</script>
+</body>
+</html>

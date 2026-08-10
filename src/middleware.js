@@ -129,4 +129,24 @@ function requireLogsAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, STAFF_ROLES };
+// Training & Resources (view) = every real staff account — the whole point
+// is any Bar/Kitchen Staff member can look up a recipe on shift. Only the
+// Kiosk/Bot account (not a person) is excluded, same pattern as
+// requireReportAccess above.
+function requireTrainingAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && u.role !== 'kiosk') return next();
+  return res.status(403).render('403');
+}
+
+// Training & Resources EDIT (add/edit/delete recipes, upload photos/videos,
+// paste YouTube links) = every manager-tier role automatically, plus anyone
+// individually granted it via the Users page — same pattern as
+// requireCashSafeAccess/requireDutiesEditAccess above.
+function requireTrainingEditAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (MANAGER_ROLES.includes(u.role) || u.canEditTraining)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, STAFF_ROLES };

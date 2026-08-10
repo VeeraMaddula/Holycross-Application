@@ -88,6 +88,12 @@
         </a>
       <% } %>
       <% if (currentUser && currentUser.role !== 'kiosk') { %>
+        <a href="/training" class="<%= currentPath.startsWith('/training') ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-8 9-8-9Z"/><path d="M12 13v7"/><path d="M8 20h8"/></svg>
+          Training &amp; Resources
+        </a>
+      <% } %>
+      <% if (currentUser && currentUser.role !== 'kiosk') { %>
         <a href="/reports" class="<%= currentPath.startsWith('/reports') ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
           Report an Issue

@@ -84,6 +84,15 @@
     var table = document.getElementById('teamOverviewTable');
     if (!table) return;
 
+    function safeColor(c) {
+      return /^#[0-9a-fA-F]{6}$/.test(String(c || '')) ? c : '#999999';
+    }
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, function(ch) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+      });
+    }
+
     function renderCells(shifts) {
       var byCell = {};
       shifts.forEach(function(s) {
@@ -99,7 +108,7 @@
           return;
         }
         td.innerHTML = list.map(function(s) {
-          return '<span class="roster-pill" style="background:' + s.color + '">' + s.startLabel + '–' + s.endLabel + '</span>';
+          return '<span class="roster-pill" style="background:' + safeColor(s.color) + '">' + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</span>';
         }).join('');
       });
     }

@@ -7,10 +7,11 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess } = require('./middleware');
-// requireTimesheetEditAccess (admin/senior_manager only) is applied inside
-// routes/timesheets.js itself, layered on top of the requireTimesheetAccess
-// mount gate below — not needed here.
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess } = require('./middleware');
+// requireTimesheetEditAccess (admin/senior_manager only) and
+// requireTrainingEditAccess (manager-tier / canEditTraining only) are
+// applied inside their own route files, layered on top of the broader
+// view-level mount gates below — not needed here.
 const { ROLES, ROLE_LABELS } = require('./roles');
 const notify = require('./notify');
 const googleCalendar = require('./googleCalendar');
@@ -154,10 +155,11 @@ app.use((req, res, next) => {
           canManageCashSafe: !!dbUser.canManageCashSafe,
           canViewLogs: !!dbUser.canViewLogs,
           canEditDuties: !!dbUser.canEditDuties,
+          canEditTraining: !!dbUser.canEditTraining,
           privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
           privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, canEditTraining: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
   } else {
     res.locals.currentUser = null;
   }
@@ -206,7 +208,7 @@ app.use((req, res, next) => {
 // kiosk tablet — not by opening /kiosk under their own login.
 // Bar Staff keep the full staff-level access they've always had — this
 // only applies to the kitchen_staff role.
-const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/reports', '/profile', '/accept-privacy', '/logs'];
+const KITCHEN_STAFF_ALLOWED_PATHS = ['/my-shifts', '/requests', '/reports', '/profile', '/accept-privacy', '/logs', '/training'];
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
   if (u && u.role === 'kitchen_staff') {
@@ -242,6 +244,7 @@ app.use('/my-shifts', requireAuth, require('./routes/myShifts'));
 app.use('/requests', requireAuth, requireRequestsAccess, require('./routes/requests'));
 app.use('/duties', requireAuth, requireDutiesAccess, require('./routes/duties'));
 app.use('/reports', requireAuth, requireReportAccess, require('./routes/reports'));
+app.use('/training', requireAuth, requireTrainingAccess, require('./routes/training'));
 app.use('/cash-safe', requireAuth, requireCashSafeAccess, require('./routes/cashSafe'));
 app.use('/logs', requireAuth, requireLogsAccess, require('./routes/logs'));
 
