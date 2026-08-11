@@ -1,6 +1,7 @@
 node_modules/
 .env
 data/db.json
+data/db.backup-*.json
 google-service-account.json
 
 # Real staff/customer photos — not source code, shouldn't live in git history
@@ -10,3 +11,7 @@ public/img/clock-selfies/
 # Cash-safe accountability photos and report-evidence uploads — same reason,
 # these are real, sensitive photos of staff/premises, not source code.
 uploads/
+
+# Throwaway manual test script (see the script's own header comment) —
+# never meant to be committed.
+test-sendmode.js

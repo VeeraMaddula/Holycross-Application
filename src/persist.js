@@ -15,6 +15,22 @@
 const fs = require('fs');
 const path = require('path');
 
+// Plain fs.renameSync only works within a single filesystem/device. Some
+// hosts (confirmed on Render) mount the persistent disk as a genuinely
+// separate device from the app's own checkout, so the first-boot migration
+// below throws EXDEV there even though the exact same code works fine
+// locally (where everything's on one disk). Fall back to copy-then-delete
+// when that happens — slower, but works everywhere.
+function moveSync(from, to) {
+  try {
+    fs.renameSync(from, to);
+  } catch (err) {
+    if (err.code !== 'EXDEV') throw err;
+    fs.cpSync(from, to, { recursive: true });
+    fs.rmSync(from, { recursive: true, force: true });
+  }
+}
+
 function ensureLink(realPath, persistTarget) {
   fs.mkdirSync(persistTarget, { recursive: true });
   fs.mkdirSync(path.dirname(realPath), { recursive: true });
@@ -31,7 +47,7 @@ function ensureLink(realPath, persistTarget) {
     for (const entry of fs.readdirSync(realPath)) {
       const from = path.join(realPath, entry);
       const to = path.join(persistTarget, entry);
-      if (!fs.existsSync(to)) fs.renameSync(from, to);
+      if (!fs.existsSync(to)) moveSync(from, to);
     }
     fs.rmSync(realPath, { recursive: true, force: true });
   }
