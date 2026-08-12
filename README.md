@@ -210,8 +210,22 @@ storage) works on Railway or Fly.io too if you'd rather use one of those.
    `PUBLIC_BASE_URL` to it (in Render's dashboard, then redeploy) — this is what shows up in
    customer emails and is the URL to link a "Reserve a Table" button to.
 6. If you set up Google Calendar sync locally via `google-service-account.json`, that file is
-   gitignored (it's a private key) — you'll need to add its contents as an env var or secret file
-   on Render instead of relying on `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` pointing at a local file.
+   gitignored (it's a private key), so it never reaches Render via git — upload it as a **Secret
+   File** instead:
+   1. On Render, open the service → **Environment** tab → **Secret Files** section → **Add
+      Secret File**.
+   2. Filename: `google-service-account.json`. Contents: paste the entire contents of your local
+      `google-service-account.json` file.
+   3. Click **Save Changes**. Render mounts it at `/etc/secrets/google-service-account.json` at
+      runtime — and since this is a native Node service (not Docker), it also places a copy in
+      the service's root directory under that same filename.
+   4. Set `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` (the env var Render already prompted for as part of
+      the Blueprint) to the absolute path `/etc/secrets/google-service-account.json` — safer to
+      rely on than the root-directory copy, since that guaranteed path doesn't depend on Render's
+      per-runtime behaviour.
+   5. Saving either the Secret File or the env var triggers a new deploy automatically — this
+      happens regardless of the Auto-Deploy setting, since it's not a git push. Once it's live,
+      check **Settings** in the app — it should show "Connected" under Google Calendar sync.
 
 **Why the persistent disk matters:** most hosts (including Render's web services) wipe local disk
 on every redeploy and restart. Without persistent storage, `data/db.json` — every booking, staff
