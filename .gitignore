@@ -12,6 +12,7 @@ public/img/clock-selfies/
 # these are real, sensitive photos of staff/premises, not source code.
 uploads/
 
-# Throwaway manual test script (see the script's own header comment) —
+# Throwaway manual test scripts (see each script's own header comment) —
 # never meant to be committed.
 test-sendmode.js
+test-sendmode-nosenderid.js
