@@ -142,9 +142,17 @@ generic number.
    account default; with one, customers see your business name instead. In your Sendmode
    dashboard, register a sender ID (e.g. `HolyCross`, max 11 characters, letters/numbers only) —
    Irish law requires this to go through ComReg, which Sendmode submits on your behalf (typically
-   a few days to go live). Once approved, add it to `.env`:
+   ~5 days to go live). **Until it's approved, sending with it doesn't error — the message is
+   silently accepted and billed, then dropped by the carrier and never delivered** (confirmed
+   directly with Sendmode support). Add it to `.env` once — and only once — Sendmode has
+   explicitly confirmed it's approved:
    ```
    SENDMODE_SENDER_ID=HolyCross
+   ```
+   While a sender ID is pending, Sendmode's own suggested stand-in is `Repliable` — it sends from
+   a real local Irish number and actually delivers, so texts keep working in the meantime:
+   ```
+   SENDMODE_SENDER_ID=Repliable
    ```
 5. Buy a credit bundle from your Sendmode dashboard (starts at 1,000 credits) — each standard SMS
    uses 1 credit.

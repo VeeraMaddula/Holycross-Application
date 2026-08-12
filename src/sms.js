@@ -29,6 +29,15 @@ const SENDMODE_API_URL = 'https://rest.sendmode.com/v2/send';
 // error surfaced anywhere — see the history note above. Register the real
 // one via the Sendmode dashboard before relying on this for real customer
 // texts (see README "SMS via Sendmode").
+//
+// CONFIRMED 2026-08-12 (Sendmode support, Michael Tourish): "HolyCross" is
+// registered but not yet ComReg-approved, so every send with it is
+// currently being silently blocked — exactly this failure mode. Sendmode's
+// own suggested workaround is the "Repliable" sender ID, which sends from
+// a real local Irish number and actually delivers, so real customer texts
+// keep working while HolyCross is pending (usually ~5 days after
+// registration). Set via SENDMODE_SENDER_ID in .env / Render — this
+// hardcoded default is only what's used if that env var is left blank.
 const DEFAULT_SENDER_ID = 'HolyCross';
 
 function isConfigured() {
