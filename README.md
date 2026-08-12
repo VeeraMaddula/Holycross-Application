@@ -110,6 +110,19 @@ better deliverability, and no fighting with Google's account settings.
 If you skip this setup, the app works exactly as before — email is entirely optional, and SMS
 (below) can cover notifications on its own if you'd rather not deal with email at all.
 
+**Optional: different "from" mailbox per notification category.** By default every email sends
+from `SMTP_FROM`. You can override that for three categories so staff can tell what an email's
+about at a glance — no separate mailbox setup needed, just any address on the same domain you
+already verified in step 2:
+
+```
+SMTP_FROM_SHIFTS=shifts@your-verified-domain.com     # shift assigned/updated, Shift Marketplace
+SMTP_FROM_REQUESTS=requests@your-verified-domain.com # Requests page submissions
+SMTP_FROM_REPORTS=reports@your-verified-domain.com   # "Report an Issue" submissions
+```
+
+Leave any of these unset and that category just falls back to `SMTP_FROM`.
+
 ## SMS via Sendmode (optional)
 
 Text message notifications use [Sendmode](https://www.sendmode.com), an Irish SMS provider —

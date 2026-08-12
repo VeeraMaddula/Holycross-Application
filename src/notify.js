@@ -28,6 +28,21 @@ function getTransporter() {
   return transporter;
 }
 
+// Picks which mailbox a notification appears to come from, based on its
+// `type` tag. Lets staff filter/recognise emails at a glance (a shift
+// notice from shifts@, a request from requests@, etc.) without needing
+// separate mailboxes set up anywhere — Resend just needs the domain
+// verified once (see SMTP_FROM's own setup), and any address at that
+// domain works as a "from". Each SMTP_FROM_* var is optional; anything left
+// unset just falls back to the default SMTP_FROM.
+function fromAddressForType(type) {
+  const fallback = process.env.SMTP_FROM || process.env.SMTP_USER;
+  if (type && type.startsWith('shift')) return process.env.SMTP_FROM_SHIFTS || fallback;
+  if (type === 'staff-request') return process.env.SMTP_FROM_REQUESTS || fallback;
+  if (type === 'staff-report') return process.env.SMTP_FROM_REPORTS || fallback;
+  return fallback;
+}
+
 async function sendEmail({ to, subject, text, html, type, bookingId, attachments }) {
   if (!to) return;
   const t = getTransporter();
@@ -37,7 +52,7 @@ async function sendEmail({ to, subject, text, html, type, bookingId, attachments
   }
   try {
     await t.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: fromAddressForType(type),
       to, subject, text, html,
       attachments: attachments || undefined
     });
@@ -514,7 +529,7 @@ function startScheduler() {
 }
 
 module.exports = {
-  sendEmail, bookingConfirmationEmail, bookingIcsAttachment, bookingReminderEmail, cancellationEmail,
+  sendEmail, fromAddressForType, bookingConfirmationEmail, bookingIcsAttachment, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
   passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
