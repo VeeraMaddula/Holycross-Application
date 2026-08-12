@@ -48,6 +48,12 @@ function bootstrapAdmin() {
 }
 bootstrapAdmin();
 
+// One-time seed of starter kitchen Training & Resources content (recipes,
+// prep process, cleaning technique) so that section isn't empty the first
+// time Kitchen Staff open it. Idempotent — see seedKitchenStarterContent's
+// own comment for why this is safe to call on every boot.
+models.seedKitchenTrainingStarterContent();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';

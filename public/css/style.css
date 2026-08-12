@@ -689,7 +689,7 @@ textarea { resize: vertical; min-height: 70px; }
   .week-hours-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ---- Training & Resources ("Behind the Bar") ---- */
+/* ---- Training & Resources (Behind the Bar + In the Kitchen) ---- */
 .training-hero {
   background: linear-gradient(120deg, var(--accent-dark), #6b3f1e 130%);
   color: #f7ede1;
@@ -709,6 +709,10 @@ textarea { resize: vertical; min-height: 70px; }
 .training-hero p { margin: 0; opacity: 0.88; max-width: 560px; font-size: 14.5px; }
 .training-hero .btn { margin-top: 16px; background: #fff; color: var(--accent-dark); font-weight: 700; }
 .training-hero .btn:hover { background: #f3ece0; }
+
+.training-section-head { margin-bottom: 16px; }
+.training-section-head h3 { margin: 0 0 4px; font-size: 19px; color: var(--ink); }
+.training-section-head p { margin: 0; max-width: 640px; font-size: 13.5px; }
 
 .training-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
 .training-column {

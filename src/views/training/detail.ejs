@@ -6,7 +6,10 @@
   <%- include('../partials/sidebar') %>
   <div class="main">
     <%
-      const ACCENTS = { cocktail: '#b3492f', spirit: '#a9762b', beer: '#c98a1f' };
+      const ACCENTS = {
+        cocktail: '#b3492f', spirit: '#a9762b', beer: '#c98a1f',
+        recipe: '#2f6b4f', prep: '#2b6e8a', cleaning: '#3f8f8a'
+      };
       const accent = ACCENTS[item.category] || '#1f4d3c';
     %>
     <a href="/training" class="training-back-link">&larr; Back to Training &amp; Resources</a>
@@ -41,8 +44,8 @@
 
         <% if (canEdit) { %>
           <div class="training-actions-row">
-            <a href="/training/<%= item.id %>/edit" class="btn secondary">Edit recipe</a>
-            <form method="POST" action="/training/<%= item.id %>/delete" onsubmit="return confirm('Delete this recipe? This can\'t be undone.')">
+            <a href="/training/<%= item.id %>/edit" class="btn secondary">Edit <%= categoryLabelSingular.toLowerCase() %></a>
+            <form method="POST" action="/training/<%= item.id %>/delete" onsubmit="return confirm('Delete this <%= categoryLabelSingular.toLowerCase() %>? This can\'t be undone.')">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button type="submit" class="btn danger">Delete</button>
             </form>

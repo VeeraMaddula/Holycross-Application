@@ -183,10 +183,14 @@ module.exports = {
   markReportReviewed: staffReports.markReportReviewed,
   listAllReports: staffReports.listAllReports,
 
-  // Training & Resources (cocktail / spirit / beer recipe library)
+  // Training & Resources (Behind the Bar: cocktail/spirit/beer; In the
+  // Kitchen: recipe/prep/cleaning — see visibleSections for the per-role
+  // split between the two)
   TRAINING_CATEGORIES: trainingResources.CATEGORIES,
   TRAINING_CATEGORY_LABELS: trainingResources.CATEGORY_LABELS,
   TRAINING_FIELD_LABELS: trainingResources.FIELD_LABELS,
+  TRAINING_SECTIONS: trainingResources.SECTIONS,
+  visibleTrainingSections: trainingResources.visibleSections,
   listTrainingItems: trainingResources.listItems,
   listTrainingItemsByCategory: trainingResources.listItemsByCategory,
   getTrainingItem: trainingResources.getItem,
@@ -194,6 +198,7 @@ module.exports = {
   updateTrainingItem: trainingResources.updateItem,
   setTrainingItemMedia: trainingResources.setItemMedia,
   deleteTrainingItem: trainingResources.deleteItem,
+  seedKitchenTrainingStarterContent: trainingResources.seedKitchenStarterContent,
 
   // Self-service verification codes (Profile page: change password / PIN)
   requestVerificationCode: selfVerification.requestVerificationCode,

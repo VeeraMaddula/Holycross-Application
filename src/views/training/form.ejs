@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head><title><%= item ? 'Edit' : 'Add' %> Recipe - Training & Resources</title><%- include('../partials/head') %></head>
+<head><title><%= item ? 'Edit' : 'Add' %> Training Item - Training & Resources</title><%- include('../partials/head') %></head>
 <body>
 <div class="app-shell">
   <%- include('../partials/sidebar') %>
   <div class="main">
+    <% const initialLabel = (categories.find(c => c.value === category) || {}).labelSingular || 'item'; %>
     <a href="<%= item ? '/training/' + item.id : '/training' %>" class="training-back-link">&larr; Back</a>
-    <h2><%= item ? 'Edit recipe' : 'Add a new recipe' %></h2>
+    <h2 id="formHeading"><%= item ? 'Edit ' + initialLabel.toLowerCase() : 'Add a new ' + initialLabel.toLowerCase() %></h2>
     <p class="muted">Fill in the details below. Photos and videos are optional but help staff learn faster — a YouTube link works great if you don't have your own footage.</p>
     <% if (error) { %><div class="error-box" id="formError"><%= error %></div><% } else { %><div class="error-box" id="formError" style="display:none"></div><% } %>
 
@@ -70,7 +71,7 @@
           <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime">
         </div>
 
-        <button class="btn" type="submit"><%= item ? 'Save changes' : 'Add recipe' %></button>
+        <button class="btn" type="submit" id="submitBtn"><%= item ? 'Save changes' : 'Add ' + initialLabel.toLowerCase() %></button>
       </form>
     </div>
   </div>
@@ -79,10 +80,14 @@
 <script>
 (function() {
   var FIELD_LABELS = <%- JSON.stringify(fieldLabels) %>;
+  var CATEGORY_SINGULAR = <%- JSON.stringify(Object.fromEntries(categories.map(c => [c.value, c.labelSingular]))) %>;
+  var isEdit = <%= item ? 'true' : 'false' %>;
   var categorySelect = document.getElementById('categorySelect');
   var subtitleLabel = document.getElementById('subtitleLabel');
   var ingredientsLabel = document.getElementById('ingredientsLabel');
   var methodLabel = document.getElementById('methodLabel');
+  var heading = document.getElementById('formHeading');
+  var submitBtn = document.getElementById('submitBtn');
 
   function syncLabels() {
     var labels = FIELD_LABELS[categorySelect.value];
@@ -90,6 +95,11 @@
     subtitleLabel.textContent = labels.subtitle;
     ingredientsLabel.textContent = labels.ingredients;
     methodLabel.textContent = labels.method;
+    if (!isEdit) {
+      var singular = (CATEGORY_SINGULAR[categorySelect.value] || 'item').toLowerCase();
+      heading.textContent = 'Add a new ' + singular;
+      submitBtn.textContent = 'Add ' + singular;
+    }
   }
   categorySelect.addEventListener('change', syncLabels);
 

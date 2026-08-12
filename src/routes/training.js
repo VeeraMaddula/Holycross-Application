@@ -54,17 +54,21 @@ function removeFileIfLocal(publicPath, dir) {
 }
 
 router.get('/', (req, res) => {
+  const sections = models.visibleTrainingSections(res.locals.currentUser);
   res.render('training/index', {
     grouped: models.listTrainingItemsByCategory(),
     categories: models.TRAINING_CATEGORIES,
+    sections,
     canEdit: canUserEdit(res)
   });
 });
 
 router.get('/new', requireTrainingEditAccess, (req, res) => {
+  const sections = models.visibleTrainingSections(res.locals.currentUser);
+  const defaultCategory = (sections[0] && sections[0].categories[0]) || models.TRAINING_CATEGORIES[0].value;
   res.render('training/form', {
     item: null,
-    category: models.TRAINING_CATEGORIES.some(c => c.value === req.query.category) ? req.query.category : 'cocktail',
+    category: models.TRAINING_CATEGORIES.some(c => c.value === req.query.category) ? req.query.category : defaultCategory,
     categories: models.TRAINING_CATEGORIES,
     fieldLabels: models.TRAINING_FIELD_LABELS,
     error: null
@@ -86,10 +90,12 @@ router.get('/:id/edit', requireTrainingEditAccess, (req, res) => {
 router.get('/:id', (req, res) => {
   const item = models.getTrainingItem(req.params.id);
   if (!item) return res.status(404).render('404');
+  const category = models.TRAINING_CATEGORIES.find(c => c.value === item.category);
   res.render('training/detail', {
     item,
     fieldLabels: models.TRAINING_FIELD_LABELS[item.category],
     categoryLabel: models.TRAINING_CATEGORY_LABELS[item.category],
+    categoryLabelSingular: category ? category.labelSingular : 'item',
     canEdit: canUserEdit(res)
   });
 });
@@ -130,7 +136,7 @@ router.post('/:id', requireTrainingEditAccess, (req, res) => {
   upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'video', maxCount: 1 }])(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
     const existing = models.getTrainingItem(req.params.id);
-    if (!existing) return res.status(404).json({ error: 'Recipe not found.' });
+    if (!existing) return res.status(404).json({ error: 'Training item not found.' });
 
     const cleanup = () => {
       (req.files && req.files.photo || []).forEach(f => fs.unlink(f.path, () => {}));
