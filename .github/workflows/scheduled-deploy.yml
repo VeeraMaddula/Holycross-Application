@@ -1,29 +1,29 @@
-name: Scheduled noon deploy
+name: Scheduled midnight deploy
 
-# Runs once a day around noon Dublin time and deploys to Render ONLY if
-# there's a new commit on master since the last deploy — pushes during the
-# day just sit on GitHub until this runs. Also runnable on demand from the
-# Actions tab ("Run workflow") for testing, which always deploys regardless
-# of time.
+# Runs once a day around midnight (00:00) Dublin time and deploys to Render
+# ONLY if there's a new commit on master since the last deploy — pushes
+# during the day just sit on GitHub until this runs. Also runnable on demand
+# from the Actions tab ("Run workflow") for testing, which always deploys
+# regardless of time.
 #
-# Two cron times are scheduled (11:00 and 12:00 UTC) because GitHub Actions
+# Two cron times are scheduled (23:00 and 00:00 UTC) because GitHub Actions
 # cron is always UTC and Ireland shifts between GMT and BST across the
 # year — the time-check step below throws away whichever of the two runs
-# doesn't actually land on noon Dublin time.
+# doesn't actually land on midnight Dublin time.
 #
 # One-time setup required (can't be done from code, see README):
 #   1. In Render: Service > Settings > Deploy Hook — copy the URL.
 #   2. In Render: Service > Settings > Build & Deploy — turn Auto-Deploy OFF
 #      (otherwise Render deploys on every push, defeating the "only at
-#      noon" part of this).
+#      midnight" part of this).
 #   3. In GitHub: Repo Settings > Secrets and variables > Actions > New
 #      repository secret — name it RENDER_DEPLOY_HOOK_URL, paste the URL
 #      from step 1.
 
 on:
   schedule:
-    - cron: '0 11 * * *'
-    - cron: '0 12 * * *'
+    - cron: '0 23 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 permissions:
@@ -33,11 +33,11 @@ jobs:
   deploy-if-changed:
     runs-on: ubuntu-latest
     steps:
-      - name: Skip unless it's actually noon in Dublin (manual runs always proceed)
+      - name: Skip unless it's actually midnight in Dublin (manual runs always proceed)
         run: |
           HOUR=$(TZ=Europe/Dublin date +%H)
-          if [ "$HOUR" != "12" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            echo "It's $HOUR:00 in Dublin right now, not noon — skipping this run."
+          if [ "$HOUR" != "00" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "It's $HOUR:00 in Dublin right now, not midnight — skipping this run."
             echo "skip=true" >> "$GITHUB_ENV"
           else
             echo "skip=false" >> "$GITHUB_ENV"
@@ -75,5 +75,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           echo "${{ github.sha }}" > .github/last-deployed-sha
           git add .github/last-deployed-sha
-          git commit -m "chore: record noon deploy of ${GITHUB_SHA::7}"
+          git commit -m "chore: record midnight deploy of ${GITHUB_SHA::7}"
           git push

@@ -208,13 +208,13 @@ redirect `data/`, staff avatars, kiosk selfies, and report attachments onto that
 tested end-to-end (simulating a redeploy by wiping local files and confirming existing accounts
 and data survive) before being added here.
 
-## Scheduled deploys (once daily at noon, only if there are changes)
+## Scheduled deploys (once daily at midnight, only if there are changes)
 
 Instead of deploying the instant you push a commit, this repo is set up to check once a day
-around 12pm Dublin time and only deploy if there's something new since the last deploy — push
-whenever you like during the day, it goes live at noon. This is `.github/workflows/
-scheduled-deploy.yml`, a GitHub Actions workflow — free on GitHub, runs on GitHub's servers, and
-keeps working even if your own computer is off.
+around 12am (midnight) Dublin time and only deploy if there's something new since the last
+deploy — push whenever you like during the day, it goes live at midnight. This is
+`.github/workflows/scheduled-deploy.yml`, a GitHub Actions workflow — free on GitHub, runs on
+GitHub's servers, and keeps working even if your own computer is off.
 
 **One-time setup (can't be done from code — do these once):**
 
@@ -223,20 +223,20 @@ keeps working even if your own computer is off.
    a deploy.
 2. Still in Render's **Settings** > **Build & Deploy**, turn **Auto-Deploy OFF**. This is
    important: if it's left on, Render deploys on every push regardless of the schedule below,
-   which defeats the "only at noon" behaviour.
+   which defeats the "only at midnight" behaviour.
 3. In GitHub, go to the repo's **Settings** > **Secrets and variables** > **Actions** > **New
    repository secret**. Name it `RENDER_DEPLOY_HOOK_URL` and paste the URL from step 1.
 
 That's it — from then on:
 
 - Push commits to `master` any time during the day; nothing deploys immediately.
-- Around 12pm Dublin time, a scheduled check runs. If the current commit on `master` is different
+- Around 12am Dublin time, a scheduled check runs. If the current commit on `master` is different
   from the last one it deployed, it hits the Render deploy hook and records the new commit as
   deployed (in `.github/last-deployed-sha`, auto-committed back to the repo). If nothing changed
-  since yesterday, it does nothing.
-- To test it without waiting for noon, or to force an immediate deploy any time, go to the repo's
-  **Actions** tab > **Scheduled noon deploy** > **Run workflow**. Manual runs always deploy
-  (they skip the "is it actually noon" check).
+  since the day before, it does nothing.
+- To test it without waiting for midnight, or to force an immediate deploy any time, go to the
+  repo's **Actions** tab > **Scheduled midnight deploy** > **Run workflow**. Manual runs always
+  deploy (they skip the "is it actually midnight" check).
 
 ## Notes on the booking capacity logic
 
