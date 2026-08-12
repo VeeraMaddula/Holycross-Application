@@ -208,13 +208,16 @@ redirect `data/`, staff avatars, kiosk selfies, and report attachments onto that
 tested end-to-end (simulating a redeploy by wiping local files and confirming existing accounts
 and data survive) before being added here.
 
-## Scheduled deploys (once daily at midnight, only if there are changes)
+## Scheduled deploys (once daily at 12am GMT, only if there are changes)
 
-Instead of deploying the instant you push a commit, this repo is set up to check once a day
-around 12am (midnight) Dublin time and only deploy if there's something new since the last
-deploy — push whenever you like during the day, it goes live at midnight. This is
-`.github/workflows/scheduled-deploy.yml`, a GitHub Actions workflow — free on GitHub, runs on
-GitHub's servers, and keeps working even if your own computer is off.
+Instead of deploying the instant you push a commit, this repo is set up to check once a day at
+00:00 GMT and only deploy if there's something new since the last deploy — push whenever you
+like during the day, it goes live at midnight GMT. This is `.github/workflows/
+scheduled-deploy.yml`, a GitHub Actions workflow — free on GitHub, runs on GitHub's servers, and
+keeps working even if your own computer is off.
+
+Note this is pinned to GMT specifically (not "Dublin local time"), so during Irish Summer Time
+(late March–late October) it'll run at 1am local clock time rather than midnight.
 
 **One-time setup (can't be done from code — do these once):**
 
@@ -230,13 +233,13 @@ GitHub's servers, and keeps working even if your own computer is off.
 That's it — from then on:
 
 - Push commits to `master` any time during the day; nothing deploys immediately.
-- Around 12am Dublin time, a scheduled check runs. If the current commit on `master` is different
-  from the last one it deployed, it hits the Render deploy hook and records the new commit as
-  deployed (in `.github/last-deployed-sha`, auto-committed back to the repo). If nothing changed
-  since the day before, it does nothing.
+- At 00:00 GMT, a scheduled check runs. If the current commit on `master` is different from the
+  last one it deployed, it hits the Render deploy hook and records the new commit as deployed
+  (in `.github/last-deployed-sha`, auto-committed back to the repo). If nothing changed since the
+  day before, it does nothing.
 - To test it without waiting for midnight, or to force an immediate deploy any time, go to the
   repo's **Actions** tab > **Scheduled midnight deploy** > **Run workflow**. Manual runs always
-  deploy (they skip the "is it actually midnight" check).
+  deploy.
 
 ## Notes on the booking capacity logic
 
