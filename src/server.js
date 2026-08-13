@@ -198,10 +198,16 @@ app.use((req, res, next) => {
 // else — not admin, not managers, not Bar/Kitchen Staff — can open /kiosk
 // directly; everyone still clocks in the normal way, tapping their tile on
 // the shared tablet while the Bot account is the one signed in.
+// Exception: Marketing & Design, but ONLY once canManageMarketing has been
+// explicitly granted to this account from the Users page (off by default,
+// same as every other individual grant) — requested so the Bot account can
+// be used to submit/check design requests from a browser, not the tablet
+// itself (the kiosk screen has no nav link to it either way).
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
   if (u && u.role === 'kiosk') {
-    const allowed = req.path === '/' || req.path.startsWith('/kiosk') || req.path === '/logout';
+    const allowed = req.path === '/' || req.path.startsWith('/kiosk') || req.path === '/logout'
+      || (u.canManageMarketing && req.path.startsWith('/marketing'));
     if (!allowed) return res.redirect('/kiosk');
   }
   next();
