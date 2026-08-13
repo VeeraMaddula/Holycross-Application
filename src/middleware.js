@@ -156,7 +156,6 @@ function requireTrainingEditAccess(req, res, next) {
 // Staff and the Kiosk/Bot account don't see this.
 function requireMarketingAccess(req, res, next) {
   const u = res.locals.currentUser;
-  console.log('[DEBUG requireMarketingAccess]', JSON.stringify({ hasUser: !!u, role: u && u.role, canManageMarketing: u && u.canManageMarketing, MANAGER_ROLES }));
   if (u && (MANAGER_ROLES.includes(u.role) || u.canManageMarketing)) return next();
   return res.status(403).render('403');
 }
