@@ -161,6 +161,20 @@ tr:hover td { background: #fbf6ee; }
 .badge.table-status-reserved { background: #fff9db; color: #e8590c; }
 .badge.table-status-available { background: #ebfbee; color: var(--success); }
 
+.badge.mkt-pending { background: #fff9db; color: #e8590c; }
+.badge.mkt-in_progress { background: #e7f5ff; color: #1c7ed6; }
+.badge.mkt-needs_info { background: #fff5f5; color: #c92a2a; }
+.badge.mkt-ready { background: #ebfbee; color: #2f9e44; }
+
+.marketing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 14px; }
+.marketing-card-photo { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; background: #f1f3f5; margin: 8px 0; }
+.marketing-thread { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 13.5px; }
+.marketing-thread-msg { padding: 4px 0; }
+.marketing-thread-msg + .marketing-thread-msg { border-top: 1px solid #e9ecef; }
+.marketing-thread-msg .muted { font-size: 12px; }
+.marketing-attachments { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.marketing-attachments img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+
 form.inline { display: inline; }
 /* A <select> inside a form.inline (display:inline) has no defined
    containing-block width to resolve its own width:100% against, so

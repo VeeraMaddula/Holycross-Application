@@ -77,6 +77,7 @@ function createUser({ name, username, email, passwordHash, role, phone, dob, sex
     canViewLogs: false,
     canEditDuties: false,
     canEditTraining: false,
+    canManageMarketing: false,
     privacyPolicyVersion: null,
     privacyPolicyAcceptedAt: null,
     color: defaultColorForId(id),
@@ -240,6 +241,19 @@ function setUserTrainingEditAccess(id, allowed) {
   return { user: u };
 }
 
+// Marketing / Design requests page access — every manager-tier role gets
+// this automatically (see requireMarketingAccess in src/middleware.js); this
+// toggle is only for individually granting a specific Bar/Kitchen Staff
+// member the same capability, same pattern as setUserTrainingEditAccess.
+function setUserMarketingAccess(id, allowed) {
+  const db = readDb();
+  const u = (db.users || []).find(x => x.id === Number(id));
+  if (!u) return { error: 'User not found.' };
+  u.canManageMarketing = !!allowed;
+  writeDb(db);
+  return { user: u };
+}
+
 function setUserAvatar(id, avatarPath) {
   const db = readDb();
   const u = (db.users || []).find(x => x.id === Number(id));
@@ -278,6 +292,6 @@ module.exports = {
   activeAdminCount, listUsers, getUserByEmail, getUserByUsername, getUserByPhone, getUserByLoginIdentifier,
   getUserById, createUser, updateUserProfile, setUserColor, setUserTimesheetAccess, setUserRosterAccess,
   setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, acceptPrivacyPolicy,
-  setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserTrainingEditAccess, setUserAvatar,
+  setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserTrainingEditAccess, setUserMarketingAccess, setUserAvatar,
   setUserActive, setUserRole
 };

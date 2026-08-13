@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head><title>Marketing &amp; Design - Booking Admin</title><%- include('../partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="main">
+    <h2>Marketing &amp; Design</h2>
+    <p class="muted">Ask for a poster, menu, or social post. A design agent picks up new requests on its own schedule (not instantly) and posts the finished design back here — check back or watch for the status to change to "Ready".</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-top:0">New design request</h3>
+      <form method="POST" action="/marketing" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label>Title <span class="muted" style="font-weight:400">(e.g. "Monday 18 August Chef Specials")</span></label>
+          <input type="text" name="title" required placeholder="Day + date + name">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select name="category">
+            <% categories.forEach(c => { %>
+              <option value="<%= c.value %>"><%= c.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Brief</label>
+          <textarea name="brief" rows="4" required placeholder="What's the design for, what should it say, any theme or offer details?"></textarea>
+        </div>
+        <div class="field">
+          <label>Reference photos <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="file" name="photos" multiple accept="image/jpeg,image/png,image/webp">
+          <p class="muted" style="margin-top:6px">Food photos or other references the design should use — up to 5, 15MB each.</p>
+        </div>
+        <button class="btn" type="submit">Send request</button>
+      </form>
+    </div>
+
+    <h3>Requests</h3>
+    <% if (!requests.length) { %>
+      <p class="muted">No design requests yet.</p>
+    <% } else { %>
+      <div class="marketing-grid">
+        <% requests.forEach(r => { %>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+              <h3 style="margin:0"><%= r.title %></h3>
+              <span class="badge mkt-<%= r.status %>"><%= statusLabels[r.status] %></span>
+            </div>
+            <p class="muted" style="margin:4px 0">
+              <%= categories.find(c => c.value === r.category) ? categories.find(c => c.value === r.category).label : r.category %>
+              &middot; requested by <%= r.requestedByName %>, <%= new Date(r.requestedAt).toLocaleString() %>
+              <% if (r.revisionCount) { %>&middot; <%= r.revisionCount %> revision<%= r.revisionCount > 1 ? 's' : '' %> requested<% } %>
+            </p>
+            <p><%= r.brief %></p>
+
+            <% if (r.attachments && r.attachments.length) { %>
+              <div class="marketing-attachments">
+                <% r.attachments.forEach(a => { %>
+                  <a href="/marketing/attachments/<%= r.id %>/<%= a.path %>" target="_blank">
+                    <img src="/marketing/attachments/<%= r.id %>/<%= a.path %>" alt="<%= a.originalName %>">
+                  </a>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <% if (r.resultImageUrl) { %>
+              <a href="<%= r.resultImageUrl %>" target="_blank">
+                <img class="marketing-card-photo" src="<%= r.resultImageUrl %>" alt="Finished design for <%= r.title %>">
+              </a>
+            <% } %>
+
+            <% if (r.thread && r.thread.length) { %>
+              <div class="marketing-thread">
+                <% r.thread.forEach(m => { %>
+                  <div class="marketing-thread-msg">
+                    <div class="muted"><%= m.from === 'agent' ? 'Design agent' : 'Team' %> &middot; <%= new Date(m.at).toLocaleString() %></div>
+                    <div><%= m.text %></div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <form method="POST" action="/marketing/<%= r.id %>/reply" style="margin-top:8px">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <textarea name="text" rows="2" required placeholder="<%= r.status === 'needs_info' ? 'Answer the agent\'s question…' : r.status === 'ready' ? 'Ask for a revision…' : 'Add a note…' %>"></textarea>
+              </div>
+              <button class="btn small secondary" type="submit"><%= r.status === 'ready' ? 'Request a revision' : 'Reply' %></button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+</body>
+</html>

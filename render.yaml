@@ -60,6 +60,8 @@ services:
         sync: false
       - key: SENDMODE_SENDER_ID
         sync: false
+      - key: MARKETING_AGENT_TOKEN
+        sync: false
       - key: GOOGLE_SERVICE_ACCOUNT_KEY_PATH
         sync: false
       - key: GOOGLE_CALENDAR_ID
