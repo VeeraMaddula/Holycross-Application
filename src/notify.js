@@ -40,6 +40,7 @@ function fromAddressForType(type) {
   if (type && type.startsWith('shift')) return process.env.SMTP_FROM_SHIFTS || fallback;
   if (type === 'staff-request') return process.env.SMTP_FROM_REQUESTS || fallback;
   if (type === 'staff-report') return process.env.SMTP_FROM_REPORTS || fallback;
+  if (type === 'password-reset') return process.env.SMTP_FROM_PASSWORD_RESET || fallback;
   return fallback;
 }
 

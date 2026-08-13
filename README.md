@@ -116,9 +116,10 @@ about at a glance — no separate mailbox setup needed, just any address on the 
 already verified in step 2:
 
 ```
-SMTP_FROM_SHIFTS=shifts@your-verified-domain.com     # shift assigned/updated, Shift Marketplace
-SMTP_FROM_REQUESTS=requests@your-verified-domain.com # Requests page submissions
-SMTP_FROM_REPORTS=reports@your-verified-domain.com   # "Report an Issue" submissions
+SMTP_FROM_SHIFTS=shifts@your-verified-domain.com                 # shift assigned/updated, Shift Marketplace
+SMTP_FROM_REQUESTS=requests@your-verified-domain.com             # Requests page submissions
+SMTP_FROM_REPORTS=reports@your-verified-domain.com                # "Report an Issue" submissions
+SMTP_FROM_PASSWORD_RESET=resetpassword@your-verified-domain.com  # Forgot Password reset link
 ```
 
 Leave any of these unset and that category just falls back to `SMTP_FROM`.
