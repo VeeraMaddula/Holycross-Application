@@ -149,15 +149,4 @@ function requireTrainingEditAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-// Marketing / Design requests page = every manager-tier role automatically
-// (Admin, Senior/General/Floor Manager, Staff Manager — see MANAGER_ROLES in
-// src/roles.js), plus anyone individually granted it via the Users page —
-// same pattern as requireCashSafeAccess/requireLogsAccess above. Bar/Kitchen
-// Staff and the Kiosk/Bot account don't see this.
-function requireMarketingAccess(req, res, next) {
-  const u = res.locals.currentUser;
-  if (u && (MANAGER_ROLES.includes(u.role) || u.canManageMarketing)) return next();
-  return res.status(403).render('403');
-}
-
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, requireMarketingAccess, STAFF_ROLES };
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, STAFF_ROLES };

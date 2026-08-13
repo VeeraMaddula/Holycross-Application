@@ -91,7 +91,6 @@ const DEFAULT_DATA = {
   shiftDrops: [],
   reports: [],
   trainingItems: [],
-  marketingRequests: [],
   cashLogs: [],
   cashLodgementHistory: [],
   settings: {
@@ -111,7 +110,6 @@ const DEFAULT_DATA = {
     nextRosterShiftId: 1,
     nextRequestId: 1,
     nextTrainingItemId: 1,
-    nextMarketingRequestId: 1,
     lastGoogleSyncAt: null
   }
 };

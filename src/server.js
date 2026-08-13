@@ -7,7 +7,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireMarketingAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) and
 // requireTrainingEditAccess (manager-tier / canEditTraining only) are
 // applied inside their own route files, layered on top of the broader
@@ -162,11 +162,10 @@ app.use((req, res, next) => {
           canViewLogs: !!dbUser.canViewLogs,
           canEditDuties: !!dbUser.canEditDuties,
           canEditTraining: !!dbUser.canEditTraining,
-          canManageMarketing: !!dbUser.canManageMarketing,
           privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
           privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
         }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, canEditTraining: false, canManageMarketing: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
+      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, canEditTraining: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
   } else {
     res.locals.currentUser = null;
   }
@@ -198,16 +197,10 @@ app.use((req, res, next) => {
 // else — not admin, not managers, not Bar/Kitchen Staff — can open /kiosk
 // directly; everyone still clocks in the normal way, tapping their tile on
 // the shared tablet while the Bot account is the one signed in.
-// Exception: Marketing & Design, but ONLY once canManageMarketing has been
-// explicitly granted to this account from the Users page (off by default,
-// same as every other individual grant) — requested so the Bot account can
-// be used to submit/check design requests from a browser, not the tablet
-// itself (the kiosk screen has no nav link to it either way).
 app.use((req, res, next) => {
   const u = res.locals.currentUser;
   if (u && u.role === 'kiosk') {
-    const allowed = req.path === '/' || req.path.startsWith('/kiosk') || req.path === '/logout'
-      || (u.canManageMarketing && req.path.startsWith('/marketing'));
+    const allowed = req.path === '/' || req.path.startsWith('/kiosk') || req.path === '/logout';
     if (!allowed) return res.redirect('/kiosk');
   }
   next();
@@ -239,13 +232,6 @@ app.use('/book', require('./routes/publicBooking'));
 app.use('/our-menu', require('./routes/publicMenu'));
 app.use('/privacy', require('./routes/publicPrivacy'));
 
-// The design agent (a scheduled Claude session, not a logged-in staff
-// member) has no session cookie to send, so this can't sit behind
-// requireAuth like every other route below — it's gated by its own
-// MARKETING_AGENT_TOKEN Bearer-token check inside the route file instead.
-// See src/routes/marketingAgentApi.js for what it exposes.
-app.use('/api/marketing-agent', require('./routes/marketingAgentApi'));
-
 app.use('/', requireAuth, require('./routes/privacy'));
 app.use('/profile', requireAuth, require('./routes/profile'));
 app.use('/', requireAuth, require('./routes/dashboard'));
@@ -267,7 +253,6 @@ app.use('/reports', requireAuth, requireReportAccess, require('./routes/reports'
 app.use('/training', requireAuth, requireTrainingAccess, require('./routes/training'));
 app.use('/cash-safe', requireAuth, requireCashSafeAccess, require('./routes/cashSafe'));
 app.use('/logs', requireAuth, requireLogsAccess, require('./routes/logs'));
-app.use('/marketing', requireAuth, requireMarketingAccess, require('./routes/marketing'));
 
 app.use((req, res) => {
   res.status(404).render('404');

@@ -34,7 +34,6 @@ const shiftDrops = require('./models/shiftDrops');
 const requests = require('./models/requests');
 const staffReports = require('./models/staffReports');
 const trainingResources = require('./models/trainingResources');
-const marketing = require('./models/marketing');
 const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
 const { toMinutes } = require('./models/shared');
@@ -99,7 +98,6 @@ module.exports = {
   setUserLogsAccess: users.setUserLogsAccess,
   setUserDutiesEditAccess: users.setUserDutiesEditAccess,
   setUserTrainingEditAccess: users.setUserTrainingEditAccess,
-  setUserMarketingAccess: users.setUserMarketingAccess,
   setUserColor: users.setUserColor,
   acceptPrivacyPolicy: users.acceptPrivacyPolicy,
 
@@ -201,19 +199,6 @@ module.exports = {
   setTrainingItemMedia: trainingResources.setItemMedia,
   deleteTrainingItem: trainingResources.deleteItem,
   seedKitchenTrainingStarterContent: trainingResources.seedKitchenStarterContent,
-
-  // Marketing / Design requests (agent-mediated — see src/models/marketing.js)
-  MARKETING_CATEGORIES: marketing.CATEGORIES,
-  MARKETING_CATEGORY_LABELS: marketing.CATEGORY_LABELS,
-  MARKETING_STATUS_LABELS: marketing.STATUS_LABELS,
-  listMarketingRequests: marketing.listMarketingRequests,
-  getMarketingRequest: marketing.getMarketingRequest,
-  listPendingMarketingRequests: marketing.listPendingMarketingRequests,
-  createMarketingRequest: marketing.createMarketingRequest,
-  claimMarketingRequest: marketing.claimMarketingRequest,
-  markMarketingNeedsInfo: marketing.markMarketingNeedsInfo,
-  replyToMarketingRequest: marketing.replyToMarketingRequest,
-  submitMarketingResult: marketing.submitMarketingResult,
 
   // Self-service verification codes (Profile page: change password / PIN)
   requestVerificationCode: selfVerification.requestVerificationCode,

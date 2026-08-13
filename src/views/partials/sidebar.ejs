@@ -111,12 +111,6 @@
           Logs
         </a>
       <% } %>
-      <% if (currentUser && (['admin', 'senior_manager', 'general_manager', 'floor_manager', 'staff_manager'].includes(currentUser.role) || currentUser.canManageMarketing)) { %>
-        <a href="/marketing" class="<%= currentPath.startsWith('/marketing') ? 'active' : '' %>">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-          Marketing &amp; Design
-        </a>
-      <% } %>
       <% if (currentUser && currentUser.role !== 'kiosk') { %>
         <a href="/accept-privacy" class="<%= currentPath === '/accept-privacy' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>

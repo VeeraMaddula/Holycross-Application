@@ -28,8 +28,6 @@ and protections in place.
     whichever of the customer's email/phone you have on file
   - Optional copy of every new booking sent to your own inbox
   - Notification log so you can see what was sent (or why something was skipped/failed)
-- Marketing & Design request queue — managers ask for a poster/menu/social post; a separate AI
-  design agent (OpenArt, agent-mediated — see "Marketing & Design" below) fulfills it
 - Data is stored in a local JSON file (`data/db.json`) — no database server to install
 
 ## Requirements
@@ -203,44 +201,6 @@ in the app updates a matching event there, and anything added directly on that G
    "Sync now" in Settings for an immediate pull).
 
 If you skip this setup, the app works exactly as before — Google sync is entirely optional.
-
-## Marketing & Design (optional)
-
-Admin and managers get a **Marketing & Design** page for requesting posters, menus, and social
-posts (e.g. "Monday 18 August Chef Specials"). This does **not** call an image-generation API
-directly from the server the way email/SMS do — the image generator in use (OpenArt) only works
-from inside an AI agent session (MCP/OAuth), not as a normal server-callable REST API. So instead:
-
-1. A manager submits a request (title, category, brief, optional reference photos) on the
-   Marketing & Design page. It sits with status "Waiting for agent".
-2. A separate AI design agent — a scheduled Claude session with the OpenArt MCP connector (see the
-   `agent-workspace` repo for its branding rules and full brief) — polls this app's
-   `/api/marketing-agent/*` API on its own schedule, generates the design, and posts the finished
-   image back.
-3. The request's status flips to "Ready" and the image shows up on the page. Anyone with Marketing
-   access can reply on a request — answering a clarifying question the agent asked ("needs your
-   reply"), or leaving a note asking for a revision (which reopens it as pending for the agent's
-   next run).
-
-This means turnaround is "next scheduled agent run," not instant — there's no live "click and get
-an image back" button.
-
-**Setup:**
-
-1. Generate a random token:
-   ```
-   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-   ```
-2. Set it as `MARKETING_AGENT_TOKEN` in `.env` (and in Render's env vars once deployed). Leaving it
-   blank disables the agent API entirely (`/api/marketing-agent/*` returns 503) — the manager-facing
-   page still works for submitting/viewing requests either way, they just won't get fulfilled.
-3. Point the design agent at `https://<your-app>/api/marketing-agent/pending` (or `/localhost:3000`
-   while testing) with header `Authorization: Bearer <the token>` to see what's waiting, and at
-   `POST /:id/claim`, `POST /:id/needs-info`, `POST /:id/result` to work a request. See
-   `src/routes/marketingAgentApi.js` for the exact shapes.
-
-Access to the Marketing & Design page itself follows the same pattern as Logs/Training edit — every
-manager-tier role automatically, plus anyone individually granted it from the Users page.
 
 ## Deploying online (optional)
 

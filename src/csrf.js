@@ -30,18 +30,7 @@ function ensureToken(req) {
 // Mounted globally, right after the session middleware in server.js — runs
 // on every request, for logged-in staff and anonymous customers alike (the
 // public booking form needs a token too).
-// The design-agent API (/api/marketing-agent/...) is called by a scheduled
-// Claude session, not a browser — there's no page/session for it to have
-// read a per-session CSRF token from, and no cookie for a forged cross-site
-// request to ride along on in the first place. It's protected instead by its
-// own MARKETING_AGENT_TOKEN Bearer-token check (see routes/marketingAgentApi.js),
-// which serves the same purpose here: proving the request came from
-// somewhere that's supposed to be able to make it.
-const CSRF_EXEMPT_PREFIXES = ['/api/marketing-agent'];
-
 function csrfMiddleware(req, res, next) {
-  if (CSRF_EXEMPT_PREFIXES.some(p => req.path.startsWith(p))) return next();
-
   const token = ensureToken(req);
   res.locals.csrfToken = token;
 
