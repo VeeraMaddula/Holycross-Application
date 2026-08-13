@@ -138,22 +138,25 @@ generic number.
    ```
    SENDMODE_API_KEY=your-sendmode-access-key
    ```
-4. **Optional but recommended** — a branded sender ID. Without one, texts send from Sendmode's
-   account default; with one, customers see your business name instead. In your Sendmode
-   dashboard, register a sender ID (e.g. `HolyCross`, max 11 characters, letters/numbers only) —
-   Irish law requires this to go through ComReg, which Sendmode submits on your behalf (typically
-   ~5 days to go live). **Until it's approved, sending with it doesn't error — the message is
-   silently accepted and billed, then dropped by the carrier and never delivered** (confirmed
-   directly with Sendmode support). Add it to `.env` once — and only once — Sendmode has
-   explicitly confirmed it's approved:
+4. A branded sender ID is **required** by Sendmode's v3 API (not optional) — max 15 characters,
+   letters/numbers only. In your Sendmode dashboard, register one (e.g. `HolyCross`) — Irish law
+   requires this to go through ComReg. **Confirm directly with Sendmode support that the request
+   has actually been submitted, and get a date** — don't just assume registering it in your own
+   `.env` file counts as submitting it to Sendmode. Once submitted, approval is typically ~5 days.
+   **Until it's approved, sending with it doesn't error — the message is silently rejected, with
+   no error surfaced anywhere in the app** (confirmed directly with Sendmode support — check
+   their Sent SMS report, not just the app's own logs, to see the real status). Add it to `.env`
+   once — and only once — Sendmode has explicitly confirmed it's approved:
    ```
    SENDMODE_SENDER_ID=HolyCross
    ```
-   While a sender ID is pending, Sendmode's own suggested stand-in is `Repliable` — it sends from
-   a real local Irish number and actually delivers, so texts keep working in the meantime:
-   ```
-   SENDMODE_SENDER_ID=Repliable
-   ```
+   **Also confirm you're integrated against the correct API.** Sendmode has at least two: the
+   current one this app uses (`sms-rest.sendmode.dev/3.0/send`) and a legacy one
+   (`rest.sendmode.com/v2/send`) that silently accepts every request without ever delivering
+   anything or logging it anywhere in your account — if a test ever looks "sent" in the app but
+   never shows up at all in Sendmode's own Sent SMS report, that's the symptom. Check with
+   Sendmode support which API your account is actually provisioned on before assuming the app
+   code is wrong.
 5. Buy a credit bundle from your Sendmode dashboard (starts at 1,000 credits) — each standard SMS
    uses 1 credit.
 6. Restart the app and create a test booking with your own phone number to confirm it arrives.

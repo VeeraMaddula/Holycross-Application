@@ -1,66 +1,42 @@
-// SMS notifications via Sendmode's REST API.
-// Official docs: https://developers.sendmode.com/restdocs/send
+// SMS notifications via Sendmode's current "Engage" REST API (sms-rest 3.0).
+// API reference: https://engage.sendmode.com/apireference/#/send
 //
-// HISTORY: a previous version of this file pointed at
-// sms-rest.sendmode.dev/3.0/send, based on a one-off endpoint mentioned by
-// a Sendmode support rep. That host doesn't actually resolve in DNS at all
-// (confirmed: every send attempt through it failed with a raw "fetch
-// failed" network error, never even reaching Sendmode) — so it's been
-// reverted back to the one Sendmode's own public developer docs describe:
-// rest.sendmode.com/v2/send. This host is live and responds correctly.
-//
-// Separately — and this matters more than the endpoint — Sendmode's own
-// dashboard (Reports > API Usage) showed earlier send attempts WERE
-// reaching Sendmode and consuming credit, but landing at 0% delivered.
-// That pattern (accepted + billed, never delivered) is the classic
-// signature of an unregistered alphanumeric sender ID being silently
-// dropped by carriers — see the SENDMODE_SENDER_ID note below and the
-// README "SMS via Sendmode" section (ComReg approval step). Fixing the
-// endpoint alone will NOT fix that — it needs checking on the Sendmode
-// account side.
+// HISTORY — read this before touching the endpoint again: this file
+// originally pointed at sms-rest.sendmode.dev/3.0/send, which was correct.
+// Partway through troubleshooting delivery, a wrong diagnosis (based on a
+// DNS failure that turned out to be this sandbox's own broken network, not
+// a real problem with Sendmode's host) led to "fixing" it to
+// rest.sendmode.com/v2/send instead. That v2 host is a legacy/deprecated
+// system: it accepts any request and always replies with a fake
+// "statusCode: 0" success, but never actually queues or delivers anything,
+// and NOTHING sent through it appears anywhere in Sendmode's own account —
+// not the Sent SMS report, not the credit balance. CONFIRMED directly by
+// Sendmode support (Michael Tourish, 2026-08-12): "the /v2 API is for a
+// historical system, not the API your account is on... I see no record of
+// any requests coming in" for everything sent via v2. Every "sent"
+// notification logged during that period was never actually delivered —
+// it just looked like it worked. Reverted back to the correct v3 endpoint
+// below; do not change this without a live confirmed test AND without
+// checking Sendmode's own Sent SMS report shows the send.
 const models = require('./models');
 const { normalizePhone } = require('./phoneUtils');
 
-const SENDMODE_API_URL = 'https://rest.sendmode.com/v2/send';
+const SENDMODE_API_URL = 'https://sms-rest.sendmode.dev/3.0/send';
 
-// A registered alpha sender ID is optional per Sendmode's API (omit it and
-// their default is used), but an UNREGISTERED one (no ComReg approval) can
-// be silently accepted by the API and then dropped by carriers with no
-// error surfaced anywhere — see the history note above. Register the real
-// one via the Sendmode dashboard before relying on this for real customer
-// texts (see README "SMS via Sendmode").
-//
-// CONFIRMED 2026-08-12 (Sendmode support, Michael Tourish): "HolyCross" is
-// registered but not yet ComReg-approved, so every send with it is
-// currently being silently blocked — exactly this failure mode. Sendmode's
-// own suggested workaround is the "Repliable" sender ID, which sends from
-// a real local Irish number and actually delivers, so real customer texts
-// keep working while HolyCross is pending (usually ~5 days after
-// registration). Set via SENDMODE_SENDER_ID in .env / Render — this
-// hardcoded default is only what's used if that env var is left blank.
+// sender_id is a REQUIRED field on every v3 request (max 15 chars,
+// alphanumeric). "HolyCross" was never actually submitted to Sendmode for
+// ComReg approval (CONFIRMED with Sendmode support, 2026-08-12 — they have
+// no record of any request for it), so it's currently unauthorised and
+// every send with it gets rejected. Sendmode is submitting the ComReg
+// request now on our behalf. Set via SENDMODE_SENDER_ID in .env / Render —
+// this hardcoded default is only what's used if that env var is left
+// blank, and should be swapped for a confirmed-working sender ID once one
+// exists (test with `node test-sendmode.js` and check Sendmode's own Sent
+// SMS report shows a Delivered status before trusting any sender ID here).
 const DEFAULT_SENDER_ID = 'HolyCross';
 
 function isConfigured() {
   return !!process.env.SENDMODE_API_KEY;
-}
-
-// Sendmode's own documented example payload (developers.sendmode.com/
-// restdocs/send) shows recipients in plain LOCAL format — "0870000000" —
-// not international E.164 ("+353870000000"), which is what normalizePhone()
-// produces and what every other part of this app uses (login matching,
-// storage, display). Sending the wrong shape wouldn't necessarily get
-// rejected outright by the API — it could easily be accepted, billed, and
-// then silently fail to route, which matches what was observed in testing.
-// Converting only at the point of calling Sendmode, so nothing else in the
-// app changes.
-function toSendmodeRecipientFormat(e164) {
-  if (e164.startsWith('+353')) return '0' + e164.slice(4);
-  // Non-Irish number: Sendmode's docs don't show an international example,
-  // but "no + prefix" is the far more common convention for gateways that
-  // expect local-style formatting — strip it rather than sending something
-  // that contradicts their one documented example.
-  if (e164.startsWith('+')) return e164.slice(1);
-  return e164;
 }
 
 async function sendSms({ to, body, type, bookingId }) {
@@ -73,30 +49,31 @@ async function sendSms({ to, body, type, bookingId }) {
   }
 
   const { SENDMODE_API_KEY, SENDMODE_SENDER_ID } = process.env;
-  // v2's "message" parameter is itself a JSON-encoded string, wrapped in a
-  // form-urlencoded POST body — not a plain JSON body. recipients is an
-  // array even for a single number. See developers.sendmode.com/restdocs/send.
-  const messageJson = {
-    messagetext: body,
-    senderid: SENDMODE_SENDER_ID || DEFAULT_SENDER_ID,
-    recipients: [toSendmodeRecipientFormat(recipient)]
+  const payload = {
+    sender_id: SENDMODE_SENDER_ID || DEFAULT_SENDER_ID,
+    message: body,
+    // mobile_number wants international format (e.g. "+353871234567") per
+    // Sendmode's v3 docs — normalizePhone() already gives us exactly that,
+    // no extra conversion needed (unlike the old, incorrect v2 integration).
+    mobile_number: recipient
   };
-  // A per-message reference — comes back in delivery reports, handy for
-  // matching a report back to a booking while troubleshooting.
-  if (bookingId) messageJson.customerid = String(bookingId);
+  // A per-message reference — comes back in webhook callbacks/delivery
+  // reports, handy for matching a report back to a booking while
+  // troubleshooting, without changing anything about how the SMS sends.
+  if (bookingId) payload.customer_id = String(bookingId);
 
   try {
     const res = await fetch(SENDMODE_API_URL, {
       method: 'POST',
       headers: {
         Authorization: SENDMODE_API_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/json'
       },
-      body: new URLSearchParams({ message: JSON.stringify(messageJson) })
+      body: JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.statusCode !== 0) {
-      throw new Error((data && data.error) || (data && data.status) || `Sendmode error (HTTP ${res.status})`);
+    if (!res.ok || data.is_successful !== true) {
+      throw new Error((data && data.error_message) || `Sendmode error (HTTP ${res.status})`);
     }
     models.logNotification({ type: `${type}-sms`, bookingId, recipient, subject: body.slice(0, 60), text: body, status: 'sent' });
   } catch (err) {
