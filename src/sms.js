@@ -24,16 +24,18 @@ const { normalizePhone } = require('./phoneUtils');
 const SENDMODE_API_URL = 'https://sms-rest.sendmode.dev/3.0/send';
 
 // sender_id is a REQUIRED field on every v3 request (max 15 chars,
-// alphanumeric). "HolyCross" was never actually submitted to Sendmode for
-// ComReg approval (CONFIRMED with Sendmode support, 2026-08-12 — they have
-// no record of any request for it), so it's currently unauthorised and
-// every send with it gets rejected. Sendmode is submitting the ComReg
-// request now on our behalf. Set via SENDMODE_SENDER_ID in .env / Render —
-// this hardcoded default is only what's used if that env var is left
-// blank, and should be swapped for a confirmed-working sender ID once one
-// exists (test with `node test-sendmode.js` and check Sendmode's own Sent
-// SMS report shows a Delivered status before trusting any sender ID here).
-const DEFAULT_SENDER_ID = 'HolyCross';
+// alphanumeric). "HolyCross" has never been registered as a SenderName on
+// the Sendmode account (CONFIRMED by Sendmode's John McNamara, 2026-08-14),
+// so it's currently unauthorised and every send with it fails — the
+// SenderName request is now submitted, pending ComReg approval. In the
+// meantime SENDMODE_SENDER_ID is set to "Repliable" (a working sender,
+// confirmed by a real test on 2026-08-14, AFTER the earlier v2-endpoint
+// bug was fixed — don't confuse this with the earlier failed "Repliable"
+// test, which was against the broken endpoint). Set via SENDMODE_SENDER_ID
+// in .env / Render — this hardcoded default is only what's used if that
+// env var is left blank. Switch back to "HolyCross" here and in Render's
+// env vars once Sendmode confirms ComReg approval.
+const DEFAULT_SENDER_ID = 'Repliable';
 
 function isConfigured() {
   return !!process.env.SENDMODE_API_KEY;
