@@ -41,6 +41,20 @@ let migrated = 0;
 let skippedAlready = 0;
 let skippedMissing = 0;
 
+// data/db.json is JSON-era data — its userId/loggedByUserId/etc. fields
+// were written before (or independent of) the CockroachDB users table, so
+// they don't reliably point at a row that still exists there (especially
+// after fix-serial-ids.js rebuilt that table from scratch earlier in this
+// migration). files.uploaded_by_user_id has a foreign key to users(id), so
+// any id that isn't a real current user gets stored as NULL instead of
+// failing the whole insert — this is just "who uploaded it" metadata, not
+// something the app's behavior depends on.
+let validUserIds = new Set();
+function safeUserId(id) {
+  if (id === null || id === undefined) return null;
+  return validUserIds.has(Number(id)) ? Number(id) : null;
+}
+
 // Reads a "/img/avatars/xyz.jpg"-style value off disk under public/, saves
 // it into the files table, and returns the new "/files/<id>" path — or
 // null if there was nothing to migrate (already migrated, or the on-disk
@@ -51,7 +65,7 @@ async function migrateUrlPath(value, category, uploadedByUserId) {
   const filePath = path.join(ROOT, 'public', value.replace(/^\//, ''));
   if (!fs.existsSync(filePath)) { skippedMissing++; return null; }
   const buffer = fs.readFileSync(filePath);
-  const fileId = await fileStore.saveFile({ category, filename: path.basename(filePath), mimeType: mimeFromExt(filePath), buffer, uploadedByUserId });
+  const fileId = await fileStore.saveFile({ category, filename: path.basename(filePath), mimeType: mimeFromExt(filePath), buffer, uploadedByUserId: safeUserId(uploadedByUserId) });
   migrated++;
   return `/files/${fileId}`;
 }
@@ -60,6 +74,7 @@ async function migrateUsers() {
   const client = await getClient();
   try {
     const { rows } = await client.query(`SELECT id, avatar_path, live_shift_avatar_path FROM users`);
+    validUserIds = new Set(rows.map(u => u.id));
     for (const u of rows) {
       const newAvatar = await migrateUrlPath(u.avatar_path, 'avatar', u.id);
       if (newAvatar) await client.query(`UPDATE users SET avatar_path = $1 WHERE id = $2`, [newAvatar, u.id]);
@@ -93,7 +108,7 @@ async function main() {
     const filePath = path.join(ROOT, 'uploads', 'cash-safe', path.basename(log.photoPath));
     if (!fs.existsSync(filePath)) { skippedMissing++; continue; }
     const buffer = fs.readFileSync(filePath);
-    const fileId = await fileStore.saveFile({ category: 'cash_safe_photo', filename: path.basename(filePath), mimeType: mimeFromExt(filePath), buffer, uploadedByUserId: log.loggedByUserId });
+    const fileId = await fileStore.saveFile({ category: 'cash_safe_photo', filename: path.basename(filePath), mimeType: mimeFromExt(filePath), buffer, uploadedByUserId: safeUserId(log.loggedByUserId) });
     log.photoPath = String(fileId);
     migrated++;
   }
@@ -105,7 +120,7 @@ async function main() {
       const filePath = path.join(ROOT, 'uploads', 'reports', path.basename(file.path));
       if (!fs.existsSync(filePath)) { skippedMissing++; continue; }
       const buffer = fs.readFileSync(filePath);
-      const fileId = await fileStore.saveFile({ category: 'report_photo', filename: file.originalName || path.basename(filePath), mimeType: file.mimeType, buffer, uploadedByUserId: report.reportedByUserId });
+      const fileId = await fileStore.saveFile({ category: 'report_photo', filename: file.originalName || path.basename(filePath), mimeType: file.mimeType, buffer, uploadedByUserId: safeUserId(report.reportedByUserId) });
       file.path = `db:${fileId}`;
       migrated++;
     }
