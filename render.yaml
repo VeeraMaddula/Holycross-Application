@@ -28,6 +28,8 @@ services:
         value: production
       - key: PERSIST_DIR
         value: /var/data
+      - key: DATABASE_URL
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
