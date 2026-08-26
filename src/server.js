@@ -1,6 +1,14 @@
 require('dotenv').config();
 require('./persist').setupPersistence();
 const express = require('express');
+// Patches Express 4's router so a rejected promise from an `async (req,
+// res) => {...}` route handler is forwarded to the error-handling
+// middleware at the bottom of this file, instead of becoming an unhandled
+// rejection that crashes the whole process (Node 15+ exits on those by
+// default) and hangs the one request that triggered it forever. Must be
+// required before any routers are defined/used. Express 5 does this
+// natively; this app is still on Express 4.
+require('express-async-errors');
 const session = require('express-session');
 const helmet = require('helmet');
 const path = require('path');
@@ -139,31 +147,49 @@ app.use(csrfMiddleware);
 // avatar/role changes show up immediately without needing to log out and back in.
 app.use(async (req, res, next) => {
   res.locals.currentPath = req.path;
-  res.locals.isAuthed = !!(req.session && req.session.userId);
   if (req.session && req.session.userId) {
     const dbUser = await models.getUserById(req.session.userId);
-    res.locals.currentUser = dbUser
-      ? {
-          id: dbUser.id,
-          name: dbUser.name,
-          firstName: (dbUser.name || '').trim().split(/\s+/)[0] || dbUser.name,
-          role: dbUser.role,
-          roleLabel: ROLE_LABELS[dbUser.role] || dbUser.role,
-          avatarPath: dbUser.liveShiftAvatarPath || dbUser.avatarPath || '',
-          canViewTimesheets: !!dbUser.canViewTimesheets,
-          canManageRoster: !!dbUser.canManageRoster,
-          canMakeRequests: !!dbUser.canMakeRequests,
-          canBookFunctions: !!dbUser.canBookFunctions,
-          canViewNotifications: !!dbUser.canViewNotifications,
-          canManageCashSafe: !!dbUser.canManageCashSafe,
-          canViewLogs: !!dbUser.canViewLogs,
-          canEditDuties: !!dbUser.canEditDuties,
-          canEditTraining: !!dbUser.canEditTraining,
-          privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
-          privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
-        }
-      : { name: req.session.name, firstName: req.session.name, role: req.session.role, roleLabel: ROLE_LABELS[req.session.role] || req.session.role, avatarPath: '', canViewTimesheets: false, canManageRoster: false, canMakeRequests: false, canBookFunctions: false, canViewNotifications: false, canManageCashSafe: false, canViewLogs: false, canEditDuties: false, canEditTraining: false, privacyPolicyVersionRaw: null, privacyPolicyAcceptedAtRaw: null };
+    if (!dbUser) {
+      // The session points at a user id that no longer exists in the
+      // database (deleted account, factory reset, or — during this
+      // CockroachDB migration — a browser still holding a session cookie
+      // from before the cutover, whose id doesn't match any row in the new
+      // DB). Treat this as logged-out rather than building a fake partial
+      // user object from stale session fields: that fake object has no
+      // `.id`, and code downstream (e.g. accept-privacy) that calls
+      // models.*(user.id, ...) would pass `undefined` through to a SQL
+      // query and crash the whole process. Destroying the session here is
+      // also just more correct — a deleted/reset account shouldn't still
+      // be able to act on anything.
+      return req.session.destroy(() => {
+        res.locals.isAuthed = false;
+        res.locals.currentUser = null;
+        res.locals.roles = ROLES;
+        next();
+      });
+    }
+    res.locals.isAuthed = true;
+    res.locals.currentUser = {
+      id: dbUser.id,
+      name: dbUser.name,
+      firstName: (dbUser.name || '').trim().split(/\s+/)[0] || dbUser.name,
+      role: dbUser.role,
+      roleLabel: ROLE_LABELS[dbUser.role] || dbUser.role,
+      avatarPath: dbUser.liveShiftAvatarPath || dbUser.avatarPath || '',
+      canViewTimesheets: !!dbUser.canViewTimesheets,
+      canManageRoster: !!dbUser.canManageRoster,
+      canMakeRequests: !!dbUser.canMakeRequests,
+      canBookFunctions: !!dbUser.canBookFunctions,
+      canViewNotifications: !!dbUser.canViewNotifications,
+      canManageCashSafe: !!dbUser.canManageCashSafe,
+      canViewLogs: !!dbUser.canViewLogs,
+      canEditDuties: !!dbUser.canEditDuties,
+      canEditTraining: !!dbUser.canEditTraining,
+      privacyPolicyVersionRaw: dbUser.privacyPolicyVersion || null,
+      privacyPolicyAcceptedAtRaw: dbUser.privacyPolicyAcceptedAt || null
+    };
   } else {
+    res.locals.isAuthed = false;
     res.locals.currentUser = null;
   }
   res.locals.roles = ROLES;
@@ -253,6 +279,21 @@ app.use('/logs', requireAuth, requireLogsAccess, require('./routes/logs'));
 
 app.use((req, res) => {
   res.status(404).render('404');
+});
+
+// Last-resort catch-all. Express 5 forwards a rejected promise from an
+// async route handler to this automatically (no need for a manual
+// try/catch or next(err) in every route) — but without an error-handling
+// middleware here, an uncaught rejection anywhere in the request pipeline
+// (a bad query, a stale/mismatched id, a network blip talking to
+// CockroachDB, etc.) crashes the entire Node process and takes down every
+// other in-flight request with it. This turns that into a normal 500
+// response for the one request that failed, and logs it server-side so
+// it's still visible, without killing the app for everyone else.
+app.use((err, req, res, next) => {
+  console.error('Unhandled request error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).render('500');
 });
 
 // Startup sequence is now async (bootstrapAdmin queries CockroachDB) — the
