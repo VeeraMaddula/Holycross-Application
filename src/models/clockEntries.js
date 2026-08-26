@@ -3,8 +3,17 @@
 // password, punched in on the shared tablet rather than typed on a keyboard.
 const { readDb, writeDb } = require('../db');
 const { hashPassword, verifyPassword } = require('../password');
-const { listUsers, getUserById } = require('./users');
+const { listUsers, getUserById, setUserPinHash, setLiveShiftAvatar } = require('./users');
 const { toDateStr } = require('../dateUtils');
+
+// NOTE ON MIXED SYNC/ASYNC: users now live in CockroachDB (async), but
+// clock entries (timeEntries) are still in data/db.json (sync) until this
+// file's own turn in the migration (task #207). Functions that only touch
+// timeEntries stay sync; anything that touches a user (PIN, live shift
+// avatar, staff roster) is now async because users.js is. Every caller of
+// an async function below has been updated to await it — see routes/kiosk.js,
+// routes/profile.js, routes/timesheets.js, routes/dashboard.js,
+// routes/staffStatus.js, routes/myShifts.js.
 
 // Status is derived from each user's most recent time entry rather than
 // stored separately, so there's a single source of truth:
@@ -53,8 +62,9 @@ function nextValidAction(status) {
   return null;
 }
 
-function listAllStaffStatus() {
-  return listUsers().filter(u => u.active).map(u => {
+async function listAllStaffStatus() {
+  const users = (await listUsers()).filter(u => u.active);
+  return users.map(u => {
     const status = getStaffStatus(u.id);
     const clockInAt = (status.status === 'clocked_in' || status.status === 'on_break')
       ? getCurrentShiftStart(u.id)
@@ -71,19 +81,17 @@ function isValidPin(pin) {
   return typeof pin === 'string' && /^\d{4}$/.test(pin);
 }
 
-function setUserPin(id, pin) {
+async function setUserPin(id, pin) {
   if (!isValidPin(pin)) return { error: 'PIN must be exactly 4 digits.' };
-  const db = readDb();
-  const u = (db.users || []).find(x => x.id === Number(id));
+  const u = await getUserById(id);
   if (!u) return { error: 'User not found.' };
-  u.pinHash = hashPassword(pin);
-  writeDb(db);
+  await setUserPinHash(u.id, hashPassword(pin));
   return { ok: true };
 }
 
-function verifyUserPin(id, pin) {
+async function verifyUserPin(id, pin) {
   if (!isValidPin(pin)) return false;
-  const u = getUserById(id);
+  const u = await getUserById(id);
   if (!u || !u.pinHash) return false;
   return verifyPassword(pin, u.pinHash);
 }
@@ -92,12 +100,10 @@ function verifyUserPin(id, pin) {
 // place of the person's saved profile picture for the rest of their shift,
 // separate from (and never overwriting) their actual avatarPath. Cleared
 // back to '' on clock-out so their saved picture reappears everywhere.
-function setUserLiveShiftAvatar(id, avatarPath) {
-  const db = readDb();
-  const u = (db.users || []).find(x => x.id === Number(id));
+async function setUserLiveShiftAvatar(id, avatarPath) {
+  const u = await getUserById(id);
   if (!u) return { error: 'User not found.' };
-  u.liveShiftAvatarPath = avatarPath || '';
-  writeDb(db);
+  await setLiveShiftAvatar(u.id, avatarPath || '');
   return { ok: true };
 }
 
@@ -106,8 +112,9 @@ function setUserLiveShiftAvatar(id, avatarPath) {
 // in). Includes live status + since (for the running clocked-in/break timer
 // on each tile) and the effective avatar (live shift photo if there is one,
 // otherwise their saved profile picture).
-function getKioskRoster() {
-  return listUsers().filter(u => u.active && u.role !== 'kiosk').map(u => {
+async function getKioskRoster() {
+  const users = (await listUsers()).filter(u => u.active && u.role !== 'kiosk');
+  return users.map(u => {
     const status = getStaffStatus(u.id);
     return {
       id: u.id,
@@ -159,10 +166,10 @@ const CLOCK_ACTIONS = ['clock_in', 'clock_out', 'break_start', 'break_end'];
 // to tap in or out. No selfie (that only happens at the kiosk); flagged as
 // manuallyAdded plus who added it, so it's clear in the log this didn't
 // come from the tablet.
-function addManualClockEntry({ userId, action, at, addedBy }) {
-  const db = readDb();
-  const user = (db.users || []).find(u => u.id === Number(userId));
+async function addManualClockEntry({ userId, action, at, addedBy }) {
+  const user = await getUserById(userId);
   if (!user) return { error: 'Staff member not found.' };
+  const db = readDb();
   if (!CLOCK_ACTIONS.includes(action)) return { error: 'Please choose a valid action.' };
   const atDate = at ? new Date(at) : new Date();
   if (isNaN(atDate.getTime())) return { error: 'Please enter a valid date and time.' };

@@ -8,6 +8,10 @@
 const { readDb, writeDb } = require('../db');
 const { toDateStr } = require('../dateUtils');
 const { defaultColorForId } = require('./shared');
+const { getUserById, listUsers } = require('./users');
+// NOTE: rosterShifts themselves are still JSON (this file's own turn in the
+// migration hasn't happened yet — task #207); only the user lookups here
+// are now async SQL, same mixed-async pattern as clockEntries.js.
 
 function dateToDayOfWeek(dateStr) {
   return new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun..6=Sat
@@ -25,9 +29,9 @@ function eachDateInRange(fromDate, toDate) {
 }
 
 // Shifts within a date range, joined with staff name/colour for the roster grid.
-function listRosterShiftsForRange(fromDate, toDate) {
+async function listRosterShiftsForRange(fromDate, toDate) {
   const db = readDb();
-  const users = db.users || [];
+  const users = await listUsers();
   const shifts = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate);
   return shifts.map(s => {
     const user = users.find(u => u.id === s.userId);
@@ -39,7 +43,7 @@ function listRosterShiftsForRange(fromDate, toDate) {
   });
 }
 
-function addRosterShift({ date, userId, startTime, endTime }) {
+async function addRosterShift({ date, userId, startTime, endTime }) {
   const db = readDb();
   if (!db.rosterShifts) db.rosterShifts = [];
   if (!db.meta.nextRosterShiftId) db.meta.nextRosterShiftId = 1;
@@ -51,11 +55,11 @@ function addRosterShift({ date, userId, startTime, endTime }) {
   };
   db.rosterShifts.push(shift);
   writeDb(db);
-  const user = (db.users || []).find(u => u.id === shift.userId);
+  const user = await getUserById(shift.userId);
   return { shift: { ...shift, user: user || null } };
 }
 
-function updateRosterShift(id, { date, startTime, endTime }) {
+async function updateRosterShift(id, { date, startTime, endTime }) {
   const db = readDb();
   const shift = (db.rosterShifts || []).find(s => s.id === Number(id));
   if (!shift) return { error: 'Shift not found.' };
@@ -63,7 +67,7 @@ function updateRosterShift(id, { date, startTime, endTime }) {
   if (startTime) shift.startTime = startTime;
   if (endTime) shift.endTime = endTime;
   writeDb(db);
-  const user = (db.users || []).find(u => u.id === shift.userId);
+  const user = await getUserById(shift.userId);
   return { shift: { ...shift, user: user || null } };
 }
 
@@ -74,8 +78,8 @@ function removeRosterShift(id) {
 }
 
 // Groups shifts by date for a range. Returns [{ date, dayOfWeek, shifts: [...] }, ...].
-function getResolvedScheduleForRange(fromDate, toDate) {
-  const shifts = listRosterShiftsForRange(fromDate, toDate);
+async function getResolvedScheduleForRange(fromDate, toDate) {
+  const shifts = await listRosterShiftsForRange(fromDate, toDate);
   return eachDateInRange(fromDate, toDate).map(date => {
     const dayShifts = shifts
       .filter(s => s.date === date)
@@ -84,8 +88,8 @@ function getResolvedScheduleForRange(fromDate, toDate) {
   });
 }
 
-function getUserUpcomingShifts(userId, fromDate, toDate) {
-  const schedule = getResolvedScheduleForRange(fromDate, toDate);
+async function getUserUpcomingShifts(userId, fromDate, toDate) {
+  const schedule = await getResolvedScheduleForRange(fromDate, toDate);
   const uid = Number(userId);
   return schedule
     .map(day => ({ date: day.date, dayOfWeek: day.dayOfWeek, shifts: day.shifts.filter(s => s.userId === uid) }))

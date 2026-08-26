@@ -31,7 +31,20 @@ CREATE TABLE users (
   can_view_logs             BOOLEAN NOT NULL DEFAULT false,
   can_edit_duties           BOOLEAN NOT NULL DEFAULT false,
   can_edit_training         BOOLEAN NOT NULL DEFAULT false,
-  privacy_ack_at TIMESTAMPTZ,
+  -- Kiosk clock-in PIN (hashed, same as password_hash) and the avatar shown
+  -- while actively clocked in (separate from the normal profile avatar).
+  pin_hash             TEXT,
+  live_shift_avatar_path TEXT,
+  -- Forgot-password-by-email token (passwordReset.js) — one-time, 1hr TTL.
+  reset_token_hash      TEXT,
+  reset_token_expires_at TIMESTAMPTZ,
+  -- Self-service verification code (selfVerification.js) — used from the
+  -- Profile page to confirm a password or PIN change while logged in.
+  self_verify_code_hash TEXT,
+  self_verify_purpose   TEXT,
+  self_verify_expires_at TIMESTAMPTZ,
+  privacy_policy_version TEXT,
+  privacy_policy_accepted_at TIMESTAMPTZ,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -202,22 +215,12 @@ CREATE TABLE cash_lodgement_history (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE password_resets (
-  id         SERIAL PRIMARY KEY,
-  user_id    INT NOT NULL REFERENCES users(id),
-  token_hash TEXT NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  used_at    TIMESTAMPTZ
-);
-
-CREATE TABLE verification_codes (
-  id         SERIAL PRIMARY KEY,
-  user_id    INT NOT NULL REFERENCES users(id),
-  code_hash  TEXT NOT NULL,
-  purpose    TEXT,
-  expires_at TIMESTAMPTZ NOT NULL,
-  used_at    TIMESTAMPTZ
-);
+-- Note: password-reset tokens and self-verification codes are NOT separate
+-- tables — matching the current JSON model, they live as columns directly
+-- on the users row (reset_token_hash/reset_token_expires_at,
+-- self_verify_code_hash/self_verify_purpose/self_verify_expires_at above).
+-- Each user only ever has one active token/code at a time, so a join table
+-- would be pure overhead here.
 
 -- Singleton settings row (slotDurationMinutes, reminderHoursBefore, openHour,
 -- closeHour, cashSafeLodgementTarget) — kept as JSONB since it's a small,
