@@ -1,5 +1,4 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const router = express.Router();
@@ -8,9 +7,12 @@ const notify = require('../notify');
 const { isValidPassword, PASSWORD_RULES } = require('../password');
 const { toDateStr, todayStr } = require('../dateUtils');
 const { forgotLimiter } = require('../rateLimiters');
+const fileStore = require('../fileStore');
 
+// Kept only as a fallback target for cleaning up pre-migration on-disk
+// avatars (see fileStore.deleteStoredImageRef) — new uploads go into
+// CockroachDB instead.
 const AVATAR_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'avatars');
-fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -53,17 +55,9 @@ function buildWeekSummary(userId) {
 
 const ALLOWED_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, AVATAR_DIR),
-  filename: (req, file, cb) => {
-    const ext = ALLOWED_TYPES[file.mimetype] || '.jpg';
-    cb(null, `user-${req.session.userId}-${Date.now()}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: fileStore.MAX_IMAGE_BYTES },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_TYPES[file.mimetype]) {
       return cb(new Error('Please upload a JPG, PNG, or WEBP image.'));
@@ -96,13 +90,25 @@ router.post('/avatar', (req, res) => {
       return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: buildWeekSummary(user.id) });
     }
 
-    // Remove the old avatar file (if any) so we don't accumulate old uploads.
-    if (user.avatarPath) {
-      const oldFile = path.join(AVATAR_DIR, path.basename(user.avatarPath));
-      fs.unlink(oldFile, () => {});
+    let newFileId;
+    try {
+      newFileId = await fileStore.saveFile({
+        category: 'avatar',
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        buffer: req.file.buffer,
+        uploadedByUserId: req.session.userId
+      });
+    } catch (fileErr) {
+      const message = fileErr.message || 'Photo upload failed.';
+      if (wantsJson) return res.status(400).json({ error: message });
+      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: buildWeekSummary(user.id) });
     }
+    // Remove the old avatar (DB row or, for pre-migration data, disk file)
+    // now that the new one is safely saved.
+    fileStore.deleteStoredImageRef(user.avatarPath, AVATAR_DIR);
 
-    const newAvatarPath = `/img/avatars/${req.file.filename}`;
+    const newAvatarPath = `/files/${newFileId}`;
     await models.setUserAvatar(req.session.userId, newAvatarPath);
     req.session.avatarPath = newAvatarPath;
 
@@ -115,10 +121,7 @@ router.post('/avatar', (req, res) => {
 
 router.post('/avatar/remove', async (req, res) => {
   const user = await models.getUserById(req.session.userId);
-  if (user.avatarPath) {
-    const oldFile = path.join(AVATAR_DIR, path.basename(user.avatarPath));
-    fs.unlink(oldFile, () => {});
-  }
+  fileStore.deleteStoredImageRef(user.avatarPath, AVATAR_DIR);
   await models.setUserAvatar(req.session.userId, '');
   req.session.avatarPath = '';
   res.redirect('/profile');

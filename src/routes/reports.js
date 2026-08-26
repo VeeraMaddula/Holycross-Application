@@ -7,11 +7,16 @@ const router = express.Router();
 const models = require('../models');
 const notify = require('../notify');
 const { ROLE_LABELS, MANAGER_ROLES } = require('../roles');
+const fileStore = require('../fileStore');
 
 // Report evidence (photos, screenshots, chat exports) can be genuinely
 // sensitive, so — unlike avatars — these never live under public/ where
-// they'd be reachable by anyone who guesses/finds the URL. They're served
-// back out through the authenticated route at the bottom of this file.
+// they'd be reachable by anyone who guesses/finds the URL. Images go into
+// CockroachDB (category 'report_photo'); video/audio/PDF/Word/text
+// attachments stay on disk here — CockroachDB recommends keeping stored
+// BYTES values under ~1MB, and these are allowed up to 20MB, so they're not
+// a fit for the files table. Both kinds are served back out through the
+// same authenticated route at the bottom of this file.
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'reports');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -29,14 +34,52 @@ const ALLOWED_TYPES = {
   'text/plain': '.txt'
 };
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-    filename: (req, file, cb) => {
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+// Custom storage: images are buffered and saved straight into CockroachDB
+// (the resulting file gets a `.dbFileId` instead of `.path`/`.filename`);
+// everything else streams to disk exactly as before. multer only supports
+// one storage engine per instance, hence the branch on mimetype here rather
+// than two separate multer() configs for one 'files' field.
+const mixedStorage = {
+  _handleFile(req, file, cb) {
+    if (IMAGE_MIME_TYPES.has(file.mimetype)) {
+      const chunks = [];
+      file.stream.on('data', (chunk) => chunks.push(chunk));
+      file.stream.on('error', cb);
+      file.stream.on('end', async () => {
+        const buffer = Buffer.concat(chunks);
+        try {
+          const dbFileId = await fileStore.saveFile({
+            category: 'report_photo',
+            filename: file.originalname,
+            mimeType: file.mimetype,
+            buffer,
+            uploadedByUserId: req.session && req.session.userId
+          });
+          cb(null, { dbFileId, size: buffer.length });
+        } catch (err) {
+          cb(err);
+        }
+      });
+    } else {
       const ext = ALLOWED_TYPES[file.mimetype] || '';
-      cb(null, `report-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+      const filename = `report-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+      const outPath = path.join(UPLOAD_DIR, filename);
+      const outStream = fs.createWriteStream(outPath);
+      file.stream.pipe(outStream);
+      outStream.on('error', cb);
+      outStream.on('finish', () => cb(null, { path: outPath, filename, size: outStream.bytesWritten }));
     }
-  }),
+  },
+  _removeFile(req, file, cb) {
+    if (file.path) return fs.unlink(file.path, () => cb(null));
+    cb(null);
+  }
+};
+
+const upload = multer({
+  storage: mixedStorage,
   limits: { fileSize: 20 * 1024 * 1024, files: 5 },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_TYPES[file.mimetype]) return cb(new Error(`"${file.originalname}" isn't a supported file type.`));
@@ -71,15 +114,21 @@ router.post('/', (req, res) => {
     if (err) return await renderPage(req, res, 400, err.message || 'Upload failed.');
 
     const { category, details, recipientUserId } = req.body;
-    const cleanupUploaded = () => (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+    const cleanupUploaded = () => (req.files || []).forEach(f => {
+      if (f.dbFileId) fileStore.deleteFile(f.dbFileId).catch(() => {});
+      else if (f.path) fs.unlink(f.path, () => {});
+    });
 
     if (!category || !details || !recipientUserId) {
       cleanupUploaded();
       return await renderPage(req, res, 400, 'Category, recipient, and details are all required.');
     }
 
+    // Images already saved into CockroachDB by mixedStorage above get a
+    // "db:<id>" marker instead of a disk filename — the serving route below
+    // knows to tell the two apart.
     const files = (req.files || []).map(f => ({
-      path: f.filename,
+      path: f.dbFileId ? `db:${f.dbFileId}` : f.filename,
       originalName: f.originalname,
       mimeType: f.mimetype,
       size: f.size
@@ -120,7 +169,7 @@ router.post('/:id/reviewed', (req, res) => {
 // even if they guess a valid-looking URL. The Logs-access allowance exists
 // so the Reports section of /logs can actually show evidence thumbnails to
 // managers who weren't the original reporter/recipient.
-router.get('/file/:reportId/:filename', (req, res) => {
+router.get('/file/:reportId/:filename', async (req, res) => {
   const report = models.getReport(req.params.reportId);
   if (!report) return res.status(404).render('404');
   const uid = Number(req.session.userId);
@@ -130,6 +179,9 @@ router.get('/file/:reportId/:filename', (req, res) => {
   if (!isAllowed) return res.status(403).render('403');
   const file = report.files.find(f => f.path === req.params.filename);
   if (!file) return res.status(404).render('404');
+  if (file.path.startsWith('db:')) {
+    return fileStore.sendStoredFile(res, file.path.slice(3), 'report_photo');
+  }
   res.sendFile(path.join(UPLOAD_DIR, file.path));
 });
 

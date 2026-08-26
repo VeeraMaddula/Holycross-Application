@@ -233,3 +233,22 @@ CREATE TABLE settings (
 -- Note: "meta" (nextBookingId, nextTableId, etc. counters in db.json) goes
 -- away entirely — every table above uses SERIAL primary keys, so the
 -- database generates the next ID itself. No equivalent table needed.
+
+-- Actual photo bytes (kiosk clock-in/break/duty selfies, profile/admin
+-- avatars, Cash Safe photos, Training recipe photos, Report image
+-- attachments) — see src/fileStore.js. Deliberately images only: CockroachDB
+-- recommends keeping BYTES values under ~1MB for performance (see
+-- https://www.cockroachlabs.com/docs/stable/bytes), so anything larger
+-- (Training's how-to videos, Reports' video/audio/PDF/Word attachments)
+-- stays on the persistent disk (PERSIST_DIR — see src/persist.js) instead of
+-- going through this table.
+CREATE TABLE files (
+  id                  SERIAL PRIMARY KEY,
+  category            TEXT NOT NULL, -- 'avatar' | 'clock_selfie' | 'duty_photo' | 'cash_safe_photo' | 'training_photo' | 'report_photo'
+  filename            TEXT NOT NULL, -- display/original filename, not a disk path
+  mime_type           TEXT NOT NULL,
+  size_bytes          INT NOT NULL,
+  data                BYTES NOT NULL,
+  uploaded_by_user_id INT REFERENCES users(id),
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);

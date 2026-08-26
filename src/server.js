@@ -254,6 +254,11 @@ app.use('/', require('./routes/auth'));
 app.use('/book', require('./routes/publicBooking'));
 app.use('/our-menu', require('./routes/publicMenu'));
 app.use('/privacy', require('./routes/publicPrivacy'));
+// Stored-in-CockroachDB photos (avatars, kiosk selfies, duty photos,
+// training photos) — public, same access level as the public/img/ static
+// files they replaced. See src/routes/publicFiles.js for the category
+// allowlist that keeps cash-safe/report photos out of this route.
+app.use('/files', require('./routes/publicFiles'));
 
 app.use('/', requireAuth, require('./routes/privacy'));
 app.use('/profile', requireAuth, require('./routes/profile'));

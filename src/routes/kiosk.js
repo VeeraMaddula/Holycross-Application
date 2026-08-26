@@ -1,69 +1,46 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const multer = require('multer');
 const router = express.Router();
 const models = require('../models');
 const notify = require('../notify');
 const pinLockout = require('../pinLockout');
 const { kioskPinLimiter, forgotLimiter } = require('../rateLimiters');
+const fileStore = require('../fileStore');
 
-// Shares the same folder as the profile-page avatar upload (src/routes/profile.js)
-// since a kiosk clock-in photo becomes that person's profile picture — same
-// thing, just captured on the shared tablet instead of uploaded by hand.
+// AVATAR_DIR is kept around only as a fallback for cleaning up any avatar
+// still pointing at a pre-migration on-disk path (see dropLiveShiftFile
+// below) — new uploads no longer write here, they go into CockroachDB via
+// fileStore (see db/schema.sql's files table).
 const AVATAR_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'avatars');
-fs.mkdirSync(AVATAR_DIR, { recursive: true });
-
-// A permanent archive of every clock-in/break photo, separate from
-// AVATAR_DIR above — the avatars/ copy becomes the person's "live" tile
-// picture and gets deleted the moment their NEXT clock action happens (see
-// dropLiveShiftFile below), so it can't be relied on to still exist by the
-// time anyone looks at historical clock entries (e.g. the Logs page).
-// Nothing ever deletes from here.
-const CLOCK_SELFIE_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'clock-selfies');
-fs.mkdirSync(CLOCK_SELFIE_DIR, { recursive: true });
 
 const ALLOWED_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
+// memoryStorage — the captured photo lands in req.file.buffer instead of on
+// disk, so the handlers below can hand it straight to fileStore.saveFile().
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, AVATAR_DIR),
-    // Doesn't depend on req.body (userId arrives as a separate multipart
-    // field and isn't reliably parsed yet when this callback fires) — a
-    // timestamp + random suffix is enough to keep filenames unique.
-    filename: (req, file, cb) => {
-      const ext = ALLOWED_TYPES[file.mimetype] || '.jpg';
-      cb(null, `kiosk-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
-    }
-  }),
-  limits: { fileSize: 3 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: fileStore.MAX_IMAGE_BYTES },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_TYPES[file.mimetype]) return cb(new Error('Please capture a photo to continue.'));
     cb(null, true);
   }
 });
-
-// Separate folder for the After Breakfast / After Carvery Duties "who's
-// submitting + live photo" step (src/persist.js also needs to know about
-// this directory so it survives redeploys on a hosted instance).
-const DUTY_PHOTO_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'duty-photos');
-fs.mkdirSync(DUTY_PHOTO_DIR, { recursive: true });
 
 const dutyPhotoUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, DUTY_PHOTO_DIR),
-    filename: (req, file, cb) => {
-      const ext = ALLOWED_TYPES[file.mimetype] || '.jpg';
-      cb(null, `duty-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
-    }
-  }),
-  limits: { fileSize: 3 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: fileStore.MAX_IMAGE_BYTES },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_TYPES[file.mimetype]) return cb(new Error('Please capture a photo to continue.'));
     cb(null, true);
   }
 });
+
+// Deletes whatever the person's previous "live shift" photo was.
+function dropLiveShiftFile(oldPath) {
+  fileStore.deleteStoredImageRef(oldPath, AVATAR_DIR);
+}
 
 // These two sections specifically ask "who's submitting?" and take a live
 // photo as part of Submit — Opening and Closing don't, since they close out
@@ -159,32 +136,43 @@ router.post('/action', kioskPinLimiter, (req, res) => {
       return res.status(400).json({ error: 'That action is no longer available — please try again.' });
     }
 
-    // Only ever deletes the temporary live-shift photo file — never the
-    // person's actual saved profile picture (public/img/avatars/user-*).
-    function dropLiveShiftFile() {
-      if (user.liveShiftAvatarPath) {
-        fs.unlink(path.join(AVATAR_DIR, path.basename(user.liveShiftAvatarPath)), () => {});
-      }
-    }
-
     let effectiveAvatarPath;
     let archivedSelfiePath = '';
     if (PHOTO_ACTIONS.includes(action)) {
       if (!req.file) return res.status(400).json({ error: 'A photo is required for this step.' });
-      dropLiveShiftFile();
-      effectiveAvatarPath = `/img/avatars/${req.file.filename}`;
-      await models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
-      // Permanent copy for the clock-entry log — see CLOCK_SELFIE_DIR above.
-      const archiveFilename = `selfie-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${path.extname(req.file.filename)}`;
+      dropLiveShiftFile(user.liveShiftAvatarPath);
+      let avatarFileId;
       try {
-        fs.copyFileSync(req.file.path, path.join(CLOCK_SELFIE_DIR, archiveFilename));
-        archivedSelfiePath = `/img/clock-selfies/${archiveFilename}`;
-      } catch (err) {
-        console.error('Failed to archive clock-in selfie:', err.message);
+        avatarFileId = await fileStore.saveFile({
+          category: 'avatar',
+          filename: req.file.originalname,
+          mimeType: req.file.mimetype,
+          buffer: req.file.buffer,
+          uploadedByUserId: user.id
+        });
+      } catch (fileErr) {
+        return res.status(400).json({ error: fileErr.message || 'Photo upload failed.' });
+      }
+      effectiveAvatarPath = `/files/${avatarFileId}`;
+      await models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
+      // Permanent copy for the clock-entry log — same bytes, its own row, so
+      // it survives independently of the "live" copy above (which gets
+      // deleted the moment the person's NEXT clock action happens).
+      try {
+        const archiveFileId = await fileStore.saveFile({
+          category: 'clock_selfie',
+          filename: req.file.originalname,
+          mimeType: req.file.mimetype,
+          buffer: req.file.buffer,
+          uploadedByUserId: user.id
+        });
+        archivedSelfiePath = `/files/${archiveFileId}`;
+      } catch (fileErr) {
+        console.error('Failed to archive clock-in selfie:', fileErr.message);
       }
     } else {
       // clock_out — revert to their saved profile picture (may be '').
-      dropLiveShiftFile();
+      dropLiveShiftFile(user.liveShiftAvatarPath);
       await models.setUserLiveShiftAvatar(user.id, '');
       effectiveAvatarPath = user.avatarPath || '';
     }
@@ -251,13 +239,24 @@ router.post('/duties/submit', (req, res) => {
     if (PHOTO_REQUIRED_SECTIONS.includes(section)) {
       submitter = await models.getUserById(submittedByUserId);
       if (!submitter) {
-        if (req.file) fs.unlink(req.file.path, () => {});
         return res.status(400).json({ error: 'Please select who is submitting this.' });
       }
       if (!req.file) {
         return res.status(400).json({ error: 'A photo is required to submit this.' });
       }
-      photoPath = `/img/duty-photos/${req.file.filename}`;
+      let dutyFileId;
+      try {
+        dutyFileId = await fileStore.saveFile({
+          category: 'duty_photo',
+          filename: req.file.originalname,
+          mimeType: req.file.mimetype,
+          buffer: req.file.buffer,
+          uploadedByUserId: submitter.id
+        });
+      } catch (fileErr) {
+        return res.status(400).json({ error: fileErr.message || 'Photo upload failed.' });
+      }
+      photoPath = `/files/${dutyFileId}`;
     }
 
     const missing = sectionData.tasks.filter(t => !t.done);

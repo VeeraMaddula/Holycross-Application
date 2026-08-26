@@ -1,28 +1,20 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const router = express.Router();
 const models = require('../models');
 const { hashPassword, isValidPassword, PASSWORD_RULES } = require('../password');
+const fileStore = require('../fileStore');
 
-// Same avatar folder used by the profile page's self-service upload and by
-// the kiosk's live shift photos — this route lets an admin set someone's
-// saved profile picture directly from the Users page (e.g. right after
-// creating their account), instead of relying on that person to log in and
-// upload one themselves.
+// This route lets an admin set someone's saved profile picture directly
+// from the Users page (e.g. right after creating their account), instead of
+// relying on that person to log in and upload one themselves. Kept only as
+// a fallback target for cleaning up pre-migration on-disk avatars.
 const AVATAR_DIR = path.join(__dirname, '..', '..', 'public', 'img', 'avatars');
-fs.mkdirSync(AVATAR_DIR, { recursive: true });
 const ALLOWED_AVATAR_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 const avatarUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, AVATAR_DIR),
-    filename: (req, file, cb) => {
-      const ext = ALLOWED_AVATAR_TYPES[file.mimetype] || '.jpg';
-      cb(null, `user-${req.params.id}-${Date.now()}${ext}`);
-    }
-  }),
-  limits: { fileSize: 3 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: fileStore.MAX_IMAGE_BYTES },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_AVATAR_TYPES[file.mimetype]) return cb(new Error('Please upload a JPG, PNG, or WEBP image.'));
     cb(null, true);
@@ -137,10 +129,20 @@ router.post('/:id/avatar', (req, res) => {
     if (message) {
       return res.status(400).render('users/edit', { user, error: null, pinError: null, pinSaved: false, avatarError: message });
     }
-    if (user.avatarPath) {
-      fs.unlink(path.join(AVATAR_DIR, path.basename(user.avatarPath)), () => {});
+    let fileId;
+    try {
+      fileId = await fileStore.saveFile({
+        category: 'avatar',
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        buffer: req.file.buffer,
+        uploadedByUserId: req.session.userId
+      });
+    } catch (fileErr) {
+      return res.status(400).render('users/edit', { user, error: null, pinError: null, pinSaved: false, avatarError: fileErr.message || 'Upload failed.' });
     }
-    await models.setUserAvatar(user.id, `/img/avatars/${req.file.filename}`);
+    fileStore.deleteStoredImageRef(user.avatarPath, AVATAR_DIR);
+    await models.setUserAvatar(user.id, `/files/${fileId}`);
     res.redirect(`/users/${user.id}/edit`);
   });
 });
@@ -148,9 +150,7 @@ router.post('/:id/avatar', (req, res) => {
 router.post('/:id/avatar/remove', async (req, res) => {
   const user = await models.getUserById(req.params.id);
   if (!user) return res.status(404).render('404');
-  if (user.avatarPath) {
-    fs.unlink(path.join(AVATAR_DIR, path.basename(user.avatarPath)), () => {});
-  }
+  fileStore.deleteStoredImageRef(user.avatarPath, AVATAR_DIR);
   await models.setUserAvatar(user.id, '');
   res.redirect(`/users/${user.id}/edit`);
 });
