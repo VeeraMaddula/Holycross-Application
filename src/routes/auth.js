@@ -14,9 +14,9 @@ router.get('/login', (req, res) => {
   res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: false });
 });
 
-router.post('/login', loginLimiter, (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { identifier, countryCode, password, rememberMe } = req.body;
-  const user = models.getUserByLoginIdentifier(identifier || '', countryCode || '');
+  const user = await models.getUserByLoginIdentifier(identifier || '', countryCode || '');
   if (!user || !user.active || !verifyPassword(password || '', user.passwordHash)) {
     return res.render('login', { error: 'Incorrect username/phone number or password.', countryCodes: COUNTRY_CODES, resetSuccess: false });
   }
@@ -38,7 +38,7 @@ router.get('/forgot-password', (req, res) => {
 
 router.post('/forgot-password', forgotLimiter, async (req, res) => {
   const { identifier, countryCode } = req.body;
-  const result = models.createPasswordResetToken(identifier || '', countryCode || '');
+  const result = await models.createPasswordResetToken(identifier || '', countryCode || '');
   if (result && result.user.email) {
     const resetLink = `${req.protocol}://${req.get('host')}/reset-password/${result.token}`;
     const { subject, text } = notify.passwordResetEmail(result.user, resetLink);
@@ -49,14 +49,14 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
   res.render('forgot-password', { sent: true, countryCodes: COUNTRY_CODES });
 });
 
-router.get('/reset-password/:token', (req, res) => {
-  const user = models.getUserByResetToken(req.params.token);
+router.get('/reset-password/:token', async (req, res) => {
+  const user = await models.getUserByResetToken(req.params.token);
   res.render('reset-password', { valid: !!user, error: null, token: req.params.token, passwordRules: PASSWORD_RULES });
 });
 
-router.post('/reset-password/:token', forgotLimiter, (req, res) => {
+router.post('/reset-password/:token', forgotLimiter, async (req, res) => {
   const { password, confirmPassword } = req.body;
-  const user = models.getUserByResetToken(req.params.token);
+  const user = await models.getUserByResetToken(req.params.token);
   if (!user) {
     return res.render('reset-password', { valid: false, error: null, token: req.params.token, passwordRules: PASSWORD_RULES });
   }
@@ -66,7 +66,7 @@ router.post('/reset-password/:token', forgotLimiter, (req, res) => {
   if (!isValidPassword(password || '')) {
     return res.render('reset-password', { valid: true, error: PASSWORD_RULES, token: req.params.token, passwordRules: PASSWORD_RULES });
   }
-  models.resetPasswordWithToken(req.params.token, password);
+  await models.resetPasswordWithToken(req.params.token, password);
   res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: true });
 });
 

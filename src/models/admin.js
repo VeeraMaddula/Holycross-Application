@@ -38,10 +38,10 @@ function clearOperationalData() {
 // fresh admin account so there's always a way back in. Irreversible; the
 // caller (routes/settings.js) is responsible for ending the current
 // session afterwards since the account that was logged in no longer exists.
-function factoryReset(adminEmail, adminPasswordHash) {
+async function factoryReset(adminEmail, adminPasswordHash) {
   const fresh = JSON.parse(JSON.stringify(DEFAULT_DATA));
   writeDb(fresh);
-  return createUser({ name: 'Admin', email: adminEmail, passwordHash: adminPasswordHash, role: 'admin' });
+  return await createUser({ name: 'Admin', email: adminEmail, passwordHash: adminPasswordHash, role: 'admin' });
 }
 
 module.exports = { clearOperationalData, factoryReset };

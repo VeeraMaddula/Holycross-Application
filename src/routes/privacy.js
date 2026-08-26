@@ -19,9 +19,9 @@ router.get('/accept-privacy', (req, res) => {
   });
 });
 
-router.post('/accept-privacy', (req, res) => {
+router.post('/accept-privacy', async (req, res) => {
   const u = res.locals.currentUser;
-  if (u) models.acceptPrivacyPolicy(u.id, STAFF_PRIVACY_VERSION);
+  if (u) await models.acceptPrivacyPolicy(u.id, STAFF_PRIVACY_VERSION);
   res.redirect(req.body.returnTo && req.body.returnTo.startsWith('/') ? req.body.returnTo : '/');
 });
 

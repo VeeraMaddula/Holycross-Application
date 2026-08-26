@@ -63,8 +63,9 @@ function toggleDutyTask({ date, taskId, userId, userName }) {
 
 // Bar Staff currently on shift (clocked in or on break) right now — used to
 // name who's accountable in a duties escalation email.
-function getBarStaffOnShiftNames() {
-  return listAllStaffStatus()
+async function getBarStaffOnShiftNames() {
+  const staff = await listAllStaffStatus();
+  return staff
     .filter(s => s.user.role === 'bar_staff' && (s.status === 'clocked_in' || s.status === 'on_break'))
     .map(s => s.user.name);
 }

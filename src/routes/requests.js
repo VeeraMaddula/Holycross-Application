@@ -27,8 +27,8 @@ function notifyRequest(request) {
   }
 }
 
-function recipientOptions(currentUserId) {
-  return models.listUsers()
+async function recipientOptions(currentUserId) {
+  return (await models.listUsers())
     .filter(u => u.active && u.id !== Number(currentUserId))
     .map(u => ({ id: u.id, name: u.name, roleLabel: ROLE_LABELS[u.role] || u.role }));
 }
@@ -36,10 +36,10 @@ function recipientOptions(currentUserId) {
 // This person's own upcoming shifts (next 4 weeks — same range My Shifts
 // uses), flattened into a plain list for the "drop a shift" / "offer an
 // exchange" dropdowns.
-function myUpcomingShifts(userId) {
+async function myUpcomingShifts(userId) {
   const from = todayStr();
   const to = addDays(from, 27);
-  const days = models.getUserUpcomingShifts(userId, from, to);
+  const days = await models.getUserUpcomingShifts(userId, from, to);
   const flat = [];
   days.forEach(day => day.shifts.forEach(s => flat.push(s)));
   return flat;
@@ -90,51 +90,52 @@ function notifyShiftDropResolved({ kind, dropper, claimant, droppedShift, offerS
   });
 }
 
-function marketplaceLocals(currentUserId) {
+async function marketplaceLocals(currentUserId) {
+  const myShifts = await myUpcomingShifts(currentUserId);
   return {
     openDrops: models.listOpenDrops(),
-    myShifts: myUpcomingShifts(currentUserId).map(s => ({ ...s, startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime) })),
+    myShifts: myShifts.map(s => ({ ...s, startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime) })),
     currentUserId: Number(currentUserId)
   };
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { sent, received } = models.listRequestsForUser(req.session.userId);
   res.render('requests', {
     sent, received,
-    recipients: recipientOptions(req.session.userId),
+    recipients: await recipientOptions(req.session.userId),
     requestTypes: models.REQUEST_TYPES,
     formatTime12,
-    ...marketplaceLocals(req.session.userId),
+    ...(await marketplaceLocals(req.session.userId)),
     error: req.query.error || null
   });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { type, details, recipientUserId } = req.body;
-  const rerender = (status, error) => {
+  const rerender = async (status, error) => {
     const { sent, received } = models.listRequestsForUser(req.session.userId);
     return res.status(status).render('requests', {
       sent, received,
-      recipients: recipientOptions(req.session.userId),
+      recipients: await recipientOptions(req.session.userId),
       requestTypes: models.REQUEST_TYPES,
-      ...marketplaceLocals(req.session.userId),
+      ...(await marketplaceLocals(req.session.userId)),
       error
     });
   };
 
   if (!type || !details || !recipientUserId) {
-    return rerender(400, 'Request type, recipient, and details are all required.');
+    return await rerender(400, 'Request type, recipient, and details are all required.');
   }
 
-  const result = models.createRequest({
+  const result = await models.createRequest({
     type,
     details,
     requestedByUserId: req.session.userId,
     recipientUserId
   });
   if (result.error) {
-    return rerender(400, result.error);
+    return await rerender(400, result.error);
   }
 
   notifyRequest(result.request);
@@ -143,9 +144,9 @@ router.post('/', (req, res) => {
 
 // ---- Shift Marketplace ----
 
-router.post('/shift-drops', (req, res) => {
+router.post('/shift-drops', async (req, res) => {
   const { shiftId } = req.body;
-  const result = models.dropShift({ rosterShiftId: shiftId, userId: req.session.userId });
+  const result = await models.dropShift({ rosterShiftId: shiftId, userId: req.session.userId });
   const qs = result.error ? '?error=' + encodeURIComponent(result.error) : '';
   res.redirect(`/requests${qs}`);
 });
@@ -156,8 +157,8 @@ router.post('/shift-drops/:id/cancel', (req, res) => {
   res.redirect(`/requests${qs}`);
 });
 
-router.post('/shift-drops/:id/pickup', (req, res) => {
-  const result = models.pickUpDrop(req.params.id, req.session.userId);
+router.post('/shift-drops/:id/pickup', async (req, res) => {
+  const result = await models.pickUpDrop(req.params.id, req.session.userId);
   if (result.error) {
     return res.redirect(`/requests?error=${encodeURIComponent(result.error)}`);
   }
@@ -171,9 +172,9 @@ router.post('/shift-drops/:id/pickup', (req, res) => {
   res.redirect('/requests');
 });
 
-router.post('/shift-drops/:id/exchange', (req, res) => {
+router.post('/shift-drops/:id/exchange', async (req, res) => {
   const { offerShiftId } = req.body;
-  const result = models.exchangeDrop(req.params.id, req.session.userId, offerShiftId);
+  const result = await models.exchangeDrop(req.params.id, req.session.userId, offerShiftId);
   if (result.error) {
     return res.redirect(`/requests?error=${encodeURIComponent(result.error)}`);
   }

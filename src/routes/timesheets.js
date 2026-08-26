@@ -76,9 +76,9 @@ function buildShiftTotalsByEntryId(users) {
   return totalsByEntryId;
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { userId, from, to } = req.query;
-  const users = models.listUsers();
+  const users = await models.listUsers();
 
   const fromIso = from ? new Date(from + 'T00:00:00').toISOString() : undefined;
   const toIso = to ? new Date(to + 'T23:59:59').toISOString() : undefined;
@@ -108,9 +108,9 @@ router.get('/', (req, res) => {
 
 // Manager-entered correction for a shift the kiosk never saw (forgot to tap
 // in or out). Admin/Senior Manager only.
-router.post('/', requireTimesheetEditAccess, (req, res) => {
+router.post('/', requireTimesheetEditAccess, async (req, res) => {
   const { userId, action, at } = req.body;
-  const result = models.addManualClockEntry({ userId, action, at, addedBy: res.locals.currentUser.name });
+  const result = await models.addManualClockEntry({ userId, action, at, addedBy: res.locals.currentUser.name });
   const qs = new URLSearchParams();
   if (req.body.userId) qs.set('userId', req.body.userId);
   if (result.error) qs.set('addError', result.error);
@@ -142,9 +142,9 @@ router.post('/:id/delete', requireTimesheetEditAccess, (req, res) => {
 // same summary math as the on-page "summary" table, just exported. Anyone
 // who can view Timesheets (Admin, Senior Manager, Floor Manager, or a
 // granted individual) can download it.
-router.get('/export', (req, res) => {
+router.get('/export', async (req, res) => {
   const { userId, from, to } = req.query;
-  const users = models.listUsers();
+  const users = await models.listUsers();
 
   const fromIso = from ? new Date(from + 'T00:00:00').toISOString() : undefined;
   const toIso = to ? new Date(to + 'T23:59:59').toISOString() : undefined;

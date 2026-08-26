@@ -29,89 +29,89 @@ const avatarUpload = multer({
   }
 });
 
-router.get('/', (req, res) => {
-  res.render('users/list', { users: models.listUsers(), error: null, currentUserId: req.session.userId });
+router.get('/', async (req, res) => {
+  res.render('users/list', { users: await models.listUsers(), error: null, currentUserId: req.session.userId });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, username, email, password, role, phone, dob, sex, location, pin } = req.body;
   if (!name || !email || !password) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'Name, email and password are all required.',
       currentUserId: req.session.userId
     });
   }
   if (!username) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'Username is required — it\'s what this person will log in with, along with their phone number.',
       currentUserId: req.session.userId
     });
   }
   if (!phone) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'Phone number is required — it\'s used to text staff their shift notifications.',
       currentUserId: req.session.userId
     });
   }
   if (!isValidPassword(password)) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: PASSWORD_RULES,
       currentUserId: req.session.userId
     });
   }
-  if (models.getUserByUsername(username)) {
+  if (await models.getUserByUsername(username)) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'A user with that username already exists.',
       currentUserId: req.session.userId
     });
   }
-  if (models.getUserByEmail(email)) {
+  if (await models.getUserByEmail(email)) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'A user with that email already exists.',
       currentUserId: req.session.userId
     });
   }
   if (pin && !/^\d{4}$/.test(pin)) {
     return res.status(400).render('users/list', {
-      users: models.listUsers(),
+      users: await models.listUsers(),
       error: 'Kiosk PIN must be exactly 4 digits — leave it blank to set one later.',
       currentUserId: req.session.userId
     });
   }
-  const newUser = models.createUser({ name, username, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
+  const newUser = await models.createUser({ name, username, email, passwordHash: hashPassword(password), role, phone, dob, sex, location });
   // Kiosk PIN is optional at creation — set it now if one was entered, so a
   // new starter can be handed straight to the tablet without a second trip
   // through Edit first.
-  if (pin) models.setUserPin(newUser.id, pin);
+  if (pin) await models.setUserPin(newUser.id, pin);
   res.redirect('/users');
 });
 
-router.get('/:id/edit', (req, res) => {
-  const user = models.getUserById(req.params.id);
+router.get('/:id/edit', async (req, res) => {
+  const user = await models.getUserById(req.params.id);
   if (!user) return res.status(404).render('404');
   res.render('users/edit', { user, error: null, pinError: null, pinSaved: false, avatarError: null });
 });
 
-router.post('/:id', (req, res) => {
+router.post('/:id', async (req, res) => {
   const { name, username, email, phone, dob, sex, location } = req.body;
   if (!name || !username || !email || !phone) {
-    const user = models.getUserById(req.params.id);
+    const user = await models.getUserById(req.params.id);
     return res.status(400).render('users/edit', {
       user: { ...user, name, username, email, phone, dob, sex, location },
       error: 'Name, username, email and phone are all required.',
       pinError: null, pinSaved: false, avatarError: null
     });
   }
-  const result = models.updateUserProfile(req.params.id, { name, username, email, phone, dob, sex, location });
+  const result = await models.updateUserProfile(req.params.id, { name, username, email, phone, dob, sex, location });
   if (result.error) {
     return res.status(400).render('users/edit', {
-      user: { ...models.getUserById(req.params.id), name, username, email, phone, dob, sex, location },
+      user: { ...(await models.getUserById(req.params.id)), name, username, email, phone, dob, sex, location },
       error: result.error,
       pinError: null, pinSaved: false, avatarError: null
     });
@@ -119,19 +119,19 @@ router.post('/:id', (req, res) => {
   res.redirect('/users');
 });
 
-router.post('/:id/pin', (req, res) => {
-  const user = models.getUserById(req.params.id);
+router.post('/:id/pin', async (req, res) => {
+  const user = await models.getUserById(req.params.id);
   if (!user) return res.status(404).render('404');
-  const result = models.setUserPin(req.params.id, req.body.pin);
+  const result = await models.setUserPin(req.params.id, req.body.pin);
   if (result.error) {
     return res.status(400).render('users/edit', { user, error: null, pinError: result.error, pinSaved: false, avatarError: null });
   }
-  res.render('users/edit', { user: models.getUserById(req.params.id), error: null, pinError: null, pinSaved: true, avatarError: null });
+  res.render('users/edit', { user: await models.getUserById(req.params.id), error: null, pinError: null, pinSaved: true, avatarError: null });
 });
 
 router.post('/:id/avatar', (req, res) => {
-  avatarUpload.single('avatar')(req, res, (err) => {
-    const user = models.getUserById(req.params.id);
+  avatarUpload.single('avatar')(req, res, async (err) => {
+    const user = await models.getUserById(req.params.id);
     if (!user) return res.status(404).render('404');
     const message = err ? (err.message || 'Upload failed.') : (!req.file ? 'Please choose an image file.' : null);
     if (message) {
@@ -140,123 +140,123 @@ router.post('/:id/avatar', (req, res) => {
     if (user.avatarPath) {
       fs.unlink(path.join(AVATAR_DIR, path.basename(user.avatarPath)), () => {});
     }
-    models.setUserAvatar(user.id, `/img/avatars/${req.file.filename}`);
+    await models.setUserAvatar(user.id, `/img/avatars/${req.file.filename}`);
     res.redirect(`/users/${user.id}/edit`);
   });
 });
 
-router.post('/:id/avatar/remove', (req, res) => {
-  const user = models.getUserById(req.params.id);
+router.post('/:id/avatar/remove', async (req, res) => {
+  const user = await models.getUserById(req.params.id);
   if (!user) return res.status(404).render('404');
   if (user.avatarPath) {
     fs.unlink(path.join(AVATAR_DIR, path.basename(user.avatarPath)), () => {});
   }
-  models.setUserAvatar(user.id, '');
+  await models.setUserAvatar(user.id, '');
   res.redirect(`/users/${user.id}/edit`);
 });
 
-router.post('/:id/toggle-active', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserActive(req.params.id, !(target && target.active));
+router.post('/:id/toggle-active', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserActive(req.params.id, !(target && target.active));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/role', (req, res) => {
-  const result = models.setUserRole(req.params.id, req.body.role);
+router.post('/:id/role', async (req, res) => {
+  const result = await models.setUserRole(req.params.id, req.body.role);
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/timesheet-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserTimesheetAccess(req.params.id, !(target && target.canViewTimesheets));
+router.post('/:id/timesheet-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserTimesheetAccess(req.params.id, !(target && target.canViewTimesheets));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/roster-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserRosterAccess(req.params.id, !(target && target.canManageRoster));
+router.post('/:id/roster-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserRosterAccess(req.params.id, !(target && target.canManageRoster));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/requests-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserRequestsAccess(req.params.id, !(target && target.canMakeRequests));
+router.post('/:id/requests-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserRequestsAccess(req.params.id, !(target && target.canMakeRequests));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/function-bookings-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserFunctionBookingAccess(req.params.id, !(target && target.canBookFunctions));
+router.post('/:id/function-bookings-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserFunctionBookingAccess(req.params.id, !(target && target.canBookFunctions));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/notifications-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserNotificationsAccess(req.params.id, !(target && target.canViewNotifications));
+router.post('/:id/notifications-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserNotificationsAccess(req.params.id, !(target && target.canViewNotifications));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/cash-safe-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserCashSafeAccess(req.params.id, !(target && target.canManageCashSafe));
+router.post('/:id/cash-safe-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserCashSafeAccess(req.params.id, !(target && target.canManageCashSafe));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/logs-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserLogsAccess(req.params.id, !(target && target.canViewLogs));
+router.post('/:id/logs-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserLogsAccess(req.params.id, !(target && target.canViewLogs));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/duties-edit-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserDutiesEditAccess(req.params.id, !(target && target.canEditDuties));
+router.post('/:id/duties-edit-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserDutiesEditAccess(req.params.id, !(target && target.canEditDuties));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/training-edit-access', (req, res) => {
-  const target = models.getUserById(req.params.id);
-  const result = models.setUserTrainingEditAccess(req.params.id, !(target && target.canEditTraining));
+router.post('/:id/training-edit-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserTrainingEditAccess(req.params.id, !(target && target.canEditTraining));
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });
 
-router.post('/:id/color', (req, res) => {
-  const result = models.setUserColor(req.params.id, req.body.color);
+router.post('/:id/color', async (req, res) => {
+  const result = await models.setUserColor(req.params.id, req.body.color);
   if (result.error) {
-    return res.status(400).render('users/list', { users: models.listUsers(), error: result.error, currentUserId: req.session.userId });
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
   }
   res.redirect('/users');
 });

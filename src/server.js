@@ -38,21 +38,18 @@ if (SESSION_SECRET === DEFAULT_SESSION_SECRET) {
 }
 
 // Bootstrap an initial admin account on first run, from .env credentials.
-function bootstrapAdmin() {
-  if (models.listUsers().length === 0) {
+// Now async — listUsers()/createUser() query CockroachDB, not the JSON
+// file — so this (and everything that depends on it existing) has to wait
+// for it via the startServer() IIFE below instead of running inline at
+// module load like it used to.
+async function bootstrapAdmin() {
+  if ((await models.listUsers()).length === 0) {
     const email = (process.env.ADMIN_EMAIL || 'admin@holycross.local').toLowerCase();
     const password = process.env.ADMIN_PASSWORD || 'changeme123';
-    models.createUser({ name: 'Admin', email, passwordHash: hashPassword(password), role: 'admin' });
+    await models.createUser({ name: 'Admin', email, passwordHash: hashPassword(password), role: 'admin' });
     console.log(`Created initial admin user "${email}" using ADMIN_EMAIL / ADMIN_PASSWORD from .env`);
   }
 }
-bootstrapAdmin();
-
-// One-time seed of starter kitchen Training & Resources content (recipes,
-// prep process, cleaning technique) so that section isn't empty the first
-// time Kitchen Staff open it. Idempotent — see seedKitchenStarterContent's
-// own comment for why this is safe to call on every boot.
-models.seedKitchenTrainingStarterContent();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -140,11 +137,11 @@ app.use(csrfMiddleware);
 // Make current path + logged-in user available to all views.
 // Looks the user up fresh from the DB each request (not just the session) so
 // avatar/role changes show up immediately without needing to log out and back in.
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.isAuthed = !!(req.session && req.session.userId);
   if (req.session && req.session.userId) {
-    const dbUser = models.getUserById(req.session.userId);
+    const dbUser = await models.getUserById(req.session.userId);
     res.locals.currentUser = dbUser
       ? {
           id: dbUser.id,
@@ -258,8 +255,27 @@ app.use((req, res) => {
   res.status(404).render('404');
 });
 
-app.listen(PORT, () => {
-  console.log(`Bar & Restaurant Booking admin running at http://localhost:${PORT}`);
-  notify.startScheduler();
-  googleCalendar.startSync(models);
+// Startup sequence is now async (bootstrapAdmin queries CockroachDB) — the
+// server can't safely start accepting requests until the initial admin
+// account is confirmed to exist, so app.listen waits for it instead of
+// running inline at module load like the old JSON-file version did.
+async function startServer() {
+  await bootstrapAdmin();
+  // One-time seed of starter kitchen Training & Resources content (recipes,
+  // prep process, cleaning technique) so that section isn't empty the first
+  // time Kitchen Staff open it. Idempotent — see seedKitchenStarterContent's
+  // own comment for why this is safe to call on every boot. Still JSON-file
+  // backed (training hasn't been converted to SQL yet), stays synchronous.
+  models.seedKitchenTrainingStarterContent();
+
+  app.listen(PORT, () => {
+    console.log(`Bar & Restaurant Booking admin running at http://localhost:${PORT}`);
+    notify.startScheduler();
+    googleCalendar.startSync(models);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

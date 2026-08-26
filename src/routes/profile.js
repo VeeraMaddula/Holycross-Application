@@ -72,18 +72,18 @@ const upload = multer({
   }
 });
 
-router.get('/', (req, res) => {
-  const user = models.getUserById(req.session.userId);
+router.get('/', async (req, res) => {
+  const user = await models.getUserById(req.session.userId);
   res.render('profile', { profileUser: user, error: null, success: null, weekDays: buildWeekSummary(user.id) });
 });
 
 router.post('/avatar', (req, res) => {
-  upload.single('avatar')(req, res, (err) => {
+  upload.single('avatar')(req, res, async (err) => {
     // The cropper UI submits via fetch() and asks for JSON; a plain <form>
     // submit (JS-disabled fallback / "upload without cropping") gets an
     // HTML re-render of the profile page instead.
     const wantsJson = (req.headers.accept || '').includes('application/json');
-    const user = models.getUserById(req.session.userId);
+    const user = await models.getUserById(req.session.userId);
 
     if (err) {
       const message = err.message || 'Upload failed.';
@@ -103,23 +103,23 @@ router.post('/avatar', (req, res) => {
     }
 
     const newAvatarPath = `/img/avatars/${req.file.filename}`;
-    models.setUserAvatar(req.session.userId, newAvatarPath);
+    await models.setUserAvatar(req.session.userId, newAvatarPath);
     req.session.avatarPath = newAvatarPath;
 
     if (wantsJson) return res.json({ ok: true, avatarPath: newAvatarPath });
 
-    const updatedUser = models.getUserById(req.session.userId);
+    const updatedUser = await models.getUserById(req.session.userId);
     res.render('profile', { profileUser: updatedUser, error: null, success: 'Profile picture updated.', weekDays: buildWeekSummary(updatedUser.id) });
   });
 });
 
-router.post('/avatar/remove', (req, res) => {
-  const user = models.getUserById(req.session.userId);
+router.post('/avatar/remove', async (req, res) => {
+  const user = await models.getUserById(req.session.userId);
   if (user.avatarPath) {
     const oldFile = path.join(AVATAR_DIR, path.basename(user.avatarPath));
     fs.unlink(oldFile, () => {});
   }
-  models.setUserAvatar(req.session.userId, '');
+  await models.setUserAvatar(req.session.userId, '');
   req.session.avatarPath = '';
   res.redirect('/profile');
 });
@@ -131,14 +131,14 @@ router.post('/avatar/remove', (req, res) => {
 // and a code is guessable in ~1M tries without a cap.
 
 router.post('/password/send-code', forgotLimiter, async (req, res) => {
-  const result = models.requestVerificationCode(req.session.userId, 'password');
+  const result = await models.requestVerificationCode(req.session.userId, 'password');
   if (result.error) return res.status(400).json({ error: result.error });
   const { subject, text } = notify.selfVerificationCodeEmail(result.user, result.code, 'password');
   await notify.sendEmail({ to: result.user.email, subject, text, type: 'self-verify-password' });
   res.json({ ok: true, maskedEmail: maskEmail(result.user.email) });
 });
 
-router.post('/password/confirm', forgotLimiter, (req, res) => {
+router.post('/password/confirm', forgotLimiter, async (req, res) => {
   const { code, password, confirmPassword } = req.body;
   if (password !== confirmPassword) {
     return res.status(400).json({ error: 'Passwords do not match.' });
@@ -146,20 +146,20 @@ router.post('/password/confirm', forgotLimiter, (req, res) => {
   if (!isValidPassword(password || '')) {
     return res.status(400).json({ error: PASSWORD_RULES });
   }
-  const result = models.confirmPasswordChange(req.session.userId, code, password);
+  const result = await models.confirmPasswordChange(req.session.userId, code, password);
   if (result.error) return res.status(400).json({ error: result.error });
   res.json({ ok: true });
 });
 
 router.post('/pin/send-code', forgotLimiter, async (req, res) => {
-  const result = models.requestVerificationCode(req.session.userId, 'pin');
+  const result = await models.requestVerificationCode(req.session.userId, 'pin');
   if (result.error) return res.status(400).json({ error: result.error });
   const { subject, text } = notify.selfVerificationCodeEmail(result.user, result.code, 'pin');
   await notify.sendEmail({ to: result.user.email, subject, text, type: 'self-verify-pin' });
   res.json({ ok: true, maskedEmail: maskEmail(result.user.email) });
 });
 
-router.post('/pin/confirm', forgotLimiter, (req, res) => {
+router.post('/pin/confirm', forgotLimiter, async (req, res) => {
   const { code, pin, confirmPin } = req.body;
   if (pin !== confirmPin) {
     return res.status(400).json({ error: 'PINs do not match.' });
@@ -167,7 +167,7 @@ router.post('/pin/confirm', forgotLimiter, (req, res) => {
   if (!/^\d{4}$/.test(String(pin || ''))) {
     return res.status(400).json({ error: 'PIN must be exactly 4 digits.' });
   }
-  const result = models.confirmPinChange(req.session.userId, code, pin);
+  const result = await models.confirmPinChange(req.session.userId, code, pin);
   if (result.error) return res.status(400).json({ error: result.error });
   res.json({ ok: true });
 });

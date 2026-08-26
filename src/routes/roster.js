@@ -63,11 +63,11 @@ function withBarPosition(shift) {
 // so every week is edited on its own. ----
 router.get('/', (req, res) => res.redirect('/roster/week'));
 
-router.get('/week', (req, res) => {
+router.get('/week', async (req, res) => {
   const weekStart = mondayOf(req.query.week || todayStr());
   const weekEnd = addDays(weekStart, 6);
-  const users = models.listUsers().filter(u => u.active);
-  const days = models.getResolvedScheduleForRange(weekStart, weekEnd)
+  const users = (await models.listUsers()).filter(u => u.active);
+  const days = (await models.getResolvedScheduleForRange(weekStart, weekEnd))
     .map(day => ({ ...day, shifts: day.shifts.map(withBarPosition) }));
 
   res.render('roster-week', {
@@ -85,10 +85,10 @@ router.get('/week', (req, res) => {
 // Lightweight refresh for the weekly overview table — same live-poll pattern
 // used on the Dashboard/Tables/Kiosk pages, so if a shift is added or edited
 // from another device the table catches up without a manual reload.
-router.get('/week/data', (req, res) => {
+router.get('/week/data', async (req, res) => {
   const weekStart = mondayOf(req.query.week || todayStr());
   const weekEnd = addDays(weekStart, 6);
-  const days = models.getResolvedScheduleForRange(weekStart, weekEnd);
+  const days = await models.getResolvedScheduleForRange(weekStart, weekEnd);
   const shifts = [];
   days.forEach(day => {
     day.shifts.forEach(s => {
@@ -101,18 +101,18 @@ router.get('/week/data', (req, res) => {
   res.json({ shifts });
 });
 
-router.post('/shifts', (req, res) => {
+router.post('/shifts', async (req, res) => {
   const { date, userId, startTime, endTime, redirectWeek } = req.body;
   if (date && userId && startTime && endTime) {
-    const result = models.addRosterShift({ date, userId, startTime, endTime });
+    const result = await models.addRosterShift({ date, userId, startTime, endTime });
     notifyShift(result.shift, 'assigned');
   }
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
-router.post('/shifts/:id/edit', (req, res) => {
+router.post('/shifts/:id/edit', async (req, res) => {
   const { date, startTime, endTime, redirectWeek } = req.body;
-  const result = models.updateRosterShift(req.params.id, { date, startTime, endTime });
+  const result = await models.updateRosterShift(req.params.id, { date, startTime, endTime });
   if (!result.error) {
     notifyShift(result.shift, 'updated');
   }

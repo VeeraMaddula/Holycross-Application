@@ -38,10 +38,10 @@ router.post('/clear-data', (req, res) => {
 // ADMIN_EMAIL/ADMIN_PASSWORD in .env. Since the account performing this
 // action may no longer exist afterwards, always end the session and send
 // them back to login with the freshly (re)created admin credentials.
-router.post('/factory-reset', (req, res) => {
+router.post('/factory-reset', async (req, res) => {
   const email = (process.env.ADMIN_EMAIL || 'admin@holycross.local').toLowerCase();
   const password = process.env.ADMIN_PASSWORD || 'changeme123';
-  models.factoryReset(email, hashPassword(password));
+  await models.factoryReset(email, hashPassword(password));
   req.session.destroy(() => res.redirect('/login'));
 });
 

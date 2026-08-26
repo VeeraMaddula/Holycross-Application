@@ -19,10 +19,10 @@ function mondayOf(dateStr) {
   return toDateStr(d);
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const from = todayStr();
   const to = addDays(from, 27); // next 4 weeks, just this person's own shifts
-  const days = models.getUserUpcomingShifts(req.session.userId, from, to);
+  const days = await models.getUserUpcomingShifts(req.session.userId, from, to);
 
   // Same "week at a glance" the Roster page shows managers — everyone on
   // shift, Mon-Sun, at a glance — just without the add/edit controls, since
@@ -31,8 +31,8 @@ router.get('/', (req, res) => {
   // page gets its own read-only data route below.
   const weekStart = mondayOf(req.query.week || todayStr());
   const weekEnd = addDays(weekStart, 6);
-  const teamUsers = models.listUsers().filter(u => u.active);
-  const teamDays = models.getResolvedScheduleForRange(weekStart, weekEnd);
+  const teamUsers = (await models.listUsers()).filter(u => u.active);
+  const teamDays = await models.getResolvedScheduleForRange(weekStart, weekEnd);
 
   res.render('my-shifts', {
     days, dayNames: DAY_NAMES, from, to, formatTime12,
@@ -48,10 +48,10 @@ router.get('/', (req, res) => {
 // the Roster page's own version — kept as a separate route (rather than
 // reusing /roster/week/data) because that one requires roster-management
 // access, which most staff viewing My Shifts won't have.
-router.get('/week/data', (req, res) => {
+router.get('/week/data', async (req, res) => {
   const weekStart = mondayOf(req.query.week || todayStr());
   const weekEnd = addDays(weekStart, 6);
-  const days = models.getResolvedScheduleForRange(weekStart, weekEnd);
+  const days = await models.getResolvedScheduleForRange(weekStart, weekEnd);
   const shifts = [];
   days.forEach(day => {
     day.shifts.forEach(s => {

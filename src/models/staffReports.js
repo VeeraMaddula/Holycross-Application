@@ -4,6 +4,9 @@
 // surfaced to the person being reported about — same spirit as an HR
 // complaint, not a public log.
 const { readDb, writeDb } = require('../db');
+const { getUserById } = require('./users');
+// NOTE: reports themselves are still JSON (this file's own turn in the
+// migration hasn't happened yet); only the user lookups are async SQL now.
 
 const REPORT_CATEGORIES = [
   { value: 'cleaning', label: 'Cleaning' },
@@ -16,12 +19,12 @@ const REPORT_CATEGORIES = [
 ];
 const REPORT_CATEGORY_LABELS = Object.fromEntries(REPORT_CATEGORIES.map(c => [c.value, c.label]));
 
-function createReport({ category, details, files, reportedByUserId, recipientUserId }) {
+async function createReport({ category, details, files, reportedByUserId, recipientUserId }) {
   const db = readDb();
   if (!db.reports) db.reports = [];
   if (!db.meta.nextReportId) db.meta.nextReportId = 1;
-  const reporter = (db.users || []).find(u => u.id === Number(reportedByUserId));
-  const recipient = (db.users || []).find(u => u.id === Number(recipientUserId));
+  const reporter = await getUserById(reportedByUserId);
+  const recipient = await getUserById(recipientUserId);
   if (!recipient) return { error: 'Recipient not found.' };
   if (reporter && reporter.id === recipient.id) return { error: "You can't send a report to yourself." };
   const report = {

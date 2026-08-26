@@ -71,23 +71,23 @@ const dutyPhotoUpload = multer({
 // ambient duties panel.
 const PHOTO_REQUIRED_SECTIONS = ['after_breakfast', 'after_carvery'];
 
-router.get('/', (req, res) => {
-  res.render('kiosk', { staff: models.getKioskRoster() });
+router.get('/', async (req, res) => {
+  res.render('kiosk', { staff: await models.getKioskRoster() });
 });
 
 // Lightweight status refresh for the tile grid — same polling pattern used
 // on the Tables page, so a tile flips from "Clocked out" to "Present"
 // automatically if someone clocks in on another device.
-router.get('/status', (req, res) => {
-  const roster = models.getKioskRoster().map(s => ({ id: s.id, status: s.status, avatarPath: s.avatarPath, since: s.since }));
+router.get('/status', async (req, res) => {
+  const roster = (await models.getKioskRoster()).map(s => ({ id: s.id, status: s.status, avatarPath: s.avatarPath, since: s.since }));
   res.json(roster);
 });
 
 // Step 1: tap a tile, enter the PIN. Returns current status + which actions
 // are valid next, so the client can render the right buttons.
-router.post('/verify', kioskPinLimiter, (req, res) => {
+router.post('/verify', kioskPinLimiter, async (req, res) => {
   const { userId, pin } = req.body;
-  const user = models.getUserById(userId);
+  const user = await models.getUserById(userId);
   if (!user || !user.active || user.role === 'kiosk') {
     return res.status(400).json({ error: 'Staff member not found.' });
   }
@@ -100,7 +100,7 @@ router.post('/verify', kioskPinLimiter, (req, res) => {
   if (pinLockout.isLocked(user.id)) {
     return res.status(429).json({ error: `Too many wrong PIN attempts. Try again in ${pinLockout.minutesRemaining(user.id)} minute(s), or ask a manager to reset your PIN.` });
   }
-  if (!models.verifyUserPin(user.id, pin)) {
+  if (!(await models.verifyUserPin(user.id, pin))) {
     pinLockout.recordFailure(user.id);
     return res.status(400).json({ error: 'Wrong PIN. Try again.' });
   }
@@ -115,7 +115,7 @@ router.post('/verify', kioskPinLimiter, (req, res) => {
 // Manager/General Manager/Admin).
 router.post('/forgot-pin', forgotLimiter, async (req, res) => {
   const { userId } = req.body;
-  const user = models.getUserById(userId);
+  const user = await models.getUserById(userId);
   if (!user || !user.active || user.role === 'kiosk') {
     return res.status(400).json({ error: 'Staff member not found.' });
   }
@@ -136,18 +136,18 @@ const PHOTO_ACTIONS = ['clock_in', 'break_start', 'break_end'];
 // Always sent as multipart/form-data from the client (simplest to have one
 // shape); only the PHOTO_ACTIONS above actually include a "photo" field.
 router.post('/action', kioskPinLimiter, (req, res) => {
-  upload.single('photo')(req, res, (err) => {
+  upload.single('photo')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
 
     const { userId, pin, action } = req.body;
-    const user = models.getUserById(userId);
+    const user = await models.getUserById(userId);
     if (!user || !user.active || user.role === 'kiosk') {
       return res.status(400).json({ error: 'Staff member not found.' });
     }
     if (pinLockout.isLocked(user.id)) {
       return res.status(429).json({ error: `Too many wrong PIN attempts. Try again in ${pinLockout.minutesRemaining(user.id)} minute(s), or ask a manager to reset your PIN.` });
     }
-    if (!models.verifyUserPin(user.id, pin)) {
+    if (!(await models.verifyUserPin(user.id, pin))) {
       pinLockout.recordFailure(user.id);
       return res.status(400).json({ error: 'Wrong PIN.' });
     }
@@ -173,7 +173,7 @@ router.post('/action', kioskPinLimiter, (req, res) => {
       if (!req.file) return res.status(400).json({ error: 'A photo is required for this step.' });
       dropLiveShiftFile();
       effectiveAvatarPath = `/img/avatars/${req.file.filename}`;
-      models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
+      await models.setUserLiveShiftAvatar(user.id, effectiveAvatarPath);
       // Permanent copy for the clock-entry log — see CLOCK_SELFIE_DIR above.
       const archiveFilename = `selfie-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${path.extname(req.file.filename)}`;
       try {
@@ -185,7 +185,7 @@ router.post('/action', kioskPinLimiter, (req, res) => {
     } else {
       // clock_out — revert to their saved profile picture (may be '').
       dropLiveShiftFile();
-      models.setUserLiveShiftAvatar(user.id, '');
+      await models.setUserLiveShiftAvatar(user.id, '');
       effectiveAvatarPath = user.avatarPath || '';
     }
 
@@ -249,7 +249,7 @@ router.post('/duties/submit', (req, res) => {
     let submitter = null;
     let photoPath = '';
     if (PHOTO_REQUIRED_SECTIONS.includes(section)) {
-      submitter = models.getUserById(submittedByUserId);
+      submitter = await models.getUserById(submittedByUserId);
       if (!submitter) {
         if (req.file) fs.unlink(req.file.path, () => {});
         return res.status(400).json({ error: 'Please select who is submitting this.' });
@@ -271,7 +271,7 @@ router.post('/duties/submit', (req, res) => {
       complete: missing.length === 0,
       reason: missing.length ? reason.trim() : '',
       missingTaskTexts: missing.map(t => t.text),
-      staffOnShiftNames: models.getBarStaffOnShiftNames(),
+      staffOnShiftNames: await models.getBarStaffOnShiftNames(),
       trigger: 'manual',
       submittedByUserId: submitter ? submitter.id : null,
       submittedByName: submitter ? submitter.name : (submittedByName || ''),

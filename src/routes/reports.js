@@ -46,36 +46,36 @@ const upload = multer({
 
 // Recipients are restricted to management-tier roles — reports are meant
 // to go to someone who can act on them, not to any random colleague.
-function recipientOptions(currentUserId) {
-  return models.listUsers()
+async function recipientOptions(currentUserId) {
+  return (await models.listUsers())
     .filter(u => u.active && u.id !== Number(currentUserId) && MANAGER_ROLES.includes(u.role))
     .map(u => ({ id: u.id, name: u.name, roleLabel: ROLE_LABELS[u.role] || u.role }));
 }
 
-function renderPage(req, res, status, error) {
+async function renderPage(req, res, status, error) {
   const { sent, received } = models.listReportsForUser(req.session.userId);
   res.status(status || 200).render('reports', {
     sent, received,
-    recipients: recipientOptions(req.session.userId),
+    recipients: await recipientOptions(req.session.userId),
     categories: models.REPORT_CATEGORIES,
     error: error || null
   });
 }
 
-router.get('/', (req, res) => {
-  renderPage(req, res);
+router.get('/', async (req, res) => {
+  await renderPage(req, res);
 });
 
 router.post('/', (req, res) => {
-  upload.array('files', 5)(req, res, (err) => {
-    if (err) return renderPage(req, res, 400, err.message || 'Upload failed.');
+  upload.array('files', 5)(req, res, async (err) => {
+    if (err) return await renderPage(req, res, 400, err.message || 'Upload failed.');
 
     const { category, details, recipientUserId } = req.body;
     const cleanupUploaded = () => (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
 
     if (!category || !details || !recipientUserId) {
       cleanupUploaded();
-      return renderPage(req, res, 400, 'Category, recipient, and details are all required.');
+      return await renderPage(req, res, 400, 'Category, recipient, and details are all required.');
     }
 
     const files = (req.files || []).map(f => ({
@@ -85,7 +85,7 @@ router.post('/', (req, res) => {
       size: f.size
     }));
 
-    const result = models.createReport({
+    const result = await models.createReport({
       category,
       details,
       files,
@@ -94,7 +94,7 @@ router.post('/', (req, res) => {
     });
     if (result.error) {
       cleanupUploaded();
-      return renderPage(req, res, 400, result.error);
+      return await renderPage(req, res, 400, result.error);
     }
 
     const recipient = result.report.recipient;

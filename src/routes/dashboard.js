@@ -4,7 +4,7 @@ const models = require('../models');
 const { todayStr } = require('../dateUtils');
 const { MANAGER_ROLES } = require('../roles');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const today = todayStr();
   const todayBookings = models.listBookings({ date: today }).filter(b => b.status !== 'cancelled');
   const pendingApprovalBookings = MANAGER_ROLES.includes((res.locals.currentUser || {}).role)
@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
   // Who's currently on the clock, for the "working now" card. Only clocked-in
   // and on-break staff are shown here — clocked-out staff aren't relevant to
   // "who's working right now".
-  const allStaffStatus = models.listAllStaffStatus();
+  const allStaffStatus = await models.listAllStaffStatus();
   const workingNow = allStaffStatus.filter(s => s.status === 'clocked_in' || s.status === 'on_break');
 
   const stats = {

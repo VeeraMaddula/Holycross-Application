@@ -3,6 +3,9 @@
 // you need — the recipient gets an email + text right away. Status
 // tracking / approve-decline workflow can be layered on later.
 const { readDb, writeDb } = require('../db');
+const { getUserById } = require('./users');
+// NOTE: requests themselves are still JSON (this file's own turn in the
+// migration hasn't happened yet); only the user lookups are async SQL now.
 
 const REQUEST_TYPES = [
   { value: 'stock', label: 'Stock' },
@@ -11,12 +14,12 @@ const REQUEST_TYPES = [
 ];
 const REQUEST_TYPE_LABELS = Object.fromEntries(REQUEST_TYPES.map(t => [t.value, t.label]));
 
-function createRequest({ type, details, requestedByUserId, recipientUserId }) {
+async function createRequest({ type, details, requestedByUserId, recipientUserId }) {
   const db = readDb();
   if (!db.requests) db.requests = [];
   if (!db.meta.nextRequestId) db.meta.nextRequestId = 1;
-  const requester = (db.users || []).find(u => u.id === Number(requestedByUserId));
-  const recipient = (db.users || []).find(u => u.id === Number(recipientUserId));
+  const requester = await getUserById(requestedByUserId);
+  const recipient = await getUserById(recipientUserId);
   if (!recipient) return { error: 'Recipient not found.' };
   if (requester && requester.id === recipient.id) return { error: "You can't send a request to yourself." };
   const request = {

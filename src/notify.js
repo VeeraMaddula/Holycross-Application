@@ -265,7 +265,7 @@ function cashSafeLogEmail(entry) {
 }
 
 async function notifySeniorManagerCashLog(entry) {
-  const recipients = models.listUsers().filter(u => u.role === 'senior_manager' && u.email);
+  const recipients = (await models.listUsers()).filter(u => u.role === 'senior_manager' && u.email);
   const { subject, text } = cashSafeLogEmail(entry);
   for (const m of recipients) {
     await sendEmail({ to: m.email, subject, text, type: 'cash-safe-log' });
@@ -351,7 +351,7 @@ async function notifyAdminNewBooking(booking, tableName) {
 // conflict and needs one of them to approve it before the customer hears
 // anything.
 async function notifyManagersPendingApproval(booking, table, conflict) {
-  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const managers = (await models.listUsers()).filter(u => MANAGER_ROLES.includes(u.role) && u.email);
   const { subject, text } = pendingApprovalEmail(booking, table, conflict);
   for (const m of managers) {
     await sendEmail({ to: m.email, subject, text, type: 'pending-approval', bookingId: booking.id });
@@ -362,7 +362,7 @@ async function notifyManagersPendingApproval(booking, table, conflict) {
 // public booking request — Bar/Kitchen Staff can see it on the Bookings
 // page but can't approve it; only a Manager-tier account can.
 async function notifyAllStaffNewPublicBooking(booking, table) {
-  const staff = models.listUsers().filter(u => u.active && u.role !== 'kiosk' && u.email);
+  const staff = (await models.listUsers()).filter(u => u.active && u.role !== 'kiosk' && u.email);
   const { subject, text } = newPublicBookingRequestEmail(booking, table);
   for (const s of staff) {
     await sendEmail({ to: s.email, subject, text, type: 'public-booking-request', bookingId: booking.id });
@@ -373,7 +373,7 @@ async function notifyAllStaffNewPublicBooking(booking, table) {
 // manager-notification function in this file), fire-and-forget from the
 // caller's perspective.
 async function notifyManagersShiftChange(payload) {
-  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const managers = (await models.listUsers()).filter(u => MANAGER_ROLES.includes(u.role) && u.email);
   const { subject, text } = shiftChangeManagerEmail(payload);
   for (const m of managers) {
     await sendEmail({ to: m.email, subject, text, type: 'shift-marketplace' });
@@ -382,7 +382,7 @@ async function notifyManagersShiftChange(payload) {
 
 // Kiosk "Forgot PIN?" — same manager audience as the booking-approval alert.
 async function notifyManagersPinResetRequest(user) {
-  const managers = models.listUsers().filter(u => MANAGER_ROLES.includes(u.role) && u.email);
+  const managers = (await models.listUsers()).filter(u => MANAGER_ROLES.includes(u.role) && u.email);
   const { subject, text } = pinResetRequestEmail(user);
   for (const m of managers) {
     await sendEmail({ to: m.email, subject, text, type: 'pin-reset-request' });
@@ -392,7 +392,7 @@ async function notifyManagersPinResetRequest(user) {
 // Duties escalation audience is narrower than the usual MANAGER_ROLES set —
 // General Manager, Senior Manager, Floor Manager only (see duties.js).
 async function notifyManagersDutyReport(report) {
-  const recipients = models.listUsers().filter(u => DUTY_ESCALATION_ROLES.includes(u.role) && u.email);
+  const recipients = (await models.listUsers()).filter(u => DUTY_ESCALATION_ROLES.includes(u.role) && u.email);
   const { subject, text } = dutyMissedEmail(report);
   for (const m of recipients) {
     await sendEmail({ to: m.email, subject, text, type: 'duty-missed' });
@@ -416,7 +416,7 @@ async function evaluateAndReportDuty({ date, section, sectionTitle, trigger, fal
     complete: missing.length === 0,
     reason: missing.length ? fallbackReason : '',
     missingTaskTexts: missing.map(t => t.text),
-    staffOnShiftNames: models.getBarStaffOnShiftNames(),
+    staffOnShiftNames: await models.getBarStaffOnShiftNames(),
     trigger
   });
   if (isNewIncomplete) await notifyManagersDutyReport(report);
@@ -472,7 +472,7 @@ async function checkStaleClosingWindows(now) {
 async function checkClosingDutiesOnClockOut(now = new Date()) {
   const win = dutyWindows.getWindowForNow(now);
   if (!win || win.section !== 'closing' || win.endMode !== 'lastClockout') return;
-  const stillIn = models.getBarStaffOnShiftNames();
+  const stillIn = await models.getBarStaffOnShiftNames();
   if (stillIn.length > 0) return; // not the last one out yet
   await evaluateAndReportDuty({
     date: toDateStr(win.businessDate),
