@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Voucher <%= voucher.voucherNumber %> - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <p><a href="/vouchers">&larr; Back to Vouchers</a></p>
+    <h2>Voucher <%= voucher.voucherNumber %></h2>
+    <div class="card" style="max-width:460px">
+      <p><strong>Face value:</strong> &euro;<%= voucher.faceValue.toFixed(2) %></p>
+      <p><strong>Remaining balance:</strong> &euro;<%= voucher.remainingBalance.toFixed(2) %></p>
+      <p><strong>Status:</strong> <span class="badge"><%= voucher.status %></span></p>
+      <p><strong>Customer:</strong> <%= voucher.customerName || '—' %></p>
+      <p><strong>Sold by:</strong> <%= voucher.soldByName %> on <%= new Date(voucher.soldAt).toLocaleString() %></p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Redemption history</h3>
+      <% if (!redemptions.length) { %>
+        <p class="muted">No redemptions recorded yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Amount</th><th>Redeemed by</th><th>Note</th></tr></thead>
+          <tbody>
+          <% redemptions.forEach(r => { %>
+            <tr>
+              <td><%= new Date(r.redeemedAt).toLocaleString() %></td>
+              <td>&euro;<%= r.amount.toFixed(2) %></td>
+              <td><%= r.redeemedByName %></td>
+              <td><%= r.note || '—' %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

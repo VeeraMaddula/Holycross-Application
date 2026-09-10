@@ -130,6 +130,30 @@
       <button type="button" class="btn secondary" id="cameraCancel">Cancel</button>
     </div>
 
+    <div id="kioskBreakageStage" style="display:none">
+      <div class="kiosk-modal-name" id="breakageName" style="margin-bottom:10px"></div>
+      <div id="breakageAskBox">
+        <p class="muted" style="margin:0 0 16px">Any breakage or shortage during your shift?</p>
+        <div class="kiosk-action-buttons">
+          <button type="button" class="kiosk-action-btn kiosk-btn-out" id="breakageYesBtn">Yes</button>
+          <button type="button" class="kiosk-action-btn kiosk-btn-in" id="breakageNoBtn">No</button>
+        </div>
+      </div>
+      <div id="breakageDetailBox" style="display:none">
+        <p class="muted" style="margin:0 0 8px">What kind?</p>
+        <select id="breakageCategorySelect">
+          <option value="glass">Glass</option>
+          <option value="spirit">Spirit</option>
+          <option value="soft_drink">Soft Drink</option>
+        </select>
+        <textarea id="breakageNoteText" rows="2" placeholder="e.g. beer glass" style="margin-top:10px;width:100%"></textarea>
+        <div class="kiosk-duties-reason-actions">
+          <button type="button" class="btn secondary" id="breakageDetailCancel">Back</button>
+          <button type="button" class="btn" id="breakageSubmitBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
     <div id="kioskSuccessStage" style="display:none">
       <div class="kiosk-success-check">&#10003;</div>
       <div class="kiosk-modal-name" id="successText"></div>
@@ -202,6 +226,64 @@
   var captureBtn = document.getElementById('kioskCaptureBtn');
   var cameraStream = null;
 
+  // ---- Post-clock-out breakage/shortage prompt ----
+  var breakageStage = document.getElementById('kioskBreakageStage');
+  var breakageAskBox = document.getElementById('breakageAskBox');
+  var breakageDetailBox = document.getElementById('breakageDetailBox');
+  var breakagePendingLabel = '';
+
+  function showBreakageAsk(label) {
+    breakagePendingLabel = label;
+    pinStage.style.display = 'none';
+    actionStage.style.display = 'none';
+    cameraStage.style.display = 'none';
+    successStage.style.display = 'none';
+    breakageStage.style.display = 'block';
+    breakageAskBox.style.display = 'block';
+    breakageDetailBox.style.display = 'none';
+    document.getElementById('breakageName').textContent = activeName;
+    document.getElementById('breakageNoteText').value = '';
+    document.getElementById('breakageCategorySelect').value = 'glass';
+  }
+
+  function finishBreakageFlow() {
+    breakageStage.style.display = 'none';
+    successStage.style.display = 'block';
+    document.getElementById('successText').textContent = breakagePendingLabel + ' — ' + activeName;
+    setTimeout(closeModal, 1400);
+  }
+
+  document.getElementById('breakageNoBtn').addEventListener('click', function() {
+    finishBreakageFlow();
+  });
+  document.getElementById('breakageYesBtn').addEventListener('click', function() {
+    breakageAskBox.style.display = 'none';
+    breakageDetailBox.style.display = 'block';
+  });
+  document.getElementById('breakageDetailCancel').addEventListener('click', function() {
+    breakageDetailBox.style.display = 'none';
+    breakageAskBox.style.display = 'block';
+  });
+  document.getElementById('breakageSubmitBtn').addEventListener('click', function() {
+    var btn = this;
+    var category = document.getElementById('breakageCategorySelect').value;
+    var note = document.getElementById('breakageNoteText').value.trim();
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    fetch('/kiosk/breakage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<%= csrfToken %>' },
+      body: JSON.stringify({ userId: activeUserId, category: category, note: note })
+    }).then(function() {
+      finishBreakageFlow();
+    }).catch(function() {
+      finishBreakageFlow();
+    }).finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+    });
+  });
+
   function openModal(id, name, color) {
     activeUserId = id; activeName = name; activeColor = color; entered = '';
     document.getElementById('pinAvatar').textContent = initials(name);
@@ -213,6 +295,7 @@
     pinStage.style.display = 'block';
     actionStage.style.display = 'none';
     cameraStage.style.display = 'none';
+    breakageStage.style.display = 'none';
     successStage.style.display = 'none';
     modal.classList.add('open');
   }
@@ -370,14 +453,20 @@
         actionStage.style.display = 'none';
         cameraStage.style.display = 'none';
         stopCamera();
-        successStage.style.display = 'block';
         var label = action === 'clock_in' ? 'Clocked in' : action === 'clock_out' ? 'Clocked out' : action === 'break_start' ? 'Break started' : 'Break ended';
-        document.getElementById('successText').textContent = label + ' — ' + activeName;
         // avatarPath is always present in the response — either a fresh
         // shift photo, or (on clock_out) the reverted saved profile picture,
         // which may be '' if the person never uploaded one.
         updateTileAvatar(activeUserId, result.data.avatarPath, activeColor, activeName);
         refreshTiles();
+        if (action === 'clock_out') {
+          // Ask about breakage/shortage before closing out — every clock-out,
+          // every staff member (see kiosk/breakage route + models/breakage.js).
+          showBreakageAsk(label);
+          return;
+        }
+        successStage.style.display = 'block';
+        document.getElementById('successText').textContent = label + ' — ' + activeName;
         setTimeout(closeModal, 1400);
       }).catch(function() {
         showActionError('Could not reach the server — check the connection.');

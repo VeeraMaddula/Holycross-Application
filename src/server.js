@@ -15,7 +15,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireVoucherAccess, requireBreakageAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) and
 // requireTrainingEditAccess (manager-tier / canEditTraining only) are
 // applied inside their own route files, layered on top of the broader
@@ -247,6 +247,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Accountant gets a deliberately narrow slice too — Dashboard, Bookings
+// (to check what's been taken/paid), Vouchers, Breakage reports, and their
+// own Profile. Everything else (Tables, Menu, Roster, Timesheets, Cash
+// Safe, Staff Status, Kiosk, etc.) bounces back to the Dashboard, same
+// pattern as the Kitchen Staff restriction above.
+const ACCOUNTANT_ALLOWED_PATHS = ['/bookings', '/vouchers', '/breakage', '/profile', '/accept-privacy'];
+app.use((req, res, next) => {
+  const u = res.locals.currentUser;
+  if (u && u.role === 'accountant') {
+    const allowed = req.path === '/' || req.path === '/logout' || ACCOUNTANT_ALLOWED_PATHS.some(p => req.path.startsWith(p));
+    if (!allowed) return res.redirect('/');
+  }
+  next();
+});
+
 app.use('/', require('./routes/auth'));
 
 // Public, unauthenticated pages — linked from the real website
@@ -281,6 +296,8 @@ app.use('/reports', requireAuth, requireReportAccess, require('./routes/reports'
 app.use('/training', requireAuth, requireTrainingAccess, require('./routes/training'));
 app.use('/cash-safe', requireAuth, requireCashSafeAccess, require('./routes/cashSafe'));
 app.use('/logs', requireAuth, requireLogsAccess, require('./routes/logs'));
+app.use('/vouchers', requireAuth, requireVoucherAccess, require('./routes/vouchers'));
+app.use('/breakage', requireAuth, requireBreakageAccess, require('./routes/breakage'));
 
 app.use((req, res) => {
   res.status(404).render('404');

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head><title>Breakage & Stock - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Breakage &amp; Stock</h2>
+    <p class="muted">Submitted from the kiosk every time a staff member clocks out. Use this to spot patterns — who's breaking or losing more stock over time.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">By staff member</h3>
+      <% if (!byUser.length) { %>
+        <p class="muted">No breakage reported yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Staff member</th><th>Glass</th><th>Spirit</th><th>Soft Drink</th><th>Total</th></tr></thead>
+          <tbody>
+          <% byUser.forEach(u => { %>
+            <tr>
+              <td><%= u.userName %></td>
+              <td><%= u.byCategory.glass || 0 %></td>
+              <td><%= u.byCategory.spirit || 0 %></td>
+              <td><%= u.byCategory.soft_drink || 0 %></td>
+              <td><strong><%= u.total %></strong></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">All reports</h3>
+      <% if (!reports.length) { %>
+        <p class="muted">No reports yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Staff member</th><th>Category</th><th>Note</th></tr></thead>
+          <tbody>
+          <% reports.forEach(r => { %>
+            <tr>
+              <td><%= new Date(r.createdAt).toLocaleString() %></td>
+              <td><%= r.userName %></td>
+              <td><%= categoryLabels[r.category] || r.category %></td>
+              <td><%= r.note || '—' %></td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

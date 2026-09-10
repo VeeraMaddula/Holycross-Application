@@ -283,4 +283,21 @@ router.post('/duties/submit', (req, res) => {
   });
 });
 
+// ---- Breakage / shortage report — asked every time anyone clocks out
+// (see kiosk.ejs's post-clock-out "Yes/No" prompt). Not PIN-re-gated: it
+// happens immediately after a successful, already-PIN-verified clock_out in
+// the same modal flow, so re-asking for the PIN here would just be
+// redundant friction. userId still has to resolve to a real, active,
+// non-kiosk account, same check every other kiosk endpoint makes. ----
+router.post('/breakage', async (req, res) => {
+  const { userId, category, note } = req.body;
+  const user = await models.getUserById(userId);
+  if (!user || !user.active || user.role === 'kiosk') {
+    return res.status(400).json({ error: 'Staff member not found.' });
+  }
+  const result = await models.addBreakageReport({ userId: user.id, userName: user.name, category, note });
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ ok: true });
+});
+
 module.exports = router;

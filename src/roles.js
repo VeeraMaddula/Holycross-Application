@@ -11,6 +11,7 @@ const ROLES = [
   { value: 'floor_manager', label: 'Floor Manager' },
   { value: 'bar_staff', label: 'Bar Staff' },
   { value: 'kitchen_staff', label: 'Kitchen Staff' },
+  { value: 'accountant', label: 'Accountant' },
   { value: 'kiosk', label: 'Kiosk (Bot)' }
 ];
 

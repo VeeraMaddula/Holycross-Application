@@ -253,6 +253,24 @@ router.post('/:id/training-edit-access', async (req, res) => {
   res.redirect('/users');
 });
 
+router.post('/:id/vouchers-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserVoucherAccess(req.params.id, !(target && target.canManageVouchers));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
+router.post('/:id/breakage-access', async (req, res) => {
+  const target = await models.getUserById(req.params.id);
+  const result = await models.setUserBreakageAccess(req.params.id, !(target && target.canViewBreakage));
+  if (result.error) {
+    return res.status(400).render('users/list', { users: await models.listUsers(), error: result.error, currentUserId: req.session.userId });
+  }
+  res.redirect('/users');
+});
+
 router.post('/:id/color', async (req, res) => {
   const result = await models.setUserColor(req.params.id, req.body.color);
   if (result.error) {

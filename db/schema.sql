@@ -31,6 +31,8 @@ CREATE TABLE users (
   can_view_logs             BOOLEAN NOT NULL DEFAULT false,
   can_edit_duties           BOOLEAN NOT NULL DEFAULT false,
   can_edit_training         BOOLEAN NOT NULL DEFAULT false,
+  can_manage_vouchers       BOOLEAN NOT NULL DEFAULT false,
+  can_view_breakage         BOOLEAN NOT NULL DEFAULT false,
   -- Kiosk clock-in PIN (hashed, same as password_hash) and the avatar shown
   -- while actively clocked in (separate from the normal profile avatar).
   pin_hash             TEXT,
@@ -251,4 +253,44 @@ CREATE TABLE files (
   data                BYTES NOT NULL,
   uploaded_by_user_id INT REFERENCES users(id),
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- In-house physical gift vouchers. Staff record the voucher number printed
+-- on the physical card at time of sale, then look it up by that same
+-- number to log a redemption (partial redemptions supported — a voucher
+-- can be spent down across more than one visit). remaining_balance is kept
+-- as a column rather than always summed from voucher_redemptions so a
+-- lookup-by-number at the till doesn't need a join.
+CREATE TABLE vouchers (
+  id                 SERIAL PRIMARY KEY,
+  voucher_number     TEXT UNIQUE NOT NULL,
+  face_value         NUMERIC(10,2) NOT NULL,
+  remaining_balance  NUMERIC(10,2) NOT NULL,
+  customer_name      TEXT,
+  sold_by_user_id    INT REFERENCES users(id),
+  sold_by_name       TEXT,
+  sold_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status             TEXT NOT NULL DEFAULT 'active' -- 'active' | 'partially_redeemed' | 'redeemed' | 'void'
+);
+
+CREATE TABLE voucher_redemptions (
+  id                  SERIAL PRIMARY KEY,
+  voucher_id          INT NOT NULL REFERENCES vouchers(id),
+  amount              NUMERIC(10,2) NOT NULL,
+  redeemed_by_user_id INT REFERENCES users(id),
+  redeemed_by_name    TEXT,
+  redeemed_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  note                TEXT
+);
+
+-- Breakage/shortage self-reporting, captured as part of the kiosk clock-out
+-- flow — one row per item a staff member flags on their way out, so
+-- management can see patterns by person over time (src/routes/breakage.js).
+CREATE TABLE breakage_reports (
+  id          SERIAL PRIMARY KEY,
+  user_id     INT REFERENCES users(id),
+  user_name   TEXT NOT NULL,
+  category    TEXT NOT NULL, -- 'glass' | 'spirit' | 'soft_drink'
+  note        TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

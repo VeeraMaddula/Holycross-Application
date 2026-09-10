@@ -36,6 +36,8 @@ const staffReports = require('./models/staffReports');
 const trainingResources = require('./models/trainingResources');
 const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
+const vouchers = require('./models/vouchers');
+const breakage = require('./models/breakage');
 const { toMinutes } = require('./models/shared');
 
 module.exports = {
@@ -98,6 +100,8 @@ module.exports = {
   setUserLogsAccess: users.setUserLogsAccess,
   setUserDutiesEditAccess: users.setUserDutiesEditAccess,
   setUserTrainingEditAccess: users.setUserTrainingEditAccess,
+  setUserVoucherAccess: users.setUserVoucherAccess,
+  setUserBreakageAccess: users.setUserBreakageAccess,
   setUserColor: users.setUserColor,
   acceptPrivacyPolicy: users.acceptPrivacyPolicy,
 
@@ -204,6 +208,26 @@ module.exports = {
   requestVerificationCode: selfVerification.requestVerificationCode,
   confirmPasswordChange: selfVerification.confirmPasswordChange,
   confirmPinChange: selfVerification.confirmPinChange,
+
+  // Vouchers
+  listVouchers: vouchers.listVouchers,
+  getVoucherById: vouchers.getVoucherById,
+  getVoucherByNumber: vouchers.getVoucherByNumber,
+  sellVoucher: vouchers.sellVoucher,
+  listRedemptionsForVoucher: vouchers.listRedemptionsForVoucher,
+  redeemVoucher: vouchers.redeemVoucher,
+  voidVoucher: vouchers.voidVoucher,
+  listVouchersSoldBetween: vouchers.listVouchersSoldBetween,
+  listRedemptionsBetween: vouchers.listRedemptionsBetween,
+
+  // Breakage / stock-shortage reports
+  BREAKAGE_CATEGORIES: breakage.BREAKAGE_CATEGORIES,
+  BREAKAGE_CATEGORY_VALUES: breakage.BREAKAGE_CATEGORY_VALUES,
+  BREAKAGE_CATEGORY_LABELS: breakage.BREAKAGE_CATEGORY_LABELS,
+  listBreakageReports: breakage.listBreakageReports,
+  listBreakageReportsByUser: breakage.listBreakageReportsByUser,
+  addBreakageReport: breakage.addBreakageReport,
+  getBreakageCountsByUser: breakage.getBreakageCountsByUser,
 
   // Shared helper (used by a couple of route files directly)
   toMinutes

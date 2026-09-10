@@ -149,4 +149,26 @@ function requireTrainingEditAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, STAFF_ROLES };
+// Vouchers access (sell/redeem/view) = every manager-tier role (Admin,
+// Senior/General/Floor Manager, Staff Manager) automatically, plus the
+// Accountant role (that's the whole point of the role), plus anyone
+// individually granted it via the Users page — same pattern as
+// requireCashSafeAccess/requireLogsAccess above.
+function requireVoucherAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (MANAGER_ROLES.includes(u.role) || u.role === 'accountant' || u.canManageVouchers)) return next();
+  return res.status(403).render('403');
+}
+
+// Breakage/stock-shortage report VIEWING (the report list + who's-breaking-
+// what summary) = every manager-tier role, plus Accountant, plus anyone
+// individually granted it via the Users page — same pattern as
+// requireVoucherAccess above. Submitting a report is a different path (the
+// kiosk clock-out prompt, gated by the kiosk's own PIN auth, not this).
+function requireBreakageAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && (MANAGER_ROLES.includes(u.role) || u.role === 'accountant' || u.canViewBreakage)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, requireVoucherAccess, requireBreakageAccess, STAFF_ROLES };

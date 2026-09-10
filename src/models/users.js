@@ -42,6 +42,8 @@ function mapRow(r) {
     canViewLogs: r.can_view_logs,
     canEditDuties: r.can_edit_duties,
     canEditTraining: r.can_edit_training,
+    canManageVouchers: r.can_manage_vouchers,
+    canViewBreakage: r.can_view_breakage,
     resetTokenHash: r.reset_token_hash || null,
     resetTokenExpiresAt: r.reset_token_expires_at ? new Date(r.reset_token_expires_at).toISOString() : null,
     selfVerifyCodeHash: r.self_verify_code_hash || null,
@@ -177,6 +179,8 @@ const setUserCashSafeAccess = makeAccessToggle('can_manage_cash_safe');
 const setUserLogsAccess = makeAccessToggle('can_view_logs');
 const setUserDutiesEditAccess = makeAccessToggle('can_edit_duties');
 const setUserTrainingEditAccess = makeAccessToggle('can_edit_training');
+const setUserVoucherAccess = makeAccessToggle('can_manage_vouchers');
+const setUserBreakageAccess = makeAccessToggle('can_view_breakage');
 
 async function acceptPrivacyPolicy(id, version) {
   const u = await getUserById(id);
@@ -260,5 +264,6 @@ module.exports = {
   setUserRequestsAccess, setUserFunctionBookingAccess, setUserNotificationsAccess, acceptPrivacyPolicy,
   setUserCashSafeAccess, setUserLogsAccess, setUserDutiesEditAccess, setUserTrainingEditAccess, setUserAvatar,
   setLiveShiftAvatar, setUserActive, setUserRole, setUserPinHash, setUserResetToken, getUserByResetTokenHash,
-  clearUserResetToken, setUserPasswordHash, setUserSelfVerifyCode, clearUserSelfVerifyCode
+  clearUserResetToken, setUserPasswordHash, setUserSelfVerifyCode, clearUserSelfVerifyCode,
+  setUserVoucherAccess, setUserBreakageAccess
 };

@@ -403,6 +403,48 @@ async function notifyManagersDutyReport(report) {
 // hasn't already been reported, records + emails it. Shared by the fixed-
 // window sweep, the lastClockout closing check, and the overnight safety
 // net below — all three just disagree on *when* to call this.
+// Weekly voucher reconciliation email — every voucher sold and every
+// redemption made in the last 7 days, so the accountant team can check it
+// against the physical voucher book. Recipients: anyone with the
+// 'accountant' role or individually granted canManageVouchers, plus
+// ADMIN_NOTIFICATION_EMAIL as a fallback if neither exists yet (so the
+// email doesn't silently go nowhere before anyone's been set up).
+function voucherWeeklySummaryEmail(sold, redemptions, periodLabel) {
+  const subject = `Weekly voucher summary — ${periodLabel}`;
+  const soldLines = sold.length
+    ? sold.map(v => `  ${v.voucherNumber} — EUR ${v.faceValue.toFixed(2)} — sold by ${v.soldByName}${v.customerName ? ` — ${v.customerName}` : ''}`).join('\n')
+    : '  (none)';
+  const redeemedLines = redemptions.length
+    ? redemptions.map(r => `  ${r.voucherNumber} — EUR ${r.amount.toFixed(2)} redeemed by ${r.redeemedByName}${r.note ? ` — ${r.note}` : ''}`).join('\n')
+    : '  (none)';
+  const soldTotal = sold.reduce((sum, v) => sum + v.faceValue, 0);
+  const redeemedTotal = redemptions.reduce((sum, r) => sum + r.amount, 0);
+  const text = `Voucher activity for ${periodLabel}:\n\n`
+    + `VOUCHERS SOLD (${sold.length}, total EUR ${soldTotal.toFixed(2)}):\n${soldLines}\n\n`
+    + `VOUCHERS REDEEMED (${redemptions.length}, total EUR ${redeemedTotal.toFixed(2)}):\n${redeemedLines}\n\n`
+    + `Check the physical voucher book against this list — the full history is also in the app under Vouchers.`;
+  return { subject, text };
+}
+
+async function notifyAccountantsWeeklyVoucherSummary() {
+  const now = new Date();
+  const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const [sold, redemptions] = await Promise.all([
+    models.listVouchersSoldBetween(start.toISOString(), now.toISOString()),
+    models.listRedemptionsBetween(start.toISOString(), now.toISOString())
+  ]);
+  const periodLabel = `${start.toLocaleDateString()} – ${now.toLocaleDateString()}`;
+  const { subject, text } = voucherWeeklySummaryEmail(sold, redemptions, periodLabel);
+  const users = await models.listUsers();
+  let recipients = users.filter(u => (u.role === 'accountant' || u.canManageVouchers) && u.email);
+  if (!recipients.length && process.env.ADMIN_NOTIFICATION_EMAIL) {
+    recipients = [{ email: process.env.ADMIN_NOTIFICATION_EMAIL }];
+  }
+  for (const r of recipients) {
+    await sendEmail({ to: r.email, subject, text, type: 'voucher-weekly-summary' });
+  }
+}
+
 async function evaluateAndReportDuty({ date, section, sectionTitle, trigger, fallbackReason }) {
   if (models.getDutyReport(date, section)) return; // already handled today
   const checklist = models.getDutiesChecklist(date);
@@ -527,6 +569,14 @@ function startScheduler() {
     runDutyWindowSweep().catch(err => console.error('Duty window sweep failed:', err.message));
   });
   console.log('Duty window sweep started (checks every 5 minutes).');
+
+  // Every Monday at 7am — last 7 days of voucher sales/redemptions, emailed
+  // to the accountant team for reconciliation against the physical voucher
+  // book. See notifyAccountantsWeeklyVoucherSummary above.
+  cron.schedule('0 7 * * 1', () => {
+    notifyAccountantsWeeklyVoucherSummary().catch(err => console.error('Weekly voucher summary failed:', err.message));
+  });
+  console.log('Weekly voucher summary scheduler started (Mondays at 7am).');
 }
 
 module.exports = {
@@ -539,6 +589,7 @@ module.exports = {
   notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
   notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
   notifyManagersShiftChange,
+  voucherWeeklySummaryEmail, notifyAccountantsWeeklyVoucherSummary,
   runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head><title>Vouchers - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Vouchers</h2>
+    <p class="muted">Record each physical gift voucher card sold at the till, and log redemptions against it — including partial redemptions across more than one visit. This list is what the weekly accountant email is built from, for reconciling against the physical voucher book.</p>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div class="card">
+        <h3 style="margin-top:0">Sell a voucher</h3>
+        <form method="POST" action="/vouchers/sell">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field">
+            <label>Voucher number (from the physical card)</label>
+            <input type="text" name="voucherNumber" required placeholder="e.g. HC-0042">
+          </div>
+          <div class="field">
+            <label>Amount (&euro;)</label>
+            <input type="number" name="faceValue" step="0.01" min="0.01" required>
+          </div>
+          <div class="field">
+            <label>Customer name <span class="muted" style="font-weight:400">(optional)</span></label>
+            <input type="text" name="customerName">
+          </div>
+          <button class="btn" type="submit">Record sale</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Redeem a voucher</h3>
+        <form method="POST" action="/vouchers/redeem">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field">
+            <label>Voucher number</label>
+            <input type="text" name="voucherNumber" required placeholder="e.g. HC-0042">
+          </div>
+          <div class="field">
+            <label>Amount redeemed now (&euro;)</label>
+            <input type="number" name="amount" step="0.01" min="0.01" required>
+          </div>
+          <div class="field">
+            <label>Note <span class="muted" style="font-weight:400">(optional)</span></label>
+            <input type="text" name="note" placeholder="e.g. Used against table 4's bill">
+          </div>
+          <button class="btn" type="submit">Record redemption</button>
+        </form>
+        <p class="muted" style="font-size:12px;margin-top:8px">Partial redemption is fine — the remaining balance stays on the voucher for next time.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">All vouchers</h3>
+      <% if (!vouchers.length) { %>
+        <p class="muted">No vouchers sold yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Number</th><th>Sold</th><th>Customer</th><th>Face value</th><th>Remaining</th><th>Status</th><th>Sold by</th><th></th></tr></thead>
+          <tbody>
+          <% vouchers.forEach(v => { %>
+            <tr>
+              <td><%= v.voucherNumber %></td>
+              <td><%= new Date(v.soldAt).toLocaleDateString() %></td>
+              <td><%= v.customerName || '—' %></td>
+              <td>&euro;<%= v.faceValue.toFixed(2) %></td>
+              <td>&euro;<%= v.remainingBalance.toFixed(2) %></td>
+              <td><span class="badge <%= v.status %>"><%= v.status %></span></td>
+              <td><%= v.soldByName %></td>
+              <td>
+                <a href="/vouchers/<%= v.id %>/history">History</a>
+                <% if (v.status !== 'void') { %>
+                  <form method="POST" action="/vouchers/<%= v.id %>/void" style="display:inline" onsubmit="return confirm('Void voucher <%= v.voucherNumber %>? This cannot be undone.')">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn small secondary" style="margin-left:6px">Void</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body>
+</html>
