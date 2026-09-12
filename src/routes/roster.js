@@ -74,6 +74,9 @@ router.get('/week', async (req, res) => {
       shifts: day.shifts.map(withBarPosition),
       pendingCount: day.shifts.filter(s => !s.notified).length
     }));
+  const orphanedCount = days.reduce((sum, day) => sum + day.shifts.filter(s => s.userName === 'Unknown staff').length, 0);
+  const currentUser = res.locals.currentUser;
+  const canCleanUp = !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager'));
 
   res.render('roster-week', {
     users,
@@ -85,7 +88,9 @@ router.get('/week', async (req, res) => {
     thisWeek: mondayOf(todayStr()),
     formatTime12,
     areas: models.ROSTER_AREAS,
-    areaLabels: models.ROSTER_AREA_LABELS
+    areaLabels: models.ROSTER_AREA_LABELS,
+    orphanedCount, canCleanUp,
+    justCleaned: req.query.cleaned !== undefined ? Number(req.query.cleaned) : null
   });
 });
 
@@ -158,6 +163,22 @@ router.post('/notify', async (req, res) => {
     models.markShiftsNotifiedForDate(date);
   }
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
+});
+
+// One-off maintenance action: removes any shift whose staff member no
+// longer exists (shows up as "Unknown staff" — leftover from the JSON
+// roster file predating the move to the CockroachDB users table, see
+// models/roster.js's removeOrphanedShifts). Restricted to admin/senior
+// manager, same bar as the sidebar's Danger Zone actions, since it's a
+// bulk delete even though what it deletes is already broken data.
+router.post('/cleanup-orphaned', async (req, res) => {
+  const u = res.locals.currentUser;
+  if (!u || (u.role !== 'admin' && u.role !== 'senior_manager')) {
+    return res.status(403).render('403');
+  }
+  const removed = await models.removeOrphanedShifts();
+  const redirectWeek = req.body.redirectWeek;
+  res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}&cleaned=${removed}` : `?cleaned=${removed}`));
 });
 
 module.exports = router;

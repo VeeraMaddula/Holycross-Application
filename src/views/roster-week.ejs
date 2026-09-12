@@ -8,6 +8,24 @@
     <h2>Roster</h2>
     <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Adding or editing a shift does <strong>not</strong> notify anyone by itself — build out the day, then press that day's "Send notifications" button when you're ready and everyone with an unsent shift that day gets an email and text at once. Change anyone's colour from the <a href="/users">Users page</a>.</p>
 
+    <% if (justCleaned !== null) { %>
+      <div class="success-box"><%= justCleaned %> orphaned shift<%= justCleaned === 1 ? '' : 's' %> removed.</div>
+    <% } %>
+    <% if (orphanedCount > 0 && canCleanUp) { %>
+      <div class="card" style="border-color:#e8590c">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <p class="muted" style="margin:0">
+            <%= orphanedCount %> shift<%= orphanedCount === 1 ? '' : 's' %> this week show as "Unknown staff" — leftover data pointing at a staff account that no longer exists. Safe to remove.
+          </p>
+          <form class="inline" method="POST" action="/roster/cleanup-orphaned">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+            <button class="btn small secondary" type="submit" title="Removes every orphaned shift across the whole roster, not just this week">Remove orphaned shifts</button>
+          </form>
+        </div>
+      </div>
+    <% } %>
+
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <strong><%= weekStart %> to <%= weekEnd %></strong>

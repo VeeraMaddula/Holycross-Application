@@ -119,6 +119,24 @@ function removeRosterShift(id) {
   writeDb(db);
 }
 
+// Removes any shift whose userId no longer matches a real user — these
+// show up as "Unknown staff" in the UI. In practice this happens when the
+// JSON roster file (still not migrated to the SQL database — task #207)
+// has entries left over from before the users table moved to CockroachDB,
+// where the old JSON-era user ids don't line up with the new ones. Returns
+// how many were removed so the caller can report it back.
+async function removeOrphanedShifts() {
+  const db = readDb();
+  const users = await listUsers();
+  const validIds = new Set(users.map(u => u.id));
+  const shifts = db.rosterShifts || [];
+  const before = shifts.length;
+  db.rosterShifts = shifts.filter(s => validIds.has(s.userId));
+  const removed = before - db.rosterShifts.length;
+  if (removed > 0) writeDb(db);
+  return removed;
+}
+
 // Groups shifts by date for a range. Returns [{ date, dayOfWeek, shifts: [...] }, ...].
 async function getResolvedScheduleForRange(fromDate, toDate) {
   const shifts = await listRosterShiftsForRange(fromDate, toDate);
@@ -142,5 +160,6 @@ module.exports = {
   AREAS, AREA_LABELS,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
-  getPendingNotificationsForDate, markShiftsNotifiedForDate
+  getPendingNotificationsForDate, markShiftsNotifiedForDate,
+  removeOrphanedShifts
 };

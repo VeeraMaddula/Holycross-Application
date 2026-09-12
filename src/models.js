@@ -154,6 +154,7 @@ module.exports = {
   getUserUpcomingShifts: roster.getUserUpcomingShifts,
   getPendingNotificationsForDate: roster.getPendingNotificationsForDate,
   markShiftsNotifiedForDate: roster.markShiftsNotifiedForDate,
+  removeOrphanedShifts: roster.removeOrphanedShifts,
 
   // Requests
   REQUEST_TYPES: requests.REQUEST_TYPES,
