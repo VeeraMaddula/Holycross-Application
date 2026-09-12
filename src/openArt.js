@@ -102,11 +102,15 @@ function extractResultUrl(result) {
 
 async function generateImage({ prompt, model }) {
   const result = await runCli(['generate', 'image', prompt, '--model', model]);
+  // TEMPORARY debug log — see the note on extractResultUrl above. Remove
+  // once the real JSON shape is confirmed and the parsing is solid.
+  console.log('[openArt] raw generate image response:', JSON.stringify(result));
   return { resultUrl: extractResultUrl(result), creationId: result.id || result.generationId || '', raw: result };
 }
 
 async function generateVideo({ prompt, model }) {
   const result = await runCli(['generate', 'video', prompt, '--model', model]);
+  console.log('[openArt] raw generate video response:', JSON.stringify(result));
   return { resultUrl: extractResultUrl(result), creationId: result.id || result.generationId || '', raw: result };
 }
 
