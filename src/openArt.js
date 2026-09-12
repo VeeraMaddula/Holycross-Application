@@ -27,11 +27,15 @@ const path = require('path');
 const OPENART_HOME_DIR = path.join(process.env.PERSIST_DIR || path.join(__dirname, '..'), 'openart-home');
 const CREDENTIALS_PATH = path.join(OPENART_HOME_DIR, '.openart', 'cli-credentials.json');
 
-// Path to the `openart` binary itself. Render's build step installs it with
-// the CLI's own default installer (see render.yaml), which lands on
-// /usr/local/bin — already on PATH, so no path juggling needed. Override
-// with OPENART_CLI_PATH if it's installed somewhere else.
-const CLI_PATH = process.env.OPENART_CLI_PATH || 'openart';
+// Path to the `openart` binary itself. Render's build step installs it to
+// ./bin/openart, inside the project directory (see render.yaml) — a
+// system-wide install path (e.g. /usr/local/bin) doesn't survive from build
+// to runtime on Render, confirmed by a live ENOENT there. Falls back to
+// plain `openart` (resolved via PATH) when that project-relative binary
+// isn't present — e.g. local dev, where it's installed globally instead.
+// Override with OPENART_CLI_PATH to force a specific location.
+const REPO_BIN_PATH = path.join(__dirname, '..', 'bin', process.platform === 'win32' ? 'openart.exe' : 'openart');
+const CLI_PATH = process.env.OPENART_CLI_PATH || (fs.existsSync(REPO_BIN_PATH) ? REPO_BIN_PATH : 'openart');
 
 // Best-guess model ids from OpenArt's current lineup (confirmed as of
 // Sept 2026 — see https://openart.ai/mcp/). 'nano-banana-2', 'gpt-image-2',

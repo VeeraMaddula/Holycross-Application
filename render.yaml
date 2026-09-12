@@ -16,14 +16,16 @@ services:
     name: holycross-booking
     runtime: node
     plan: starter
-    # Installs the OpenArt CLI binary (to /usr/local/bin, its own default —
-    # no --prefix, so there's no ambiguity about the exact install layout)
-    # alongside the normal npm install. See src/openArt.js for why this
-    # exists: OpenArt has no API-key system, only this CLI or their MCP
-    # server (built for AI agents, not a plain backend). Render's native
-    # Node runtime builds and starts in the same container, so a binary
-    # installed here is still on PATH when the app starts.
-    buildCommand: npm install && curl -fsSL https://raw.githubusercontent.com/OpenArt-AI/cli/main/install.sh | sh
+    # Installs the OpenArt CLI binary INTO the project directory itself
+    # (--prefix "$(pwd)" -> ./bin/openart), not a system path — confirmed on
+    # Render that build and runtime don't share arbitrary filesystem paths
+    # outside the project checkout, so a system-wide install (e.g.
+    # /usr/local/bin or ~/.local/bin) silently disappears by the time the
+    # app actually starts (ENOENT). Only what's inside the project directory
+    # survives into the deployed instance. See src/openArt.js for why this
+    # binary is needed at all: OpenArt has no API-key system, only this CLI
+    # or their MCP server (built for AI agents, not a plain backend).
+    buildCommand: npm install && curl -fsSL https://raw.githubusercontent.com/OpenArt-AI/cli/main/install.sh | sh -s -- --prefix "$(pwd)"
     startCommand: npm start
     healthCheckPath: /login
     disk:
@@ -86,10 +88,3 @@ services:
       # this only ever needs to be set once.
       - key: OPENART_CLI_CREDENTIALS_JSON
         sync: false
-      # The install script falls back to ~/.local/bin when /usr/local/bin
-      # isn't writable (confirmed on Render: it lands at
-      # /opt/render/.local/bin), which isn't on PATH for the running
-      # service — so src/openArt.js needs the exact path rather than relying
-      # on PATH to find it.
-      - key: OPENART_CLI_PATH
-        value: /opt/render/.local/bin/openart

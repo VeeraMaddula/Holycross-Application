@@ -10,6 +10,11 @@ google-service-account.json
 # credential, never something to commit.
 openart-home/
 
+# OpenArt CLI binary — downloaded fresh into ./bin during Render's build
+# step (render.yaml), never checked into git. Also excludes anyone running
+# the same install command locally inside the repo by accident.
+/bin/
+
 # Real staff/customer photos — not source code, shouldn't live in git history
 public/img/avatars/
 public/img/clock-selfies/
