@@ -152,6 +152,8 @@ module.exports = {
   removeRosterShift: roster.removeRosterShift,
   getResolvedScheduleForRange: roster.getResolvedScheduleForRange,
   getUserUpcomingShifts: roster.getUserUpcomingShifts,
+  getPendingNotificationsForDate: roster.getPendingNotificationsForDate,
+  markShiftsNotifiedForDate: roster.markShiftsNotifiedForDate,
 
   // Requests
   REQUEST_TYPES: requests.REQUEST_TYPES,

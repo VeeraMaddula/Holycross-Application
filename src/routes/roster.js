@@ -69,7 +69,11 @@ router.get('/week', async (req, res) => {
   const weekEnd = addDays(weekStart, 6);
   const users = (await models.listUsers()).filter(u => u.active);
   const days = (await models.getResolvedScheduleForRange(weekStart, weekEnd))
-    .map(day => ({ ...day, shifts: day.shifts.map(withBarPosition) }));
+    .map(day => ({
+      ...day,
+      shifts: day.shifts.map(withBarPosition),
+      pendingCount: day.shifts.filter(s => !s.notified).length
+    }));
 
   res.render('roster-week', {
     users,
@@ -98,34 +102,62 @@ router.get('/week/data', async (req, res) => {
       shifts.push({
         id: s.id, userId: s.userId, date: day.date, startTime: s.startTime, endTime: s.endTime, color: s.color,
         startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime),
-        area: s.area || '', areaLabel: s.areaLabel || ''
+        area: s.area || '', areaLabel: s.areaLabel || '', notified: !!s.notified
       });
     });
   });
   res.json({ shifts });
 });
 
-router.post('/shifts', async (req, res) => {
-  const { date, userId, startTime, endTime, area, redirectWeek } = req.body;
-  if (date && userId && startTime && endTime) {
-    const result = await models.addRosterShift({ date, userId, startTime, endTime, area });
-    notifyShift(result.shift, 'assigned');
+// Saves one or more shift rows for a single day in one submit — the day
+// form on roster-week.ejs lets a manager add several staff/area/time rows
+// before hitting one Save, rather than round-tripping per staff member.
+// Fields arrive as same-length arrays (userId[], area[], startTime[],
+// endTime[]) — express's urlencoded parser (extended:true, i.e. qs) turns
+// repeated `name[]` fields into an array automatically, in the order the
+// browser submitted them, so index i across all four arrays always
+// describes one row. Nothing is notified here — see POST /notify below.
+router.post('/shifts/batch', async (req, res) => {
+  const { date, redirectWeek } = req.body;
+  const userIds = [].concat(req.body.userId || []);
+  const areasIn = [].concat(req.body.area || []);
+  const startTimes = [].concat(req.body.startTime || []);
+  const endTimes = [].concat(req.body.endTime || []);
+
+  if (date) {
+    for (let i = 0; i < userIds.length; i++) {
+      if (userIds[i] && startTimes[i] && endTimes[i]) {
+        await models.addRosterShift({ date, userId: userIds[i], startTime: startTimes[i], endTime: endTimes[i], area: areasIn[i] });
+      }
+    }
   }
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
 router.post('/shifts/:id/edit', async (req, res) => {
   const { date, startTime, endTime, area, redirectWeek } = req.body;
-  const result = await models.updateRosterShift(req.params.id, { date, startTime, endTime, area });
-  if (!result.error) {
-    notifyShift(result.shift, 'updated');
-  }
+  await models.updateRosterShift(req.params.id, { date, startTime, endTime, area });
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
 router.post('/shifts/:id/delete', (req, res) => {
   models.removeRosterShift(req.params.id);
   res.redirect('/roster/week' + (req.body.redirectWeek ? `?week=${req.body.redirectWeek}` : ''));
+});
+
+// Sends the "shift assigned"/"shift updated" email+SMS for every shift on
+// one date that hasn't been notified yet, then marks them notified — the
+// day's "Send notifications" button on roster-week.ejs. Deliberately
+// per-day and manager-triggered rather than automatic, so a manager can
+// build out a whole day's roster first and only ping staff once it's final.
+router.post('/notify', async (req, res) => {
+  const { date, redirectWeek } = req.body;
+  if (date) {
+    const pending = await models.getPendingNotificationsForDate(date);
+    pending.forEach(shift => notifyShift(shift, shift.pendingAction === 'updated' ? 'updated' : 'assigned'));
+    models.markShiftsNotifiedForDate(date);
+  }
+  res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
 module.exports = router;

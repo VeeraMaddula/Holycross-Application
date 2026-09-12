@@ -318,6 +318,12 @@ textarea { resize: vertical; min-height: 70px; }
 .roster-add-form .field { margin-bottom: 0; min-width: 140px; }
 .roster-add-form .field.narrow { min-width: 110px; }
 
+.roster-batch-form { margin-bottom: 4px; }
+.roster-batch-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.roster-batch-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.roster-batch-row .field { margin-bottom: 0; min-width: 140px; }
+.roster-batch-row .field.narrow { min-width: 110px; }
+
 @media (max-width: 768px) {
   .roster-hour-header { display: none; }
   .roster-timeline-name { width: 92px; font-size: 12px; }

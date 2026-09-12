@@ -52,6 +52,13 @@ async function listRosterShiftsForRange(fromDate, toDate) {
   });
 }
 
+// `notified` tracks whether the assigned/updated email+SMS has actually been
+// sent for a shift yet. Adding or editing a shift no longer notifies the
+// staff member immediately — it just marks the shift unnotified, and a
+// manager sends a batch of "Shift assigned"/"Shift updated" messages for a
+// given day whenever they're ready, via the day's "Send notifications"
+// button (see routes/roster.js's /notify route). `pendingAction` picks which
+// email/SMS wording applies once that button is pressed.
 async function addRosterShift({ date, userId, startTime, endTime, area }) {
   const db = readDb();
   if (!db.rosterShifts) db.rosterShifts = [];
@@ -61,7 +68,9 @@ async function addRosterShift({ date, userId, startTime, endTime, area }) {
     date,
     userId: Number(userId),
     startTime, endTime,
-    area: AREAS.includes(area) ? area : null
+    area: AREAS.includes(area) ? area : null,
+    notified: false,
+    pendingAction: 'assigned'
   };
   db.rosterShifts.push(shift);
   writeDb(db);
@@ -77,9 +86,31 @@ async function updateRosterShift(id, { date, startTime, endTime, area }) {
   if (startTime) shift.startTime = startTime;
   if (endTime) shift.endTime = endTime;
   if (area !== undefined) shift.area = AREAS.includes(area) ? area : null;
+  shift.notified = false;
+  shift.pendingAction = 'updated';
   writeDb(db);
   const user = await getUserById(shift.userId);
   return { shift: { ...shift, user: user || null } };
+}
+
+// Shifts on a given date that haven't been notified yet, joined with the
+// full user record (notifyShift needs .email/.phone/.name, not just the
+// name/colour that listRosterShiftsForRange's join provides).
+async function getPendingNotificationsForDate(date) {
+  const db = readDb();
+  const pending = (db.rosterShifts || []).filter(s => s.date === date && !s.notified);
+  const result = [];
+  for (const s of pending) {
+    const user = await getUserById(s.userId);
+    result.push({ ...s, user: user || null });
+  }
+  return result;
+}
+
+function markShiftsNotifiedForDate(date) {
+  const db = readDb();
+  (db.rosterShifts || []).forEach(s => { if (s.date === date) s.notified = true; });
+  writeDb(db);
 }
 
 function removeRosterShift(id) {
@@ -110,5 +141,6 @@ async function getUserUpcomingShifts(userId, fromDate, toDate) {
 module.exports = {
   AREAS, AREA_LABELS,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
-  getResolvedScheduleForRange, getUserUpcomingShifts
+  getResolvedScheduleForRange, getUserUpcomingShifts,
+  getPendingNotificationsForDate, markShiftsNotifiedForDate
 };

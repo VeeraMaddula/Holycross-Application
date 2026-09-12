@@ -6,7 +6,7 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Roster</h2>
-    <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Staff get an email and text as soon as a shift is added or edited. Change anyone's colour from the <a href="/users">Users page</a>.</p>
+    <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Adding or editing a shift does <strong>not</strong> notify anyone by itself — build out the day, then press that day's "Send notifications" button when you're ready and everyone with an unsent shift that day gets an email and text at once. Change anyone's colour from the <a href="/users">Users page</a>.</p>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -60,36 +60,54 @@
 
       <% days.forEach(day => { %>
         <div class="card" id="day-<%= day.date %>">
-          <h3 style="margin-top:0"><%= dayNames[day.dayOfWeek] %>, <%= day.date %></h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3 style="margin:0"><%= dayNames[day.dayOfWeek] %>, <%= day.date %></h3>
+            <% if (day.pendingCount > 0) { %>
+              <form class="inline" method="POST" action="/roster/notify">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="date" value="<%= day.date %>">
+                <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+                <button class="btn small" type="submit" title="Emails and texts everyone with an unsent shift this day">Send notifications (<%= day.pendingCount %>)</button>
+              </form>
+            <% } %>
+          </div>
 
-          <form class="roster-add-form" method="POST" action="/roster/shifts">
+          <form class="roster-batch-form" method="POST" action="/roster/shifts/batch" data-batch-form>
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="date" value="<%= day.date %>">
             <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
-            <div class="field">
-              <label>Staff</label>
-              <select name="userId" required>
-                <option value="">Choose staff…</option>
-                <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %>
-              </select>
+            <div class="roster-batch-rows" data-batch-rows>
+              <div class="roster-batch-row" data-batch-row>
+                <div class="field">
+                  <label>Staff</label>
+                  <select name="userId[]" required>
+                    <option value="">Choose staff…</option>
+                    <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %>
+                  </select>
+                </div>
+                <div class="field narrow">
+                  <label>Area</label>
+                  <select name="area[]" required>
+                    <% areas.forEach(a => { %><option value="<%= a %>"><%= areaLabels[a] %></option><% }) %>
+                  </select>
+                </div>
+                <div class="field narrow">
+                  <label>Start</label>
+                  <input type="time" name="startTime[]" required>
+                </div>
+                <div class="field narrow">
+                  <label>End</label>
+                  <input type="time" name="endTime[]" required>
+                </div>
+                <button type="button" class="roster-timeline-remove" data-remove-row title="Remove this row" style="display:none">&times;</button>
+              </div>
             </div>
-            <div class="field narrow">
-              <label>Area</label>
-              <select name="area" required>
-                <% areas.forEach(a => { %><option value="<%= a %>"><%= areaLabels[a] %></option><% }) %>
-              </select>
+            <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
+              <button type="button" class="btn small secondary" data-add-row>+ Add another staff member</button>
+              <button class="btn" type="submit">Save shifts for <%= dayNames[day.dayOfWeek] %></button>
             </div>
-            <div class="field narrow">
-              <label>Start</label>
-              <input type="time" name="startTime" required>
-            </div>
-            <div class="field narrow">
-              <label>End</label>
-              <input type="time" name="endTime" required>
-            </div>
-            <button class="btn" type="submit">Add to <%= dayNames[day.dayOfWeek] %></button>
           </form>
-          <p class="muted" style="margin-top:-10px">Working more than one area in a day? Add a separate entry for each — e.g. Bar 9:00am–1:00pm, then Floor 1:00pm–5:00pm.</p>
+          <p class="muted" style="margin:6px 0 14px">Working more than one area in a day? Add a separate row for the same staff member — e.g. Bar 9:00am–1:00pm, then Floor 1:00pm–5:00pm.</p>
 
           <% if (day.shifts.length === 0) { %>
             <p class="muted" style="margin:0">Nothing scheduled.</p>
@@ -106,6 +124,7 @@
                     <span><% if (s.areaLabel) { %><%= s.areaLabel %>: <% } %><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
                   </div>
                 </div>
+                <% if (!s.notified) { %><span class="muted" style="font-size:10px;white-space:nowrap" title="Not notified yet — will go out with this day's Send notifications">● not sent</span><% } %>
                 <button type="button" class="roster-timeline-remove" title="Edit this shift" style="font-size:15px"
                   onclick="var f=document.getElementById('edit-<%= s.id %>'); f.style.display = f.style.display==='none' ? 'flex' : 'none';">&#9998;</button>
                 <form class="inline" method="POST" action="/roster/shifts/<%= s.id %>/delete">
@@ -127,7 +146,7 @@
                   </div>
                   <div class="field narrow"><label>Start</label><input type="time" name="startTime" value="<%= s.startTime %>" required></div>
                   <div class="field narrow"><label>End</label><input type="time" name="endTime" value="<%= s.endTime %>" required></div>
-                  <button class="btn small secondary" type="submit">Save — will notify <%= s.userName %></button>
+                  <button class="btn small secondary" type="submit">Save changes</button>
                 </form>
               </div>
             <% }) %>
@@ -183,6 +202,43 @@
         .then(function(data) { renderRosterCells(data.shifts); })
         .catch(function() { /* silent — keep showing the last known state */ });
     }, 30000);
+  })();
+
+  // Batch shift-entry rows: each day's form starts with one row (staff,
+  // area, start, end). "+ Add another staff member" clones that row so a
+  // manager can line up the whole day before one Save; the row's own ×
+  // clears it back out. Event delegation on the document means this works
+  // for every day's form without wiring up a listener per day.
+  (function() {
+    function updateRemoveVisibility(rowsContainer) {
+      var rows = rowsContainer.querySelectorAll('[data-batch-row]');
+      rows.forEach(function(row) {
+        var removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) removeBtn.style.display = rows.length > 1 ? '' : 'none';
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      var addBtn = e.target.closest('[data-add-row]');
+      if (addBtn) {
+        var form = addBtn.closest('[data-batch-form]');
+        var rowsContainer = form.querySelector('[data-batch-rows]');
+        var firstRow = rowsContainer.querySelector('[data-batch-row]');
+        if (!firstRow) return;
+        var newRow = firstRow.cloneNode(true);
+        newRow.querySelectorAll('select, input').forEach(function(el) { el.value = ''; });
+        rowsContainer.appendChild(newRow);
+        updateRemoveVisibility(rowsContainer);
+        return;
+      }
+      var removeBtn = e.target.closest('[data-remove-row]');
+      if (removeBtn) {
+        var row = removeBtn.closest('[data-batch-row]');
+        var rowsContainer2 = row.closest('[data-batch-rows]');
+        row.remove();
+        updateRemoveVisibility(rowsContainer2);
+      }
+    });
   })();
 </script>
 </body>
