@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('./persist').setupPersistence();
+require('./openArt').ensureCredentialsSeeded();
 const express = require('express');
 // Patches Express 4's router so a rejected promise from an `async (req,
 // res) => {...}` route handler is forwarded to the error-handling
@@ -15,7 +16,7 @@ const path = require('path');
 const { ensureDb } = require('./db');
 const models = require('./models');
 const { hashPassword } = require('./password');
-const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireVoucherAccess, requireBreakageAccess } = require('./middleware');
+const { requireAuth, requireAdmin, requireTimesheetAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireVoucherAccess, requireBreakageAccess, requireDesignAccess } = require('./middleware');
 // requireTimesheetEditAccess (admin/senior_manager only) and
 // requireTrainingEditAccess (manager-tier / canEditTraining only) are
 // applied inside their own route files, layered on top of the broader
@@ -298,6 +299,7 @@ app.use('/cash-safe', requireAuth, requireCashSafeAccess, require('./routes/cash
 app.use('/logs', requireAuth, requireLogsAccess, require('./routes/logs'));
 app.use('/vouchers', requireAuth, requireVoucherAccess, require('./routes/vouchers'));
 app.use('/breakage', requireAuth, requireBreakageAccess, require('./routes/breakage'));
+app.use('/design', requireAuth, requireDesignAccess, require('./routes/design'));
 
 app.use((req, res) => {
   res.status(404).render('404');

@@ -38,6 +38,7 @@ const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
 const vouchers = require('./models/vouchers');
 const breakage = require('./models/breakage');
+const design = require('./models/design');
 const { toMinutes } = require('./models/shared');
 
 module.exports = {
@@ -228,6 +229,13 @@ module.exports = {
   listBreakageReportsByUser: breakage.listBreakageReportsByUser,
   addBreakageReport: breakage.addBreakageReport,
   getBreakageCountsByUser: breakage.getBreakageCountsByUser,
+
+  // Design Studio (AI image/video generation history via OpenArt)
+  listGenerations: design.listGenerations,
+  getGeneration: design.getGeneration,
+  createGeneration: design.createGeneration,
+  markGenerationComplete: design.markGenerationComplete,
+  markGenerationFailed: design.markGenerationFailed,
 
   // Shared helper (used by a couple of route files directly)
   toMinutes

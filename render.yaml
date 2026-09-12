@@ -16,7 +16,14 @@ services:
     name: holycross-booking
     runtime: node
     plan: starter
-    buildCommand: npm install
+    # Installs the OpenArt CLI binary (to /usr/local/bin, its own default —
+    # no --prefix, so there's no ambiguity about the exact install layout)
+    # alongside the normal npm install. See src/openArt.js for why this
+    # exists: OpenArt has no API-key system, only this CLI or their MCP
+    # server (built for AI agents, not a plain backend). Render's native
+    # Node runtime builds and starts in the same container, so a binary
+    # installed here is still on PATH when the app starts.
+    buildCommand: npm install && curl -fsSL https://raw.githubusercontent.com/OpenArt-AI/cli/main/install.sh | sh
     startCommand: npm start
     healthCheckPath: /login
     disk:
@@ -70,3 +77,12 @@ services:
         sync: false
       - key: APP_TIMEZONE
         value: Europe/Dublin
+      # One-time setup: run `openart login` on a machine with a browser (see
+      # src/openArt.js), then paste the full contents of the resulting
+      # credentials file (~/.openart/cli-credentials.json, or
+      # %USERPROFILE%\.openart\cli-credentials.json on Windows) as this
+      # value in the Render dashboard. The app seeds it onto the persistent
+      # disk on first boot; after that the CLI refreshes it on its own, so
+      # this only ever needs to be set once.
+      - key: OPENART_CLI_CREDENTIALS_JSON
+        sync: false

@@ -294,3 +294,25 @@ CREATE TABLE breakage_reports (
   note        TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- AI image/video generations via the OpenArt CLI (see src/openArt.js) — the
+-- Design Studio page (src/routes/design.js). Only metadata + the OpenArt CDN
+-- result URL are stored here, never the media bytes: images/videos stay
+-- hosted on OpenArt's own CDN (already durable, and videos in particular are
+-- far too large for CockroachDB's BYTES column — see the files table's
+-- comment above). openart_creation_id lets a still-running generation be
+-- polled/resumed later via `openart creation get <id>`.
+CREATE TABLE design_generations (
+  id                    SERIAL PRIMARY KEY,
+  kind                  TEXT NOT NULL, -- 'image' | 'video'
+  prompt                TEXT NOT NULL,
+  model                 TEXT NOT NULL,
+  status                TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'completed' | 'failed'
+  result_url            TEXT,
+  openart_creation_id   TEXT,
+  error                 TEXT,
+  requested_by_user_id  INT REFERENCES users(id),
+  requested_by_name     TEXT,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_design_generations_created_at ON design_generations(created_at);

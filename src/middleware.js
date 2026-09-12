@@ -171,4 +171,15 @@ function requireBreakageAccess(req, res, next) {
   return res.status(403).render('403');
 }
 
-module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, requireVoucherAccess, requireBreakageAccess, STAFF_ROLES };
+// Design Studio (AI image/video generation via OpenArt) access = every
+// manager-tier role (Admin, Senior/General/Floor Manager, Staff Manager) —
+// narrower than most other gates here since each generation spends real
+// OpenArt credits. No per-user Users-page toggle for this one (unlike
+// Vouchers/Breakage) — deliberately admin-controlled only via role for now.
+function requireDesignAccess(req, res, next) {
+  const u = res.locals.currentUser;
+  if (u && MANAGER_ROLES.includes(u.role)) return next();
+  return res.status(403).render('403');
+}
+
+module.exports = { requireAuth, requireAdmin, requireTimesheetAccess, requireTimesheetEditAccess, requireRosterAccess, requireRequestsAccess, requireNotificationsAccess, requireKioskPageAccess, requireDutiesAccess, requireDutiesEditAccess, requireReportAccess, requireCashSafeAccess, requireLogsAccess, requireTrainingAccess, requireTrainingEditAccess, requireVoucherAccess, requireBreakageAccess, requireDesignAccess, STAFF_ROLES };

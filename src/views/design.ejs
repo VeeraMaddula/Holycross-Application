@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head><title>Design Studio - Booking Admin</title><%- include('partials/head') %></head>
+<body>
+<div class="app-shell">
+  <%- include('partials/sidebar') %>
+  <div class="main">
+    <h2>Design Studio</h2>
+    <p class="muted">Generate marketing images and videos with OpenArt — posters, voucher card art, event promos. Each generation spends OpenArt credits on the connected account.</p>
+
+    <% if (!connected) { %>
+      <div class="error-box">
+        OpenArt isn't connected yet. Run <code>openart login</code> on a machine with a browser, then set <code>OPENART_CLI_CREDENTIALS_JSON</code> in the app's environment to the contents of the resulting credentials file, and restart the app.
+      </div>
+    <% } %>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="card" style="max-width:560px">
+      <h3 style="margin-top:0">Generate</h3>
+      <form method="POST" action="/design/generate" id="designForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label>Type</label>
+          <select name="kind" id="designKind">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <select name="model" id="designModelImage">
+            <% imageModels.forEach(m => { %><option value="<%= m %>"><%= m %></option><% }) %>
+          </select>
+          <select name="model" id="designModelVideo" style="display:none">
+            <% videoModels.forEach(m => { %><option value="<%= m %>"><%= m %></option><% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Prompt</label>
+          <textarea name="prompt" rows="3" required placeholder="e.g. A cosy Irish pub poster for a Monday carvery special, warm lighting, hand-painted style"></textarea>
+        </div>
+        <button class="btn" type="submit" id="designSubmitBtn" <%= connected ? '' : 'disabled' %>>Generate</button>
+        <p class="muted" style="margin-top:8px">Video generations can take a few minutes — the page will wait for it to finish before redirecting back here.</p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">History</h3>
+      <% if (!generations.length) { %>
+        <p class="muted">Nothing generated yet.</p>
+      <% } else { %>
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Model</th><th>Prompt</th><th>Requested by</th><th>Status</th><th>Result</th></tr></thead>
+          <tbody>
+          <% generations.forEach(g => { %>
+            <tr>
+              <td style="white-space:nowrap"><%= new Date(g.createdAt).toLocaleString() %></td>
+              <td><%= g.kind %></td>
+              <td><%= g.model %></td>
+              <td style="max-width:320px"><%= g.prompt %></td>
+              <td><%= g.requestedByName %></td>
+              <td>
+                <span class="badge <%= g.status === 'completed' ? 'confirmed' : (g.status === 'failed' ? 'cancelled' : 'pending_approval') %>"><%= g.status %></span>
+                <% if (g.status === 'failed' && g.error) { %><div class="muted" style="font-size:11px;margin-top:2px"><%= g.error %></div><% } %>
+              </td>
+              <td>
+                <% if (g.resultUrl) { %>
+                  <% if (g.kind === 'image') { %>
+                    <a href="<%= g.resultUrl %>" target="_blank"><img src="<%= g.resultUrl %>" alt="Generated image" style="width:60px;height:60px;object-fit:cover;border-radius:6px"></a>
+                  <% } else { %>
+                    <a href="<%= g.resultUrl %>" target="_blank">View video</a>
+                  <% } %>
+                  <br><a href="<%= g.resultUrl %>" download>Download</a>
+                <% } else { %><span class="muted">—</span><% } %>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var kindSelect = document.getElementById('designKind');
+  var imageSelect = document.getElementById('designModelImage');
+  var videoSelect = document.getElementById('designModelVideo');
+  var submitBtn = document.getElementById('designSubmitBtn');
+  var form = document.getElementById('designForm');
+
+  function sync() {
+    var isVideo = kindSelect.value === 'video';
+    imageSelect.style.display = isVideo ? 'none' : '';
+    videoSelect.style.display = isVideo ? '' : 'none';
+    imageSelect.disabled = isVideo;
+    videoSelect.disabled = !isVideo;
+  }
+  kindSelect.addEventListener('change', sync);
+  sync();
+
+  form.addEventListener('submit', function() {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Generating… this can take a minute or more for video';
+  });
+})();
+</script>
+</body>
+</html>

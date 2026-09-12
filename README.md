@@ -167,6 +167,37 @@ generic number.
 If you skip this setup, the app works exactly as before — SMS is entirely optional, and email
 (above) can cover notifications on its own if you'd rather not use Sendmode.
 
+## Design Studio via OpenArt (optional)
+
+The Design Studio page (Admin/Senior/General/Floor/Staff Manager) generates marketing images and
+videos through [OpenArt](https://openart.ai). OpenArt has no traditional API key — the only
+programmatic access is their own CLI, which signs in once through a browser and stores a
+refreshable credential file.
+
+1. Install the OpenArt CLI on your own computer (a machine with a browser):
+   ```
+   # macOS/Linux
+   curl -fsSL https://raw.githubusercontent.com/OpenArt-AI/cli/main/install.sh | sh
+   # Windows (PowerShell)
+   irm https://raw.githubusercontent.com/OpenArt-AI/cli/main/install.ps1 | iex
+   ```
+2. Sign in: `openart login` — opens your browser, sign in with your OpenArt account.
+3. Open the credentials file it created and copy its full contents:
+   - macOS/Linux: `~/.openart/cli-credentials.json`
+   - Windows: `%USERPROFILE%\.openart\cli-credentials.json`
+4. In the Render dashboard, set the `OPENART_CLI_CREDENTIALS_JSON` environment variable to that
+   file's full contents, then redeploy.
+5. On its next boot, the app seeds that credential onto the persistent disk
+   (`/var/data/openart-home`) automatically — see `src/openArt.js`. After that, the OpenArt CLI
+   refreshes the credential on its own, so step 4 only ever needs doing once, even across
+   redeploys.
+
+The Render build step (`render.yaml`) installs the `openart` CLI binary automatically — no server
+setup needed beyond the environment variable above.
+
+If you skip this setup, the rest of the app works exactly as before — Design Studio just shows a
+"not connected" notice until it's configured.
+
 ## Google Calendar sync (optional)
 
 Bookings can automatically sync to a Google Calendar: creating, editing, or cancelling a booking
