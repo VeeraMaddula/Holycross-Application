@@ -86,13 +86,18 @@ function runCli(args, { timeoutMs = 6 * 60 * 1000 } = {}) {
   });
 }
 
-// Pulls a result URL out of whatever shape the CLI's JSON actually returns —
-// defensive because the exact schema hasn't been confirmed against a live
-// account yet (this sandbox has no OpenArt credentials to test with). Check
-// this against a real `openart generate image ... --json` run once
-// credentials are live, and simplify once the real shape is confirmed.
+// Pulls a result URL out of the CLI's JSON — confirmed shape (from a live
+// `openart generate image ... --json` run):
+//   { "history": { "id": "...", "status": "completed" },
+//     "resources": [ { "id": "...", "url": "https://cdn.openart.ai/...",
+//                      "thumbnailUrl": "...", "resourceType": "image" } ] }
+// The extra fallbacks below are just defensive in case video generations (or
+// a future CLI version) shape the response slightly differently.
 function extractResultUrl(result) {
   if (!result) return '';
+  if (Array.isArray(result.resources) && result.resources.length && result.resources[0].url) {
+    return result.resources[0].url;
+  }
   if (typeof result.url === 'string') return result.url;
   if (Array.isArray(result.urls) && result.urls.length) return result.urls[0];
   if (result.data && typeof result.data.url === 'string') return result.data.url;
@@ -100,18 +105,25 @@ function extractResultUrl(result) {
   return '';
 }
 
+// The generation's own id lives under `history.id` in the confirmed shape
+// above, not at the top level.
+function extractCreationId(result) {
+  if (!result) return '';
+  return (result.history && result.history.id) || result.id || result.generationId || '';
+}
+
 async function generateImage({ prompt, model }) {
   const result = await runCli(['generate', 'image', prompt, '--model', model]);
-  // TEMPORARY debug log — see the note on extractResultUrl above. Remove
-  // once the real JSON shape is confirmed and the parsing is solid.
-  console.log('[openArt] raw generate image response:', JSON.stringify(result));
-  return { resultUrl: extractResultUrl(result), creationId: result.id || result.generationId || '', raw: result };
+  return { resultUrl: extractResultUrl(result), creationId: extractCreationId(result), raw: result };
 }
 
 async function generateVideo({ prompt, model }) {
   const result = await runCli(['generate', 'video', prompt, '--model', model]);
+  // TEMPORARY debug log — video hasn't been confirmed against a live
+  // account yet, only image has (see extractResultUrl's comment). Remove
+  // once a real video generation confirms this shape matches too.
   console.log('[openArt] raw generate video response:', JSON.stringify(result));
-  return { resultUrl: extractResultUrl(result), creationId: result.id || result.generationId || '', raw: result };
+  return { resultUrl: extractResultUrl(result), creationId: extractCreationId(result), raw: result };
 }
 
 async function creationList(limit = 20) {
