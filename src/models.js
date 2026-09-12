@@ -144,6 +144,8 @@ module.exports = {
   getWeeklyHoursForUser: clockEntries.getWeeklyHoursForUser,
 
   // Roster
+  ROSTER_AREAS: roster.AREAS,
+  ROSTER_AREA_LABELS: roster.AREA_LABELS,
   listRosterShiftsForRange: roster.listRosterShiftsForRange,
   addRosterShift: roster.addRosterShift,
   updateRosterShift: roster.updateRosterShift,

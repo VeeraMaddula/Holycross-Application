@@ -15,12 +15,13 @@ function notifyShift(shift, kind) {
   const emailFn = kind === 'updated' ? notify.shiftUpdatedEmail : notify.shiftAssignedEmail;
   const smsFn = kind === 'updated' ? sms.shiftUpdatedSms : sms.shiftAssignedSms;
   const type = kind === 'updated' ? 'shift-updated' : 'shift-assigned';
+  const shiftWithArea = { ...shift, areaLabel: models.ROSTER_AREA_LABELS[shift.area] || '' };
   if (user.email) {
-    const { subject, text } = emailFn(shift, user.name);
+    const { subject, text } = emailFn(shiftWithArea, user.name);
     notify.sendEmail({ to: user.email, subject, text, type });
   }
   if (user.phone) {
-    sms.sendSms({ to: user.phone, body: smsFn(shift), type });
+    sms.sendSms({ to: user.phone, body: smsFn(shiftWithArea), type });
   }
 }
 
@@ -78,7 +79,9 @@ router.get('/week', async (req, res) => {
     prevWeek: addDays(weekStart, -7),
     nextWeek: addDays(weekStart, 7),
     thisWeek: mondayOf(todayStr()),
-    formatTime12
+    formatTime12,
+    areas: models.ROSTER_AREAS,
+    areaLabels: models.ROSTER_AREA_LABELS
   });
 });
 
@@ -94,7 +97,8 @@ router.get('/week/data', async (req, res) => {
     day.shifts.forEach(s => {
       shifts.push({
         id: s.id, userId: s.userId, date: day.date, startTime: s.startTime, endTime: s.endTime, color: s.color,
-        startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime)
+        startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime),
+        area: s.area || '', areaLabel: s.areaLabel || ''
       });
     });
   });
@@ -102,17 +106,17 @@ router.get('/week/data', async (req, res) => {
 });
 
 router.post('/shifts', async (req, res) => {
-  const { date, userId, startTime, endTime, redirectWeek } = req.body;
+  const { date, userId, startTime, endTime, area, redirectWeek } = req.body;
   if (date && userId && startTime && endTime) {
-    const result = await models.addRosterShift({ date, userId, startTime, endTime });
+    const result = await models.addRosterShift({ date, userId, startTime, endTime, area });
     notifyShift(result.shift, 'assigned');
   }
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
 router.post('/shifts/:id/edit', async (req, res) => {
-  const { date, startTime, endTime, redirectWeek } = req.body;
-  const result = await models.updateRosterShift(req.params.id, { date, startTime, endTime });
+  const { date, startTime, endTime, area, redirectWeek } = req.body;
+  const result = await models.updateRosterShift(req.params.id, { date, startTime, endTime, area });
   if (!result.error) {
     notifyShift(result.shift, 'updated');
   }

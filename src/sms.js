@@ -101,10 +101,12 @@ function cancellationSms(booking) {
 }
 
 function shiftAssignedSms(shift) {
-  return `The Holy Cross: New shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.`;
+  const areaSuffix = shift.areaLabel ? ` (${shift.areaLabel})` : '';
+  return `The Holy Cross: New shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}${areaSuffix}.`;
 }
 function shiftUpdatedSms(shift) {
-  return `The Holy Cross: Your shift on ${shift.date} was updated - now ${shift.startTime} to ${shift.endTime}.`;
+  const areaSuffix = shift.areaLabel ? ` (${shift.areaLabel})` : '';
+  return `The Holy Cross: Your shift on ${shift.date} was updated - now ${shift.startTime} to ${shift.endTime}${areaSuffix}.`;
 }
 
 function newRequestSms(request) {

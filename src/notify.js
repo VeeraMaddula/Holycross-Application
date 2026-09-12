@@ -273,14 +273,16 @@ async function notifySeniorManagerCashLog(entry) {
 }
 
 function shiftAssignedEmail(shift, userName) {
-  const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}`;
-  const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
+  const areaSuffix = shift.areaLabel ? ` on the ${shift.areaLabel}` : '';
+  const subject = `New shift: ${shift.date} ${shift.startTime}–${shift.endTime}${shift.areaLabel ? ` (${shift.areaLabel})` : ''}`;
+  const text = `Hi ${userName},\n\nYou've been scheduled for a shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}${areaSuffix}.\n\nCheck My Shifts in the app for your full schedule.`;
   return { subject, text };
 }
 
 function shiftUpdatedEmail(shift, userName) {
-  const subject = `Shift updated: ${shift.date} ${shift.startTime}–${shift.endTime}`;
-  const text = `Hi ${userName},\n\nYour shift on ${shift.date} has been updated. It's now ${shift.startTime} to ${shift.endTime}.\n\nCheck My Shifts in the app for your full schedule.`;
+  const areaSuffix = shift.areaLabel ? ` on the ${shift.areaLabel}` : '';
+  const subject = `Shift updated: ${shift.date} ${shift.startTime}–${shift.endTime}${shift.areaLabel ? ` (${shift.areaLabel})` : ''}`;
+  const text = `Hi ${userName},\n\nYour shift on ${shift.date} has been updated. It's now ${shift.startTime} to ${shift.endTime}${areaSuffix}.\n\nCheck My Shifts in the app for your full schedule.`;
   return { subject, text };
 }
 

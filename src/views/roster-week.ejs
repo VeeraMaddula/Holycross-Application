@@ -46,7 +46,7 @@
                         <span class="roster-table-off">—</span>
                       <% } else { %>
                         <% cellShifts.forEach(s => { %>
-                          <a class="roster-pill" href="#day-<%= day.date %>" style="background:<%= s.color %>"><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></a>
+                          <a class="roster-pill" href="#day-<%= day.date %>" style="background:<%= s.color %>"><% if (s.areaLabel) { %><%= s.areaLabel %>: <% } %><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></a>
                         <% }) %>
                       <% } %>
                     </td>
@@ -74,6 +74,12 @@
               </select>
             </div>
             <div class="field narrow">
+              <label>Area</label>
+              <select name="area" required>
+                <% areas.forEach(a => { %><option value="<%= a %>"><%= areaLabels[a] %></option><% }) %>
+              </select>
+            </div>
+            <div class="field narrow">
               <label>Start</label>
               <input type="time" name="startTime" required>
             </div>
@@ -83,6 +89,7 @@
             </div>
             <button class="btn" type="submit">Add to <%= dayNames[day.dayOfWeek] %></button>
           </form>
+          <p class="muted" style="margin-top:-10px">Working more than one area in a day? Add a separate entry for each — e.g. Bar 9:00am–1:00pm, then Floor 1:00pm–5:00pm.</p>
 
           <% if (day.shifts.length === 0) { %>
             <p class="muted" style="margin:0">Nothing scheduled.</p>
@@ -96,7 +103,7 @@
                 <div class="roster-timeline-track">
                   <% for (let h = 0; h < 24; h++) { %><div class="roster-hour-cell"></div><% } %>
                   <div class="roster-timeline-bar" style="left:<%= s.leftPct %>%;width:<%= s.widthPct %>%;background:<%= s.color %>">
-                    <span><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
+                    <span><% if (s.areaLabel) { %><%= s.areaLabel %>: <% } %><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
                   </div>
                 </div>
                 <button type="button" class="roster-timeline-remove" title="Edit this shift" style="font-size:15px"
@@ -112,6 +119,12 @@
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
                   <div class="field narrow"><label>Date</label><input type="date" name="date" value="<%= s.date %>" required></div>
+                  <div class="field narrow">
+                    <label>Area</label>
+                    <select name="area" required>
+                      <% areas.forEach(a => { %><option value="<%= a %>" <%= s.area === a ? 'selected' : '' %>><%= areaLabels[a] %></option><% }) %>
+                    </select>
+                  </div>
                   <div class="field narrow"><label>Start</label><input type="time" name="startTime" value="<%= s.startTime %>" required></div>
                   <div class="field narrow"><label>End</label><input type="time" name="endTime" value="<%= s.endTime %>" required></div>
                   <button class="btn small secondary" type="submit">Save — will notify <%= s.userName %></button>
@@ -158,7 +171,8 @@
           return;
         }
         td.innerHTML = list.map(function(s) {
-          return '<a class="roster-pill" href="#day-' + date + '" style="background:' + safeColor(s.color) + '">' + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</a>';
+          var prefix = s.areaLabel ? escapeHtml(s.areaLabel) + ': ' : '';
+          return '<a class="roster-pill" href="#day-' + date + '" style="background:' + safeColor(s.color) + '">' + prefix + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</a>';
         }).join('');
       });
     }

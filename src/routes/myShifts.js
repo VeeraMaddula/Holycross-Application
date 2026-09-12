@@ -57,7 +57,8 @@ router.get('/week/data', async (req, res) => {
     day.shifts.forEach(s => {
       shifts.push({
         id: s.id, userId: s.userId, date: day.date, color: s.color,
-        startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime)
+        startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime),
+        areaLabel: s.areaLabel || ''
       });
     });
   });

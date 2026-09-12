@@ -43,7 +43,7 @@
                         <span class="roster-table-off">—</span>
                       <% } else { %>
                         <% cellShifts.forEach(s => { %>
-                          <span class="roster-pill" style="background:<%= s.color %>"><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
+                          <span class="roster-pill" style="background:<%= s.color %>"><% if (s.areaLabel) { %><%= s.areaLabel %>: <% } %><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></span>
                         <% }) %>
                       <% } %>
                     </td>
@@ -63,12 +63,13 @@
         <p class="muted">No upcoming shifts scheduled for you right now.</p>
       <% } else { %>
         <table>
-          <thead><tr><th>Date</th><th>Time</th></tr></thead>
+          <thead><tr><th>Date</th><th>Area</th><th>Time</th></tr></thead>
           <tbody>
           <% days.forEach(day => { %>
             <% day.shifts.forEach(s => { %>
               <tr>
                 <td><%= dayNames[day.dayOfWeek] %>, <%= new Date(day.date + 'T00:00:00').toLocaleDateString() %></td>
+                <td><%= s.areaLabel || '—' %></td>
                 <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:<%= s.color %>;margin-right:6px;vertical-align:middle"></span><%= formatTime12(s.startTime) %>–<%= formatTime12(s.endTime) %></td>
               </tr>
             <% }) %>
@@ -108,7 +109,8 @@
           return;
         }
         td.innerHTML = list.map(function(s) {
-          return '<span class="roster-pill" style="background:' + safeColor(s.color) + '">' + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</span>';
+          var prefix = s.areaLabel ? escapeHtml(s.areaLabel) + ': ' : '';
+          return '<span class="roster-pill" style="background:' + safeColor(s.color) + '">' + prefix + escapeHtml(s.startLabel) + '–' + escapeHtml(s.endLabel) + '</span>';
         }).join('');
       });
     }
