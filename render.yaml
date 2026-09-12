@@ -86,3 +86,10 @@ services:
       # this only ever needs to be set once.
       - key: OPENART_CLI_CREDENTIALS_JSON
         sync: false
+      # The install script falls back to ~/.local/bin when /usr/local/bin
+      # isn't writable (confirmed on Render: it lands at
+      # /opt/render/.local/bin), which isn't on PATH for the running
+      # service — so src/openArt.js needs the exact path rather than relying
+      # on PATH to find it.
+      - key: OPENART_CLI_PATH
+        value: /opt/render/.local/bin/openart
