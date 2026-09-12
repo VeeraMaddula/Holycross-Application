@@ -100,12 +100,14 @@ async function updateRosterShift(id, { date, startTime, endTime, area }) {
   return { shift: { ...shift, user: user || null } };
 }
 
-// Shifts on a given date that haven't been notified yet, joined with the
-// full user record (notifyShift needs .email/.phone/.name, not just the
-// name/colour that listRosterShiftsForRange's join provides).
-async function getPendingNotificationsForDate(date) {
+// Shifts in a date range (inclusive) that haven't been notified yet,
+// joined with the full user record (notifyShift needs .email/.phone/.name,
+// not just the name/colour that listRosterShiftsForRange's join provides).
+// A single day's "Send notifications" button calls this with fromDate ===
+// toDate; the whole week's button passes the week's start/end.
+async function getPendingNotificationsForRange(fromDate, toDate) {
   const db = readDb();
-  const pending = (db.rosterShifts || []).filter(s => s.date === date && !s.notified);
+  const pending = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate && !s.notified);
   const result = [];
   for (const s of pending) {
     const user = await getUserById(s.userId);
@@ -114,9 +116,9 @@ async function getPendingNotificationsForDate(date) {
   return result;
 }
 
-function markShiftsNotifiedForDate(date) {
+function markShiftsNotifiedForRange(fromDate, toDate) {
   const db = readDb();
-  (db.rosterShifts || []).forEach(s => { if (s.date === date) s.notified = true; });
+  (db.rosterShifts || []).forEach(s => { if (s.date >= fromDate && s.date <= toDate) s.notified = true; });
   writeDb(db);
 }
 
@@ -173,6 +175,6 @@ module.exports = {
   AREAS, AREA_LABELS,
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
-  getPendingNotificationsForDate, markShiftsNotifiedForDate,
+  getPendingNotificationsForRange, markShiftsNotifiedForRange,
   removeOrphanedShifts
 };

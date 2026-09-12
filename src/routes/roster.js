@@ -75,6 +75,7 @@ router.get('/week', async (req, res) => {
       pendingCount: day.shifts.filter(s => !s.notified).length
     }));
   const orphanedCount = days.reduce((sum, day) => sum + day.shifts.filter(s => s.userName === 'Unknown staff').length, 0);
+  const weekPendingCount = days.reduce((sum, day) => sum + day.pendingCount, 0);
   const currentUser = res.locals.currentUser;
   const canCleanUp = !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'senior_manager'));
 
@@ -89,7 +90,7 @@ router.get('/week', async (req, res) => {
     formatTime12,
     areas: models.ROSTER_AREAS,
     areaLabels: models.ROSTER_AREA_LABELS,
-    orphanedCount, canCleanUp,
+    orphanedCount, canCleanUp, weekPendingCount,
     justCleaned: req.query.cleaned !== undefined ? Number(req.query.cleaned) : null
   });
 });
@@ -153,15 +154,29 @@ router.post('/shifts/:id/delete', (req, res) => {
 // Sends the "shift assigned"/"shift updated" email+SMS for every shift on
 // one date that hasn't been notified yet, then marks them notified — the
 // day's "Send notifications" button on roster-week.ejs. Deliberately
-// per-day and manager-triggered rather than automatic, so a manager can
-// build out a whole day's roster first and only ping staff once it's final.
+// manager-triggered rather than automatic, so a manager can build out a
+// whole day's roster first and only ping staff once it's final.
 router.post('/notify', async (req, res) => {
   const { date, redirectWeek } = req.body;
   if (date) {
-    const pending = await models.getPendingNotificationsForDate(date);
+    const pending = await models.getPendingNotificationsForRange(date, date);
     pending.forEach(shift => notifyShift(shift, shift.pendingAction === 'updated' ? 'updated' : 'assigned'));
-    models.markShiftsNotifiedForDate(date);
+    models.markShiftsNotifiedForRange(date, date);
   }
+  res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
+});
+
+// Same as above but for the whole week in view — the roster is built one
+// week at a time, so this is the main button for "I've finished this
+// week's roster, tell everyone now" rather than pressing each day's
+// button separately.
+router.post('/notify-week', async (req, res) => {
+  const { weekStart: weekStartIn, redirectWeek } = req.body;
+  const weekStart = mondayOf(weekStartIn || todayStr());
+  const weekEnd = addDays(weekStart, 6);
+  const pending = await models.getPendingNotificationsForRange(weekStart, weekEnd);
+  pending.forEach(shift => notifyShift(shift, shift.pendingAction === 'updated' ? 'updated' : 'assigned'));
+  models.markShiftsNotifiedForRange(weekStart, weekEnd);
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 

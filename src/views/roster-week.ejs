@@ -6,7 +6,7 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Roster</h2>
-    <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Adding or editing a shift does <strong>not</strong> notify anyone by itself — build out the day, then press that day's "Send notifications" button when you're ready and everyone with an unsent shift that day gets an email and text at once. Change anyone's colour from the <a href="/users">Users page</a>.</p>
+    <p class="muted">Assign staff directly to a specific date and time — nothing repeats automatically, so what you see here is always exactly who's working. Overlapping bars mean multiple people are on at the same time. Adding or editing a shift does <strong>not</strong> notify anyone by itself — build out the whole week, then press "Send notifications for this week" when it's final and everyone with an unsent shift gets an email and text at once (each day also has its own button, if you'd rather notify as you go). Change anyone's colour from the <a href="/users">Users page</a>.</p>
 
     <% if (justCleaned !== null) { %>
       <div class="success-box"><%= justCleaned %> orphaned shift<%= justCleaned === 1 ? '' : 's' %> removed.</div>
@@ -29,10 +29,18 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <strong><%= weekStart %> to <%= weekEnd %></strong>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <a class="btn small secondary" href="/roster/week?week=<%= prevWeek %>">&larr; Prev</a>
           <a class="btn small secondary" href="/roster/week?week=<%= thisWeek %>">This week</a>
           <a class="btn small secondary" href="/roster/week?week=<%= nextWeek %>">Next &rarr;</a>
+          <% if (weekPendingCount > 0) { %>
+            <form class="inline" method="POST" action="/roster/notify-week">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="weekStart" value="<%= weekStart %>">
+              <input type="hidden" name="redirectWeek" value="<%= weekStart %>">
+              <button class="btn small" type="submit" title="Emails and texts everyone with an unsent shift anywhere this week">Send notifications for this week (<%= weekPendingCount %>)</button>
+            </form>
+          <% } %>
         </div>
       </div>
     </div>
