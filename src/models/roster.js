@@ -42,7 +42,14 @@ async function listRosterShiftsForRange(fromDate, toDate) {
   const users = await listUsers();
   const shifts = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate);
   return shifts.map(s => {
-    const user = users.find(u => u.id === s.userId);
+    // String-compare, not ===: users.id comes back from CockroachDB (via
+    // `pg`) as a string for its INT8-backed SERIAL column, while s.userId
+    // here is a plain JS Number (see addRosterShift's Number(userId)) — a
+    // strict === between them is always false, which is exactly what was
+    // making every shift show up as "Unknown staff" regardless of which
+    // staff member was actually picked. Same fix already used in
+    // timesheets.ejs's filter dropdown for the same underlying mismatch.
+    const user = users.find(u => String(u.id) === String(s.userId));
     return {
       ...s,
       userName: user ? user.name : 'Unknown staff',
@@ -125,13 +132,19 @@ function removeRosterShift(id) {
 // has entries left over from before the users table moved to CockroachDB,
 // where the old JSON-era user ids don't line up with the new ones. Returns
 // how many were removed so the caller can report it back.
+//
+// validIds must hold strings, not the raw values from listUsers() — a
+// user's id comes back from CockroachDB as a string (INT8-backed SERIAL
+// column), and Set.has() uses strict equality, so comparing it against
+// s.userId (a plain JS Number) would never match and this would wrongly
+// treat every real shift as orphaned.
 async function removeOrphanedShifts() {
   const db = readDb();
   const users = await listUsers();
-  const validIds = new Set(users.map(u => u.id));
+  const validIds = new Set(users.map(u => String(u.id)));
   const shifts = db.rosterShifts || [];
   const before = shifts.length;
-  db.rosterShifts = shifts.filter(s => validIds.has(s.userId));
+  db.rosterShifts = shifts.filter(s => validIds.has(String(s.userId)));
   const removed = before - db.rosterShifts.length;
   if (removed > 0) writeDb(db);
   return removed;

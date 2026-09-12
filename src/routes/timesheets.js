@@ -149,7 +149,11 @@ router.get('/export', async (req, res) => {
   const fromIso = from ? new Date(from + 'T00:00:00').toISOString() : undefined;
   const toIso = to ? new Date(to + 'T23:59:59').toISOString() : undefined;
 
-  const targetUsers = userId ? users.filter(u => u.id === Number(userId)) : users;
+  // String-compare — u.id comes back from CockroachDB as a string, so a
+  // strict === against Number(userId) never matched and silently exported
+  // zero rows whenever a specific staff member was selected (same class of
+  // bug just found and fixed in the roster's "Unknown staff" issue).
+  const targetUsers = userId ? users.filter(u => String(u.id) === String(userId)) : users;
   const rows = targetUsers
     .filter(u => u.active)
     .map(u => {

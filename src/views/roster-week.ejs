@@ -58,7 +58,7 @@
               <% users.forEach(u => { %>
                 <tr>
                   <td class="roster-table-name"><%= u.name %></td>
-                  <% days.forEach(day => { const cellShifts = day.shifts.filter(s => s.userId === u.id); %>
+                  <% days.forEach(day => { const cellShifts = day.shifts.filter(s => String(s.userId) === String(u.id)); %>
                     <td class="roster-table-cell" data-user-id="<%= u.id %>" data-date="<%= day.date %>">
                       <% if (cellShifts.length === 0) { %>
                         <span class="roster-table-off">—</span>
