@@ -112,13 +112,23 @@ function extractCreationId(result) {
   return (result.history && result.history.id) || result.id || result.generationId || '';
 }
 
-async function generateImage({ prompt, model }) {
-  const result = await runCli(['generate', 'image', prompt, '--model', model]);
+// imagePath (optional): a local file path to a reference image — the CLI
+// uploads it and works from it (restyle/edit for images, animate-a-photo for
+// video), per its own `--image ./fox.png` example. The caller is
+// responsible for writing the uploaded buffer to a temp file first and
+// deleting it afterward (see routes/design.js) — this module only shells
+// out to the CLI with whatever path it's given.
+async function generateImage({ prompt, model, imagePath }) {
+  const args = ['generate', 'image', prompt, '--model', model];
+  if (imagePath) args.push('--image', imagePath);
+  const result = await runCli(args);
   return { resultUrl: extractResultUrl(result), creationId: extractCreationId(result), raw: result };
 }
 
-async function generateVideo({ prompt, model }) {
-  const result = await runCli(['generate', 'video', prompt, '--model', model]);
+async function generateVideo({ prompt, model, imagePath }) {
+  const args = ['generate', 'video', prompt, '--model', model];
+  if (imagePath) args.push('--image', imagePath);
+  const result = await runCli(args);
   // TEMPORARY debug log — video hasn't been confirmed against a live
   // account yet, only image has (see extractResultUrl's comment). Remove
   // once a real video generation confirms this shape matches too.

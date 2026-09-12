@@ -17,7 +17,7 @@
 
     <div class="card" style="max-width:560px">
       <h3 style="margin-top:0">Generate</h3>
-      <form method="POST" action="/design/generate" id="designForm">
+      <form method="POST" action="/design/generate" id="designForm" enctype="multipart/form-data">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
           <label>Type</label>
@@ -39,6 +39,11 @@
           <label>Prompt</label>
           <textarea name="prompt" rows="3" required placeholder="e.g. A cosy Irish pub poster for a Monday carvery special, warm lighting, hand-painted style"></textarea>
         </div>
+        <div class="field">
+          <label>Reference image <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="file" name="referenceImage" accept="image/*">
+          <p class="muted" style="margin-top:4px">Attach a photo from your phone, laptop, or any device — OpenArt will restyle/edit it (image) or animate it (video) instead of starting from nothing. e.g. upload a food photo and prompt "make this look like a magazine ad", or upload a still photo and prompt "slow zoom in" for video.</p>
+        </div>
         <button class="btn" type="submit" id="designSubmitBtn" <%= connected ? '' : 'disabled' %>>Generate</button>
         <p class="muted" style="margin-top:8px">Video generations can take a few minutes — the page will wait for it to finish before redirecting back here.</p>
       </form>
@@ -55,7 +60,7 @@
           <% generations.forEach(g => { %>
             <tr>
               <td style="white-space:nowrap"><%= new Date(g.createdAt).toLocaleString() %></td>
-              <td><%= g.kind %></td>
+              <td><%= g.kind %><% if (g.usedReference) { %> <span class="muted" style="font-size:11px">(w/ reference)</span><% } %></td>
               <td><%= g.model %></td>
               <td style="max-width:320px"><%= g.prompt %></td>
               <td><%= g.requestedByName %></td>

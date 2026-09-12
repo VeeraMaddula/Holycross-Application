@@ -16,6 +16,7 @@ function mapRow(r) {
     status: r.status,
     resultUrl: r.result_url || '',
     openartCreationId: r.openart_creation_id || '',
+    usedReference: r.used_reference,
     error: r.error || '',
     requestedByUserId: r.requested_by_user_id,
     requestedByName: r.requested_by_name || 'Unknown',
@@ -36,11 +37,11 @@ async function getGeneration(id) {
 // Inserted as soon as a generation is submitted (status 'pending'), then
 // updated once the OpenArt CLI call resolves — so a slow video generation
 // still shows up in the history list immediately, not just once finished.
-async function createGeneration({ kind, prompt, model, requestedByUserId, requestedByName }) {
+async function createGeneration({ kind, prompt, model, usedReference, requestedByUserId, requestedByName }) {
   const { rows } = await query(
-    `INSERT INTO design_generations (kind, prompt, model, status, requested_by_user_id, requested_by_name)
-     VALUES ($1,$2,$3,'pending',$4,$5) RETURNING id`,
-    [kind, prompt, model, requestedByUserId || null, requestedByName || 'Unknown']
+    `INSERT INTO design_generations (kind, prompt, model, status, used_reference, requested_by_user_id, requested_by_name)
+     VALUES ($1,$2,$3,'pending',$4,$5,$6) RETURNING id`,
+    [kind, prompt, model, !!usedReference, requestedByUserId || null, requestedByName || 'Unknown']
   );
   return getGeneration(rows[0].id);
 }

@@ -310,6 +310,7 @@ CREATE TABLE design_generations (
   status                TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'completed' | 'failed'
   result_url            TEXT,
   openart_creation_id   TEXT,
+  used_reference        BOOLEAN NOT NULL DEFAULT false, -- a reference image/photo was uploaded and passed via --image
   error                 TEXT,
   requested_by_user_id  INT REFERENCES users(id),
   requested_by_name     TEXT,
