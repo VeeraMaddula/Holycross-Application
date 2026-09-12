@@ -104,9 +104,31 @@
   kindSelect.addEventListener('change', sync);
   sync();
 
-  form.addEventListener('submit', function() {
+  // Multipart forms can't rely on the hidden _csrf field alone — the CSRF
+  // check runs before multer parses a multipart body, so req.body._csrf is
+  // never populated in time for a plain browser form submission (same issue
+  // as Cash Safe's photo upload). Submitting via fetch with the token as a
+  // header is what actually makes this work.
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
     submitBtn.disabled = true;
     submitBtn.textContent = 'Generating… this can take a minute or more for video';
+    var fd = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-CSRF-Token': '<%= csrfToken %>' }
+    }).then(function(res) { return res.text(); })
+      .then(function(html) {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(function() {
+        alert('Something went wrong submitting this — please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Generate';
+      });
   });
 })();
 </script>
