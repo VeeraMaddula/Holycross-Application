@@ -129,10 +129,6 @@ async function generateVideo({ prompt, model, imagePath }) {
   const args = ['generate', 'video', prompt, '--model', model];
   if (imagePath) args.push('--image', imagePath);
   const result = await runCli(args);
-  // TEMPORARY debug log — video hasn't been confirmed against a live
-  // account yet, only image has (see extractResultUrl's comment). Remove
-  // once a real video generation confirms this shape matches too.
-  console.log('[openArt] raw generate video response:', JSON.stringify(result));
   return { resultUrl: extractResultUrl(result), creationId: extractCreationId(result), raw: result };
 }
 
