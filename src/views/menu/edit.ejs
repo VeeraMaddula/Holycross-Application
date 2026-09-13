@@ -7,7 +7,7 @@
   <div class="main">
     <h2>Menu &amp; Events</h2>
 
-    <div class="card">
+    <div class="card" style="overflow-x:visible">
       <h3 style="margin-top:0">Menu</h3>
       <form method="POST" action="/menu">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -21,26 +21,31 @@
               <label>Section title</label>
               <input type="text" name="sectionTitles[]" value="<%= sec.title %>">
             </div>
-            <% sec.items.forEach(item => { %>
-              <div class="item-row" style="align-items:flex-start">
-                <% if (item.photoUrl) { %>
-                  <img src="<%= item.photoUrl %>" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex:none">
-                <% } %>
-                <div style="display:flex;flex-direction:column;gap:6px;flex:1">
-                  <div class="item-row" style="margin:0">
-                    <input type="text" name="title[<%= i %>][]" placeholder="Item name" value="<%= item.name %>">
-                    <input type="text" name="prices[<%= i %>][]" placeholder="Price" value="<%= item.price %>">
+            <div class="menu-edit-grid">
+              <% sec.items.forEach(item => { %>
+                <div class="menu-edit-card">
+                  <% if (item.photoUrl) { %>
+                    <img class="menu-edit-photo" src="<%= item.photoUrl %>" alt="">
+                  <% } else { %>
+                    <div class="menu-edit-photo-placeholder">No photo</div>
+                  <% } %>
+                  <div class="menu-edit-fields">
+                    <div class="menu-edit-row-inline">
+                      <input type="text" name="title[<%= i %>][]" placeholder="Item name" value="<%= item.name %>">
+                      <input type="text" name="prices[<%= i %>][]" placeholder="Price" value="<%= item.price %>">
+                    </div>
                     <input type="text" name="descs[<%= i %>][]" placeholder="Description" value="<%= item.desc %>">
+                    <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated)" value="<%= (item.allergens || []).join(', ') %>">
                   </div>
-                  <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated, e.g. Cereals, Eggs, Milk)" value="<%= (item.allergens || []).join(', ') %>">
                 </div>
+              <% }) %>
+              <div class="menu-add-card">
+                <div class="menu-add-card-label">Add item</div>
+                <input type="text" name="title[<%= i %>][]" placeholder="New item name">
+                <input type="text" name="prices[<%= i %>][]" placeholder="Price">
+                <input type="text" name="descs[<%= i %>][]" placeholder="Description">
+                <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated)">
               </div>
-            <% }) %>
-            <div class="item-row">
-              <input type="text" name="title[<%= i %>][]" placeholder="New item name">
-              <input type="text" name="prices[<%= i %>][]" placeholder="Price">
-              <input type="text" name="descs[<%= i %>][]" placeholder="Description">
-              <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated)">
             </div>
           </div>
         <% }) %>
@@ -49,11 +54,14 @@
             <label>New section title (leave blank to skip)</label>
             <input type="text" name="sectionTitles[]" placeholder="e.g. Desserts">
           </div>
-          <div class="item-row">
-            <input type="text" name="title[<%= menu.sections.length %>][]" placeholder="Item name">
-            <input type="text" name="prices[<%= menu.sections.length %>][]" placeholder="Price">
-            <input type="text" name="descs[<%= menu.sections.length %>][]" placeholder="Description">
-            <input type="text" name="allergensField[<%= menu.sections.length %>][]" placeholder="Allergens (comma separated)">
+          <div class="menu-edit-grid">
+            <div class="menu-add-card">
+              <div class="menu-add-card-label">First item in new section</div>
+              <input type="text" name="title[<%= menu.sections.length %>][]" placeholder="Item name">
+              <input type="text" name="prices[<%= menu.sections.length %>][]" placeholder="Price">
+              <input type="text" name="descs[<%= menu.sections.length %>][]" placeholder="Description">
+              <input type="text" name="allergensField[<%= menu.sections.length %>][]" placeholder="Allergens (comma separated)">
+            </div>
           </div>
         </div>
         <button class="btn" type="submit">Save menu</button>

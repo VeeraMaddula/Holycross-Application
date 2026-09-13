@@ -333,6 +333,58 @@ textarea { resize: vertical; min-height: 70px; }
 .menu-section { margin-bottom: 18px; }
 .item-row { display: grid; grid-template-columns: 2fr 1fr 3fr auto; gap: 8px; margin-bottom: 6px; align-items: center; }
 
+/* Public menu page: image-forward dish cards, side by side in a
+   responsive grid instead of a stacked list. */
+.menu-section-title { display: flex; align-items: baseline; gap: 14px; margin: 34px 0 18px; }
+.menu-section-title:first-of-type { margin-top: 6px; }
+.menu-section-title h3 { margin: 0; font-size: 21px; color: var(--accent-dark); white-space: nowrap; }
+.menu-section-line { flex: 1; height: 1px; background: var(--line); }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.menu-dish-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.menu-dish-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(18, 51, 40, 0.14); }
+.menu-dish-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--paper); }
+.menu-dish-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.menu-dish-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.menu-dish-name { font-weight: 700; font-size: 15.5px; line-height: 1.25; }
+.menu-dish-price { font-weight: 700; color: var(--accent-dark); white-space: nowrap; font-size: 14.5px; }
+.menu-dish-desc { font-size: 13px; color: var(--muted); line-height: 1.45; flex: 1; }
+.menu-allergen-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.menu-allergen-tag {
+  background: var(--paper); border: 1px solid var(--line); color: var(--muted);
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+
+/* Admin Menu & Events editor: same card-grid idea, with inline inputs so
+   items can still be edited side by side instead of one long list. */
+.menu-edit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.menu-edit-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.menu-edit-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--paper); }
+.menu-edit-photo-placeholder {
+  width: 100%; aspect-ratio: 4 / 3; background: var(--paper); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.menu-edit-fields { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.menu-edit-fields input { font-size: 13px; padding: 7px 8px; }
+.menu-edit-row-inline { display: flex; gap: 6px; }
+.menu-edit-row-inline input:first-child { flex: 2; min-width: 0; }
+.menu-edit-row-inline input:last-child { flex: 1; min-width: 0; }
+.menu-add-card {
+  border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 6px; justify-content: center;
+}
+.menu-add-card input { font-size: 13px; padding: 7px 8px; }
+.menu-add-card-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+
+@media (max-width: 480px) {
+  .menu-grid, .menu-edit-grid { grid-template-columns: 1fr; }
+  .menu-section-title h3 { font-size: 18px; }
+}
+
 .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin-top: 6px; }
 .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; color: var(--ink); }
 .checkbox-item input { width: auto; }
