@@ -91,16 +91,16 @@ function notifyShiftDropResolved({ kind, dropper, claimant, droppedShift, offerS
 }
 
 async function marketplaceLocals(currentUserId) {
-  const myShifts = await myUpcomingShifts(currentUserId);
+  const [myShifts, openDrops] = await Promise.all([myUpcomingShifts(currentUserId), models.listOpenDrops()]);
   return {
-    openDrops: models.listOpenDrops(),
+    openDrops,
     myShifts: myShifts.map(s => ({ ...s, startLabel: formatTime12(s.startTime), endLabel: formatTime12(s.endTime) })),
     currentUserId: Number(currentUserId)
   };
 }
 
 router.get('/', async (req, res) => {
-  const { sent, received } = models.listRequestsForUser(req.session.userId);
+  const { sent, received } = await models.listRequestsForUser(req.session.userId);
   res.render('requests', {
     sent, received,
     recipients: await recipientOptions(req.session.userId),
@@ -114,7 +114,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { type, details, recipientUserId } = req.body;
   const rerender = async (status, error) => {
-    const { sent, received } = models.listRequestsForUser(req.session.userId);
+    const { sent, received } = await models.listRequestsForUser(req.session.userId);
     return res.status(status).render('requests', {
       sent, received,
       recipients: await recipientOptions(req.session.userId),
@@ -151,8 +151,8 @@ router.post('/shift-drops', async (req, res) => {
   res.redirect(`/requests${qs}`);
 });
 
-router.post('/shift-drops/:id/cancel', (req, res) => {
-  const result = models.cancelDrop(req.params.id, req.session.userId);
+router.post('/shift-drops/:id/cancel', async (req, res) => {
+  const result = await models.cancelDrop(req.params.id, req.session.userId);
   const qs = result.error ? '?error=' + encodeURIComponent(result.error) : '';
   res.redirect(`/requests${qs}`);
 });

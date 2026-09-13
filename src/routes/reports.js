@@ -96,7 +96,7 @@ async function recipientOptions(currentUserId) {
 }
 
 async function renderPage(req, res, status, error) {
-  const { sent, received } = models.listReportsForUser(req.session.userId);
+  const { sent, received } = await models.listReportsForUser(req.session.userId);
   res.status(status || 200).render('reports', {
     sent, received,
     recipients: await recipientOptions(req.session.userId),
@@ -156,8 +156,8 @@ router.post('/', (req, res) => {
   });
 });
 
-router.post('/:id/reviewed', (req, res) => {
-  const result = models.markReportReviewed(req.params.id, req.session.userId);
+router.post('/:id/reviewed', async (req, res) => {
+  const result = await models.markReportReviewed(req.params.id, req.session.userId);
   if (result.error) return res.status(403).render('403');
   res.redirect('/reports');
 });
@@ -170,7 +170,7 @@ router.post('/:id/reviewed', (req, res) => {
 // so the Reports section of /logs can actually show evidence thumbnails to
 // managers who weren't the original reporter/recipient.
 router.get('/file/:reportId/:filename', async (req, res) => {
-  const report = models.getReport(req.params.reportId);
+  const report = await models.getReport(req.params.reportId);
   if (!report) return res.status(404).render('404');
   const uid = Number(req.session.userId);
   const cu = res.locals.currentUser;

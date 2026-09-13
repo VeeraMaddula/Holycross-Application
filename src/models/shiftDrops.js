@@ -6,13 +6,12 @@
 // gets an email once it's done (see notifyManagersShiftChange in notify.js).
 // That was a deliberate call made when this was built, not an oversight.
 //
-// The shiftDrops collection itself is still JSON (data/db.json) — its own
-// SQL conversion is task #208, not this one. But the roster shifts it
-// references moved to SQL in task #207 (src/models/roster.js), so every
-// lookup/mutation of an actual shift goes through roster.js's exported
-// helpers now rather than reaching into db.rosterShifts directly — that
-// array is permanently empty once roster.js stopped writing to it.
-const { readDb, writeDb } = require('../db');
+// SQL-backed as of task #208 — see
+// db/011_redesign_cash_safe_requests_reports_shiftdrops.sql. Every exported
+// function is now ASYNC. The roster shifts a drop references were already
+// SQL as of task #207 (src/models/roster.js), so every lookup/mutation of
+// an actual shift keeps going through roster.js's exported helpers.
+const { query } = require('../sqlPool');
 const { getUserById } = require('./users');
 const { getRosterShiftById, setRosterShiftOwner } = require('./roster');
 
@@ -20,20 +19,34 @@ function snapshotShift(shift) {
   return { id: shift.id, date: shift.date, startTime: shift.startTime, endTime: shift.endTime };
 }
 
+function mapDropRow(r) {
+  return {
+    id: r.id,
+    rosterShiftId: r.roster_shift_id,
+    shift: r.shift,
+    droppedByUserId: r.dropped_by_user_id,
+    droppedByName: r.dropped_by_name,
+    status: r.status,
+    claimedByUserId: r.claimed_by_user_id,
+    claimedByName: r.claimed_by_name,
+    exchangeRosterShiftId: r.exchange_roster_shift_id,
+    exchangeShift: r.exchange_shift,
+    createdAt: r.created_at,
+    resolvedAt: r.resolved_at
+  };
+}
+
 // Every currently-open drop, newest first — anyone can browse this (see
 // routes/requests.js); the view decides whether to show "Cancel" (their
 // own) or "Pick up"/"Offer exchange" (someone else's).
-function listOpenDrops() {
-  const db = readDb();
-  return (db.shiftDrops || [])
-    .filter(d => d.status === 'open')
-    .slice()
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+async function listOpenDrops() {
+  const { rows } = await query(`SELECT * FROM shift_drops WHERE status = 'open' ORDER BY created_at DESC`);
+  return rows.map(mapDropRow);
 }
 
-function getDrop(id) {
-  const db = readDb();
-  return (db.shiftDrops || []).find(d => d.id === Number(id)) || null;
+async function getDrop(id) {
+  const { rows } = await query(`SELECT * FROM shift_drops WHERE id = $1`, [Number(id)]);
+  return rows[0] ? mapDropRow(rows[0]) : null;
 }
 
 // Only the shift's actual owner can drop it. Dropping the same shift twice
@@ -47,48 +60,38 @@ async function dropShift({ rosterShiftId, userId }) {
   const shift = await getRosterShiftById(rosterShiftId);
   if (!shift) return { error: 'Shift not found.' };
   if (String(shift.userId) !== String(userId)) return { error: "That's not your shift." };
-  const db = readDb();
-  if (!db.shiftDrops) db.shiftDrops = [];
-  const existing = db.shiftDrops.find(d => String(d.rosterShiftId) === String(shift.id) && d.status === 'open');
-  if (existing) return { drop: existing };
+
+  const { rows: existingRows } = await query(
+    `SELECT * FROM shift_drops WHERE roster_shift_id = $1 AND status = 'open'`,
+    [Number(shift.id)]
+  );
+  if (existingRows.length) return { drop: mapDropRow(existingRows[0]) };
+
   const dropper = await getUserById(userId);
-  if (!db.meta.nextShiftDropId) db.meta.nextShiftDropId = 1;
-  const drop = {
-    id: db.meta.nextShiftDropId++,
-    rosterShiftId: shift.id,
-    shift: snapshotShift(shift),
-    droppedByUserId: shift.userId,
-    droppedByName: dropper ? dropper.name : 'Unknown',
-    status: 'open',
-    claimedByUserId: null,
-    claimedByName: null,
-    exchangeRosterShiftId: null,
-    exchangeShift: null,
-    createdAt: new Date().toISOString(),
-    resolvedAt: null
-  };
-  db.shiftDrops.push(drop);
-  writeDb(db);
-  return { drop };
+  const { rows } = await query(
+    `INSERT INTO shift_drops (roster_shift_id, shift, dropped_by_user_id, dropped_by_name, status)
+     VALUES ($1, $2, $3, $4, 'open') RETURNING *`,
+    [Number(shift.id), JSON.stringify(snapshotShift(shift)), shift.userId, dropper ? dropper.name : 'Unknown']
+  );
+  return { drop: mapDropRow(rows[0]) };
 }
 
-function cancelDrop(dropId, userId) {
-  const db = readDb();
-  const drop = (db.shiftDrops || []).find(d => d.id === Number(dropId));
+async function cancelDrop(dropId, userId) {
+  const drop = await getDrop(dropId);
   if (!drop) return { error: 'Drop not found.' };
   if (drop.status !== 'open') return { error: 'This shift is no longer available to cancel.' };
   if (String(drop.droppedByUserId) !== String(userId)) return { error: 'Only the person who dropped it can cancel.' };
-  drop.status = 'cancelled';
-  drop.resolvedAt = new Date().toISOString();
-  writeDb(db);
-  return { drop };
+  const { rows } = await query(
+    `UPDATE shift_drops SET status = 'cancelled', resolved_at = now() WHERE id = $1 RETURNING *`,
+    [Number(dropId)]
+  );
+  return { drop: mapDropRow(rows[0]) };
 }
 
 // Straight handover: the claimant takes over the dropped shift, nothing
 // offered in return. Updates the real roster shift's owner right away.
 async function pickUpDrop(dropId, claimantUserId) {
-  const db = readDb();
-  const drop = (db.shiftDrops || []).find(d => d.id === Number(dropId));
+  const drop = await getDrop(dropId);
   if (!drop) return { error: 'Drop not found.' };
   if (drop.status !== 'open') return { error: 'This shift is no longer available.' };
   if (String(drop.droppedByUserId) === String(claimantUserId)) return { error: "You can't pick up your own dropped shift." };
@@ -100,13 +103,12 @@ async function pickUpDrop(dropId, claimantUserId) {
   const dropper = await getUserById(drop.droppedByUserId);
   const updatedShift = await setRosterShiftOwner(shift.id, claimant.id);
 
-  drop.status = 'picked_up';
-  drop.claimedByUserId = claimant.id;
-  drop.claimedByName = claimant.name;
-  drop.resolvedAt = new Date().toISOString();
-  writeDb(db);
+  const { rows } = await query(
+    `UPDATE shift_drops SET status = 'picked_up', claimed_by_user_id = $1, claimed_by_name = $2, resolved_at = now() WHERE id = $3 RETURNING *`,
+    [claimant.id, claimant.name, Number(dropId)]
+  );
 
-  return { drop, shift: { ...updatedShift, user: claimant }, dropper, claimant };
+  return { drop: mapDropRow(rows[0]), shift: { ...updatedShift, user: claimant }, dropper, claimant };
 }
 
 // Swap: the claimant offers one of their OWN upcoming shifts in return —
@@ -115,8 +117,7 @@ async function pickUpDrop(dropId, claimantUserId) {
 // keep their own ids, just change hands, so anything else keyed to a
 // shift id (Google Calendar sync, etc.) still points at the right row.
 async function exchangeDrop(dropId, claimantUserId, offerShiftId) {
-  const db = readDb();
-  const drop = (db.shiftDrops || []).find(d => d.id === Number(dropId));
+  const drop = await getDrop(dropId);
   if (!drop) return { error: 'Drop not found.' };
   if (drop.status !== 'open') return { error: 'This shift is no longer available.' };
   if (String(drop.droppedByUserId) === String(claimantUserId)) return { error: "You can't exchange with your own dropped shift." };
@@ -134,16 +135,14 @@ async function exchangeDrop(dropId, claimantUserId, offerShiftId) {
   const updatedDroppedShift = await setRosterShiftOwner(droppedShift.id, claimant.id);
   const updatedOfferShift = await setRosterShiftOwner(offerShift.id, dropperId);
 
-  drop.status = 'exchanged';
-  drop.claimedByUserId = claimant.id;
-  drop.claimedByName = claimant.name;
-  drop.exchangeRosterShiftId = offerShift.id;
-  drop.exchangeShift = snapshotShift(updatedOfferShift);
-  drop.resolvedAt = new Date().toISOString();
-  writeDb(db);
+  const { rows } = await query(
+    `UPDATE shift_drops SET status = 'exchanged', claimed_by_user_id = $1, claimed_by_name = $2,
+       exchange_roster_shift_id = $3, exchange_shift = $4, resolved_at = now() WHERE id = $5 RETURNING *`,
+    [claimant.id, claimant.name, Number(offerShift.id), JSON.stringify(snapshotShift(updatedOfferShift)), Number(dropId)]
+  );
 
   return {
-    drop,
+    drop: mapDropRow(rows[0]),
     droppedShift: { ...updatedDroppedShift, user: claimant },
     offerShift: { ...updatedOfferShift, user: dropper },
     dropper, claimant

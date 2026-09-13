@@ -36,12 +36,16 @@ const upload = multer({
 // General/Floor Manager and any individually-granted Bar Staff).
 const LODGEMENT_EDIT_ROLES = ['admin', 'senior_manager'];
 
-function renderPage(req, res, status, error) {
+async function renderPage(req, res, status, error) {
   const u = res.locals.currentUser;
-  const history = models.getCashLodgementHistory();
+  const [history, logs, balance] = await Promise.all([
+    models.getCashLodgementHistory(),
+    models.listCashLogs(),
+    models.getCurrentSafeBalance()
+  ]);
   res.status(status || 200).render('cash-safe', {
-    logs: models.listCashLogs(),
-    balance: models.getCurrentSafeBalance(),
+    logs,
+    balance,
     starting: models.getCashSafeLodgementTarget(),
     canEditLodgement: !!(u && LODGEMENT_EDIT_ROLES.includes(u.role)),
     lastLodgementChange: history[0] || null,
@@ -49,22 +53,22 @@ function renderPage(req, res, status, error) {
   });
 }
 
-router.get('/', (req, res) => {
-  renderPage(req, res, 200, null);
+router.get('/', async (req, res) => {
+  await renderPage(req, res, 200, null);
 });
 
 router.post('/', (req, res) => {
   upload.single('photo')(req, res, async (err) => {
-    if (err) return renderPage(req, res, 400, err.message || 'Upload failed.');
+    if (err) return await renderPage(req, res, 400, err.message || 'Upload failed.');
 
     const { reason, coinsIn, coinsOut, notesIn, notesOut } = req.body;
     if (!reason || !reason.trim()) {
-      return renderPage(req, res, 400, 'Please give a reason for this cash safe change.');
+      return await renderPage(req, res, 400, 'Please give a reason for this cash safe change.');
     }
     // A photo of the person submitting is mandatory — this log is the
     // accountability record for who touched the safe.
     if (!req.file) {
-      return renderPage(req, res, 400, 'Please take a photo before submitting.');
+      return await renderPage(req, res, 400, 'Please take a photo before submitting.');
     }
 
     let fileId;
@@ -77,11 +81,11 @@ router.post('/', (req, res) => {
         uploadedByUserId: res.locals.currentUser && res.locals.currentUser.id
       });
     } catch (fileErr) {
-      return renderPage(req, res, 400, fileErr.message || 'Upload failed.');
+      return await renderPage(req, res, 400, fileErr.message || 'Upload failed.');
     }
 
     const u = res.locals.currentUser;
-    const entry = models.addCashLog({
+    const entry = await models.addCashLog({
       reason,
       coinsIn, coinsOut, notesIn, notesOut,
       loggedByUserId: u && u.id,
@@ -97,14 +101,14 @@ router.post('/', (req, res) => {
 // only. Stored server-side in settings, so the very next page load for
 // every user (any manager, any granted Bar Staff) picks up the new value —
 // there's no per-user copy to keep in sync.
-router.post('/lodgement-target', (req, res) => {
+router.post('/lodgement-target', async (req, res) => {
   const u = res.locals.currentUser;
   if (!u || !LODGEMENT_EDIT_ROLES.includes(u.role)) {
     return res.status(403).render('403');
   }
-  const result = models.setCashSafeLodgementTarget(req.body.amount, u.id, u.name, req.body.reason);
+  const result = await models.setCashSafeLodgementTarget(req.body.amount, u.id, u.name, req.body.reason);
   if (result.error) {
-    return renderPage(req, res, 400, result.error);
+    return await renderPage(req, res, 400, result.error);
   }
   res.redirect('/cash-safe');
 });

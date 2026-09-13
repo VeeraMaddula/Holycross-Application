@@ -17,12 +17,18 @@ const models = require('../models');
 const SECTION_LIMIT = 200;
 
 router.get('/', async (req, res) => {
+  const [clockEntries, reports, requests, bookingHistory] = await Promise.all([
+    models.listClockEntries(),
+    models.listAllReports(),
+    models.listAllRequests(),
+    models.listBookingHistory()
+  ]);
   res.render('logs', {
-    clockEntries: (await models.listClockEntries()).slice(0, SECTION_LIMIT),
+    clockEntries: clockEntries.slice(0, SECTION_LIMIT),
     dutyReports: models.listAllDutyReports().slice(0, SECTION_LIMIT),
-    reports: models.listAllReports().slice(0, SECTION_LIMIT),
-    requests: models.listAllRequests().slice(0, SECTION_LIMIT),
-    bookingHistory: (await models.listBookingHistory()).slice(0, SECTION_LIMIT),
+    reports: reports.slice(0, SECTION_LIMIT),
+    requests: requests.slice(0, SECTION_LIMIT),
+    bookingHistory: bookingHistory.slice(0, SECTION_LIMIT),
     notifications: models.listNotifications(SECTION_LIMIT)
   });
 });
