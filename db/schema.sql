@@ -110,18 +110,30 @@ CREATE TABLE external_calendar_events (
   synced_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Event-log shape (redesigned in db/009_redesign_time_entries.sql, task
+-- #207): one row per clock action — clock_in, clock_out, break_start,
+-- break_end — matching what the kiosk actually records
+-- (src/models/clockEntries.js). Shift/break durations are computed in
+-- application code by pairing consecutive rows per user, not stored here.
 CREATE TABLE time_entries (
-  id          SERIAL PRIMARY KEY,
-  user_id     INT NOT NULL REFERENCES users(id),
-  clock_in_at TIMESTAMPTZ,
-  clock_out_at TIMESTAMPTZ,
-  break_minutes INT DEFAULT 0,
-  clock_in_photo_path TEXT,
-  break_photo_path TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id             SERIAL PRIMARY KEY,
+  user_id        INT8 NOT NULL REFERENCES users(id),
+  user_name      TEXT NOT NULL,
+  action         TEXT NOT NULL CHECK (action IN ('clock_in', 'clock_out', 'break_start', 'break_end')),
+  at             TIMESTAMPTZ NOT NULL,
+  selfie_path    TEXT DEFAULT '',
+  manually_added BOOLEAN NOT NULL DEFAULT false,
+  edited         BOOLEAN NOT NULL DEFAULT false,
+  edited_by      TEXT DEFAULT '',
+  edited_at      TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_time_entries_user ON time_entries(user_id);
+CREATE INDEX idx_time_entries_at ON time_entries(at);
 
+-- area/notified/pending_action added in db/008_add_roster_shift_fields.sql
+-- (task #207) to match the JSON model: which work area (Floor/Bar/Booth)
+-- the shift is for, and the deferred manager-triggered notification state.
 CREATE TABLE roster_shifts (
   id         SERIAL PRIMARY KEY,
   user_id    INT NOT NULL REFERENCES users(id),
@@ -130,6 +142,9 @@ CREATE TABLE roster_shifts (
   end_time   TEXT NOT NULL,
   color      TEXT,
   google_event_id TEXT,
+  area       TEXT,
+  notified   BOOLEAN NOT NULL DEFAULT false,
+  pending_action TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_roster_shifts_date ON roster_shifts(date);
