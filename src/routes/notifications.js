@@ -4,10 +4,10 @@ const models = require('../models');
 const notify = require('../notify');
 const sms = require('../sms');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const emailConfigured = !!notify.getTransporter();
   const smsConfigured = sms.isConfigured();
-  res.render('notifications', { notifications: models.listNotifications(), emailConfigured, smsConfigured, retryResult: req.query.retry || null });
+  res.render('notifications', { notifications: await models.listNotifications(), emailConfigured, smsConfigured, retryResult: req.query.retry || null });
 });
 
 router.post('/run-reminder-sweep', async (req, res) => {
@@ -21,7 +21,7 @@ router.post('/run-reminder-sweep', async (req, res) => {
 // the linked booking where possible; if there's nothing to rebuild from,
 // we tell the user rather than silently failing again.
 router.post('/:id/retry', async (req, res) => {
-  const notification = models.getNotification(req.params.id);
+  const notification = await models.getNotification(req.params.id);
   if (!notification) return res.redirect('/notifications');
 
   const isSms = notification.type.endsWith('-sms');

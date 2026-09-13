@@ -180,30 +180,52 @@ CREATE TABLE requests (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Redesigned in db/012 (task #209) — the original columns had no `key` to
+-- join on (dutyWindows.js's fixed schedule and every completion/report has
+-- always keyed off 'opening'/'after_breakfast'/'after_carvery'/'closing',
+-- not a SERIAL id), and duty_completions/duty_reports were missing most of
+-- the fields dutyChecklist.js has always recorded (who/when per task tick;
+-- reason/missing-tasks/staff-on-shift/trigger/submitted-by/photo per report).
 CREATE TABLE duty_sections (
-  id       SERIAL PRIMARY KEY,
-  title    TEXT NOT NULL,
-  tasks    JSONB NOT NULL DEFAULT '[]',   -- editable task list, variable shape
-  window_start TEXT,
-  window_end   TEXT
+  id    SERIAL PRIMARY KEY,
+  key   TEXT UNIQUE NOT NULL,  -- 'opening' | 'after_breakfast' | 'after_carvery' | 'closing'
+  title TEXT NOT NULL,
+  tasks JSONB NOT NULL DEFAULT '[]' -- [{id, text}, ...] — editable task list
 );
 
+-- One row per (date, task) tick — toggling a task back off deletes its row,
+-- so this only ever holds currently-ticked tasks.
 CREATE TABLE duty_completions (
-  id           SERIAL PRIMARY KEY,
-  section_id   INT REFERENCES duty_sections(id),
-  task_key     TEXT,
-  completed_by INT REFERENCES users(id),
-  photo_path   TEXT,
-  completed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                    SERIAL PRIMARY KEY,
+  date                  DATE NOT NULL,
+  task_id               TEXT NOT NULL, -- e.g. 'opening-3' or 'opening-custom-1'
+  completed_by_user_id  INT REFERENCES users(id),
+  completed_by_name     TEXT DEFAULT '',
+  completed_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (date, task_id)
 );
 
+-- One row per (date, section) at most — the first submit/auto-sweep for the
+-- day wins; a later one can only fill in gaps (reason/submitted-by/photo)
+-- it left. See dutyChecklist.js's recordDutyReport.
 CREATE TABLE duty_reports (
-  id         SERIAL PRIMARY KEY,
-  section_id INT REFERENCES duty_sections(id),
-  status     TEXT NOT NULL,
-  escalated_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                   SERIAL PRIMARY KEY,
+  date                 DATE NOT NULL,
+  section              TEXT NOT NULL, -- duty_sections.key, kept denormalized (not a FK id)
+  section_title        TEXT DEFAULT '',
+  complete             BOOLEAN NOT NULL DEFAULT false,
+  reason               TEXT DEFAULT '',
+  missing_task_texts   JSONB NOT NULL DEFAULT '[]',
+  staff_on_shift_names JSONB NOT NULL DEFAULT '[]',
+  trigger              TEXT DEFAULT 'auto',
+  submitted_by_user_id INT REFERENCES users(id),
+  submitted_by_name    TEXT DEFAULT '',
+  photo_path           TEXT DEFAULT '',
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at           TIMESTAMPTZ,
+  UNIQUE (date, section)
 );
+CREATE INDEX idx_duty_reports_created_at ON duty_reports(created_at);
 
 -- Redesigned in db/011 (task #208) to add the dropped/claimed-by display
 -- names and the shift/exchange-shift JSONB snapshots shiftDrops.js has
@@ -246,15 +268,28 @@ CREATE TABLE reports (
 );
 CREATE INDEX idx_reports_created_at ON reports(created_at);
 
+-- Redesigned in db/012 (task #209) — the original columns used `title`/
+-- `kitchen_category`/`media_path`/`visible_sections`, none of which match
+-- what trainingResources.js actually reads/writes (name, subtitle,
+-- ingredients, method, servingNotes, photoPath, videoPath, youtubeUrl,
+-- youtubeId, createdByUserId).
 CREATE TABLE training_items (
-  id           SERIAL PRIMARY KEY,
-  title        TEXT NOT NULL,
-  category     TEXT,
-  kitchen_category TEXT,
-  media_path   TEXT,
-  visible_sections JSONB,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                 SERIAL PRIMARY KEY,
+  category           TEXT NOT NULL,
+  name               TEXT NOT NULL,
+  subtitle           TEXT DEFAULT '',
+  ingredients        TEXT DEFAULT '',
+  method             TEXT DEFAULT '',
+  serving_notes      TEXT DEFAULT '',
+  photo_path         TEXT DEFAULT '',
+  video_path         TEXT DEFAULT '',
+  youtube_url        TEXT DEFAULT '',
+  youtube_id         TEXT DEFAULT '',
+  created_by_user_id INT REFERENCES users(id),
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_training_items_category ON training_items(category);
 
 -- Redesigned in db/011 (task #208) — the original columns were a single
 -- generic amount/notes pair; cashSafe.js has always tracked coins/notes

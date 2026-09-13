@@ -487,12 +487,12 @@ async function notifyAccountantsWeeklyVoucherSummary() {
 }
 
 async function evaluateAndReportDuty({ date, section, sectionTitle, trigger, fallbackReason }) {
-  if (models.getDutyReport(date, section)) return; // already handled today
-  const checklist = models.getDutiesChecklist(date);
+  if (await models.getDutyReport(date, section)) return; // already handled today
+  const checklist = await models.getDutiesChecklist(date);
   const sectionData = checklist.sections.find(s => s.key === section);
   if (!sectionData) return;
   const missing = sectionData.tasks.filter(t => !t.done);
-  const { report, isNewIncomplete } = models.recordDutyReport({
+  const { report, isNewIncomplete } = await models.recordDutyReport({
     date,
     section,
     sectionTitle: sectionTitle || sectionData.title,

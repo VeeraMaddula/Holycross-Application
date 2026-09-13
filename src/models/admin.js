@@ -1,51 +1,53 @@
 // Admin danger-zone actions (Settings page, admin only) — clearing
 // operational data or wiping the whole database back to factory defaults.
-const { writeDb, DEFAULT_DATA } = require('../db');
-const { readDb } = require('../db');
+const { writeDb, readDb, DEFAULT_DATA } = require('../db');
 const { query } = require('../sqlPool');
 const { createUser } = require('./users');
+const { seedKitchenStarterContent } = require('./trainingResources');
 
 // Clears all operational/transactional data — bookings, notification logs,
-// clock-in history, roster shifts, staff requests, and pulled-in external
-// calendar events — but leaves user accounts, tables, the menu, and
-// settings untouched. For wiping demo/test activity without losing staff
-// logins or the restaurant's configuration.
+// clock-in history, roster shifts, staff requests/reports, the shift
+// marketplace, cash safe logs, and pulled-in external calendar events —
+// but leaves user accounts, tables, the menu, settings, and the duties
+// task list itself untouched. For wiping demo/test activity without
+// losing staff logins or the restaurant's configuration.
 //
-// bookings/time_entries/roster_shifts/external_calendar_events moved to
-// SQL in tasks #206/#207 — clearing them is now a DELETE against those
-// tables (their SERIAL id sequences don't need resetting the way the old
-// JSON meta counters did; a gap in ids after a clear is harmless). The
-// remaining collections below (notifications, requests, duties, shift
-// drops, reports, cash safe) are still JSON, pending tasks #208/#209.
+// Everything deleted here moved to SQL across tasks #206-#209 — see each
+// table's own schema file (db/010, db/011, db/012) for why its shape looks
+// the way it does. shift_drops is deleted before roster_shifts (not
+// alongside it in the same Promise.all) because it has a foreign key to
+// roster_shifts(id) with no cascade — same FK-ordering reasoning as
+// bookings/tables in factoryReset below.
 async function clearOperationalData() {
+  await query(`DELETE FROM bookings`);
+  await query(`DELETE FROM shift_drops`);
   await Promise.all([
-    query(`DELETE FROM bookings`),
     query(`DELETE FROM time_entries`),
     query(`DELETE FROM roster_shifts`),
-    query(`DELETE FROM external_calendar_events`)
+    query(`DELETE FROM external_calendar_events`),
+    query(`DELETE FROM notifications`),
+    query(`DELETE FROM requests`),
+    query(`DELETE FROM reports`),
+    query(`DELETE FROM cash_logs`),
+    query(`DELETE FROM cash_lodgement_history`),
+    query(`DELETE FROM duty_completions`),
+    query(`DELETE FROM duty_reports`)
   ]);
 
+  // lastGoogleSyncAt is the one remaining piece of operational state still
+  // living in the JSON file (see calendarSync.js) — everything else above
+  // is SQL now.
   const db = readDb();
-  db.notifications = [];
-  db.requests = [];
-  db.dutyCompletions = [];
-  db.dutyReports = [];
-  db.shiftDrops = [];
-  db.reports = [];
-  db.cashLogs = [];
-  db.cashLodgementHistory = [];
-  db.meta.nextNotificationId = 1;
-  db.meta.nextRequestId = 1;
-  db.meta.nextShiftDropId = 1;
   db.meta.lastGoogleSyncAt = null;
   writeDb(db);
 }
 
-// Wipes EVERYTHING back to the app's defaults — tables, menu, bookings,
-// notifications, all of it — then creates exactly one fresh admin account
-// so there's always a way back in. Irreversible; the caller
-// (routes/settings.js) is responsible for ending the current session
-// afterwards since the account that was logged in no longer exists.
+// Wipes EVERYTHING back to the app's defaults — tables, menu, settings,
+// bookings, notifications, duties, training content, all of it — then
+// creates exactly one fresh admin account so there's always a way back in.
+// Irreversible; the caller (routes/settings.js) is responsible for ending
+// the current session afterwards since the account that was logged in no
+// longer exists.
 //
 // NOTE (pre-existing, not introduced by this change): this does not delete
 // existing user accounts — it only adds one new admin — because users.js
@@ -59,26 +61,47 @@ async function factoryReset(adminEmail, adminPasswordHash) {
   const fresh = JSON.parse(JSON.stringify(DEFAULT_DATA));
   writeDb(fresh);
 
-  // bookings.table_id has a FK to tables(id) with no ON DELETE CASCADE, so
-  // `DELETE FROM tables` MUST NOT run concurrently with (or before)
-  // `DELETE FROM bookings` — the two were previously fired together in one
-  // Promise.all, and when the tables delete reached CockroachDB before the
-  // bookings delete had committed, it hit a foreign key violation. That
-  // uncaught rejection was what produced the "Something went wrong" page
-  // even though every other part of the reset had already gone through.
-  // Deleting bookings first (awaited on its own) makes the tables delete
-  // that follows always safe.
+  // bookings.table_id and shift_drops.roster_shift_id/exchange_roster_shift_id
+  // have foreign keys with no cascade, so DELETE FROM tables/roster_shifts
+  // must never run concurrently with (or before) the deletes of whatever
+  // references them — see clearOperationalData's comment above and the
+  // factory-reset bug this exact pattern caused (task #253).
   await query(`DELETE FROM bookings`);
+  await query(`DELETE FROM shift_drops`);
   await Promise.all([
     query(`DELETE FROM time_entries`),
     query(`DELETE FROM roster_shifts`),
     query(`DELETE FROM external_calendar_events`),
-    query(`DELETE FROM tables`)
+    query(`DELETE FROM tables`),
+    query(`DELETE FROM notifications`),
+    query(`DELETE FROM requests`),
+    query(`DELETE FROM reports`),
+    query(`DELETE FROM cash_logs`),
+    query(`DELETE FROM cash_lodgement_history`),
+    query(`DELETE FROM duty_completions`),
+    query(`DELETE FROM duty_reports`),
+    query(`DELETE FROM duty_sections`), // repopulated from the DEFAULT_DUTY_SECTIONS seed the next time anyone reads it (dutyTasks.js's ensureSeeded)
+    query(`DELETE FROM training_items`),
+    query(`DELETE FROM events`)
   ]);
+
   for (const t of DEFAULT_DATA.tables) {
     await query(`INSERT INTO tables (id, name, seats, area) VALUES ($1, $2, $3, $4)`, [t.id, t.name, t.seats, t.area]);
   }
   await query(`SELECT setval(pg_get_serial_sequence('tables', 'id'), COALESCE((SELECT MAX(id) FROM tables), 1))`);
+
+  await query(
+    `INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
+    [JSON.stringify(DEFAULT_DATA.settings)]
+  );
+  await query(
+    `INSERT INTO menu (id, intro, sections) VALUES (1, $1, $2) ON CONFLICT (id) DO UPDATE SET intro = EXCLUDED.intro, sections = EXCLUDED.sections`,
+    [DEFAULT_DATA.menu.intro, JSON.stringify(DEFAULT_DATA.menu.sections)]
+  );
+  // Gives the Training page real content again immediately, rather than
+  // leaving it empty until the next server restart (seedKitchenStarterContent
+  // is otherwise only ever called once, at boot — see server.js).
+  await seedKitchenStarterContent();
 
   return await createUser({ name: 'Admin', email: adminEmail, passwordHash: adminPasswordHash, role: 'admin' });
 }

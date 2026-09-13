@@ -4,12 +4,13 @@
 // db/011_redesign_cash_safe_requests_reports_shiftdrops.sql. Every exported
 // function is now ASYNC.
 //
-// The lodgement TARGET itself stays in the JSON settings blob for now
-// (db.settings.cashSafeLodgementTarget) — settings.js's own SQL conversion
-// is task #209, not this one. Same transitional-read pattern used elsewhere
-// in this migration (e.g. roster.js still reading db.settings.slotDurationMinutes).
-const { readDb, writeDb } = require('../db');
+// The lodgement TARGET itself lives in the SQL-backed settings blob (see
+// ../models/settings.js, task #209) under the key cashSafeLodgementTarget —
+// previously this read/wrote db.settings directly via readDb()/writeDb(),
+// which became a dead JSON read the moment settings.js moved to SQL; fixed
+// here to go through settings.js's getSettings()/saveSettings() instead.
 const { query } = require('../sqlPool');
+const { getSettings, saveSettings } = require('./settings');
 const { todayStr } = require('../dateUtils');
 
 // Factory-default expected float — only used the very first time the app
@@ -56,19 +57,17 @@ async function listCashLogs() {
 // decision that can change over time (e.g. more float needed over a busy
 // trading period). Stored centrally in settings so every user's Cash Safe
 // page reads the same current value; there's nothing to sync per-user.
-function getCashSafeLodgementTarget() {
-  const db = readDb();
-  return typeof db.settings.cashSafeLodgementTarget === 'number' ? db.settings.cashSafeLodgementTarget : SAFE_STARTING_BALANCE;
+async function getCashSafeLodgementTarget() {
+  const settings = await getSettings();
+  return typeof settings.cashSafeLodgementTarget === 'number' ? settings.cashSafeLodgementTarget : SAFE_STARTING_BALANCE;
 }
 
 async function setCashSafeLodgementTarget(amount, changedByUserId, changedByName, reason) {
-  const db = readDb();
   const amt = Number(amount);
   if (!Number.isFinite(amt) || amt < 0) return { error: 'Enter a valid lodgement amount.' };
-  const previous = typeof db.settings.cashSafeLodgementTarget === 'number' ? db.settings.cashSafeLodgementTarget : SAFE_STARTING_BALANCE;
+  const previous = await getCashSafeLodgementTarget();
   const newAmount = Math.round(amt * 100) / 100;
-  db.settings.cashSafeLodgementTarget = newAmount;
-  writeDb(db);
+  await saveSettings({ cashSafeLodgementTarget: newAmount });
 
   const { rows } = await query(
     `INSERT INTO cash_lodgement_history (previous, new_amount, reason, changed_by_user_id, changed_by_name)
@@ -84,19 +83,17 @@ async function getCashLodgementHistory() {
 }
 
 async function getCurrentSafeBalance() {
-  const db = readDb();
-  const target = typeof db.settings.cashSafeLodgementTarget === 'number' ? db.settings.cashSafeLodgementTarget : SAFE_STARTING_BALANCE;
+  const target = await getCashSafeLodgementTarget();
   const { rows } = await query(`SELECT total FROM cash_logs ORDER BY created_at DESC LIMIT 1`);
   return rows.length ? Number(rows[0].total) : target;
 }
 
 async function addCashLog({ reason, coinsIn, coinsOut, notesIn, notesOut, loggedByUserId, loggedByName, photoPath }) {
-  const db = readDb();
   const cIn = Number(coinsIn) || 0;
   const cOut = Number(coinsOut) || 0;
   const nIn = Number(notesIn) || 0;
   const nOut = Number(notesOut) || 0;
-  const target = typeof db.settings.cashSafeLodgementTarget === 'number' ? db.settings.cashSafeLodgementTarget : SAFE_STARTING_BALANCE;
+  const target = await getCashSafeLodgementTarget();
   const { rows: latestRows } = await query(`SELECT total FROM cash_logs ORDER BY created_at DESC LIMIT 1`);
   const previousTotal = latestRows.length ? Number(latestRows[0].total) : target;
   const total = Math.round((previousTotal + cIn + nIn - cOut - nOut) * 100) / 100;

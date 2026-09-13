@@ -77,10 +77,10 @@ function removeVideoIfLocal(publicPath) {
   fs.unlink(path.join(VIDEO_DIR, filename), () => {});
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const sections = models.visibleTrainingSections(res.locals.currentUser);
   res.render('training/index', {
-    grouped: models.listTrainingItemsByCategory(),
+    grouped: await models.listTrainingItemsByCategory(),
     categories: models.TRAINING_CATEGORIES,
     sections,
     canEdit: canUserEdit(res)
@@ -99,8 +99,8 @@ router.get('/new', requireTrainingEditAccess, (req, res) => {
   });
 });
 
-router.get('/:id/edit', requireTrainingEditAccess, (req, res) => {
-  const item = models.getTrainingItem(req.params.id);
+router.get('/:id/edit', requireTrainingEditAccess, async (req, res) => {
+  const item = await models.getTrainingItem(req.params.id);
   if (!item) return res.status(404).render('404');
   res.render('training/form', {
     item,
@@ -111,8 +111,8 @@ router.get('/:id/edit', requireTrainingEditAccess, (req, res) => {
   });
 });
 
-router.get('/:id', (req, res) => {
-  const item = models.getTrainingItem(req.params.id);
+router.get('/:id', async (req, res) => {
+  const item = await models.getTrainingItem(req.params.id);
   if (!item) return res.status(404).render('404');
   const category = models.TRAINING_CATEGORIES.find(c => c.value === item.category);
   res.render('training/detail', {
@@ -150,7 +150,7 @@ router.post('/', requireTrainingEditAccess, (req, res) => {
       (req.files && req.files.video || []).forEach(f => fs.unlink(f.path, () => {}));
     };
     const { category, name, subtitle, ingredients, method, servingNotes, youtubeUrl } = req.body;
-    const result = models.createTrainingItem(
+    const result = await models.createTrainingItem(
       { category, name, subtitle, ingredients, method, servingNotes, youtubeUrl },
       req.session.userId
     );
@@ -167,7 +167,7 @@ router.post('/', requireTrainingEditAccess, (req, res) => {
       return res.status(400).json({ error: fileErr.message || 'Photo upload failed.' });
     }
     if (photoPath !== undefined || videoFile) {
-      models.setTrainingItemMedia(result.item.id, {
+      await models.setTrainingItemMedia(result.item.id, {
         photoPath,
         videoPath: videoFile ? `/video/training/${videoFile.filename}` : undefined
       });
@@ -179,14 +179,14 @@ router.post('/', requireTrainingEditAccess, (req, res) => {
 router.post('/:id', requireTrainingEditAccess, (req, res) => {
   upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'video', maxCount: 1 }])(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message || 'Upload failed.' });
-    const existing = models.getTrainingItem(req.params.id);
+    const existing = await models.getTrainingItem(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Training item not found.' });
 
     const cleanup = () => {
       (req.files && req.files.video || []).forEach(f => fs.unlink(f.path, () => {}));
     };
     const { category, name, subtitle, ingredients, method, servingNotes, youtubeUrl } = req.body;
-    const result = models.updateTrainingItem(req.params.id, { category, name, subtitle, ingredients, method, servingNotes, youtubeUrl });
+    const result = await models.updateTrainingItem(req.params.id, { category, name, subtitle, ingredients, method, servingNotes, youtubeUrl });
     if (result.error) {
       cleanup();
       return res.status(400).json({ error: result.error });
@@ -202,7 +202,7 @@ router.post('/:id', requireTrainingEditAccess, (req, res) => {
     if (photoPath !== undefined || videoFile) {
       if (photoPath !== undefined) fileStore.deleteStoredImageRef(existing.photoPath, PHOTO_DIR);
       if (videoFile) removeVideoIfLocal(existing.videoPath);
-      models.setTrainingItemMedia(existing.id, {
+      await models.setTrainingItemMedia(existing.id, {
         photoPath,
         videoPath: videoFile ? `/video/training/${videoFile.filename}` : undefined
       });
@@ -211,12 +211,12 @@ router.post('/:id', requireTrainingEditAccess, (req, res) => {
   });
 });
 
-router.post('/:id/delete', requireTrainingEditAccess, (req, res) => {
-  const item = models.getTrainingItem(req.params.id);
+router.post('/:id/delete', requireTrainingEditAccess, async (req, res) => {
+  const item = await models.getTrainingItem(req.params.id);
   if (!item) return res.status(404).render('404');
   fileStore.deleteStoredImageRef(item.photoPath, PHOTO_DIR);
   removeVideoIfLocal(item.videoPath);
-  models.deleteTrainingItem(req.params.id);
+  await models.deleteTrainingItem(req.params.id);
   res.redirect('/training');
 });
 

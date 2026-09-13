@@ -4,7 +4,11 @@
 // access is broad (any real staff account); editing is manager-tier only
 // (or individually granted via canEditTraining — see requireTrainingAccess
 // / requireTrainingEditAccess in src/middleware.js).
-const { readDb, writeDb } = require('../db');
+// SQL-backed as of task #209 — see db/012_redesign_duties_training.sql.
+// Every exported function that touches the database is now ASYNC; the
+// pure lookup tables/helpers below (CATEGORIES, extractYoutubeId,
+// visibleSections, etc.) are untouched.
+const { query } = require('../sqlPool');
 const { MANAGER_ROLES } = require('../roles');
 
 // Every category belongs to one audience ('bar' or 'kitchen') — this is
@@ -103,24 +107,43 @@ function extractYoutubeId(url) {
   return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
 }
 
-function listItems({ category } = {}) {
-  const db = readDb();
-  let items = db.trainingItems || [];
-  if (category) items = items.filter(i => i.category === category);
-  return items.slice().sort((a, b) => a.name.localeCompare(b.name));
+function mapItemRow(r) {
+  return {
+    id: r.id,
+    category: r.category,
+    name: r.name,
+    subtitle: r.subtitle,
+    ingredients: r.ingredients,
+    method: r.method,
+    servingNotes: r.serving_notes,
+    photoPath: r.photo_path,
+    videoPath: r.video_path,
+    youtubeUrl: r.youtube_url,
+    youtubeId: r.youtube_id,
+    createdByUserId: r.created_by_user_id,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  };
 }
 
-function listItemsByCategory() {
-  const all = listItems();
+async function listItems({ category } = {}) {
+  const { rows } = category
+    ? await query(`SELECT * FROM training_items WHERE category = $1 ORDER BY name ASC`, [category])
+    : await query(`SELECT * FROM training_items ORDER BY name ASC`);
+  return rows.map(mapItemRow);
+}
+
+async function listItemsByCategory() {
+  const all = await listItems();
   const grouped = {};
   CATEGORY_VALUES.forEach(c => { grouped[c] = []; });
   all.forEach(i => { (grouped[i.category] || (grouped[i.category] = [])).push(i); });
   return grouped;
 }
 
-function getItem(id) {
-  const db = readDb();
-  return (db.trainingItems || []).find(i => i.id === Number(id));
+async function getItem(id) {
+  const { rows } = await query(`SELECT * FROM training_items WHERE id = $1`, [Number(id)]);
+  return rows[0] ? mapItemRow(rows[0]) : undefined;
 }
 
 function validateInput({ category, name, subtitle, ingredients, method, servingNotes, youtubeUrl }) {
@@ -138,71 +161,55 @@ function validateInput({ category, name, subtitle, ingredients, method, servingN
 // record, so extra/unexpected fields in the input are silently dropped
 // rather than stored (matches every other create*/update* function in
 // this codebase).
-function createItem(input, createdByUserId) {
+async function createItem(input, createdByUserId) {
   const error = validateInput(input);
   if (error) return { error };
-  const db = readDb();
-  if (!db.trainingItems) db.trainingItems = [];
-  if (!db.meta.nextTrainingItemId) db.meta.nextTrainingItemId = 1;
-  const item = {
-    id: db.meta.nextTrainingItemId++,
-    category: input.category,
-    name: String(input.name).trim(),
-    subtitle: (input.subtitle || '').trim(),
-    ingredients: String(input.ingredients).trim(),
-    method: String(input.method).trim(),
-    servingNotes: (input.servingNotes || '').trim(),
-    photoPath: '',
-    videoPath: '',
-    youtubeUrl: (input.youtubeUrl || '').trim(),
-    youtubeId: extractYoutubeId(input.youtubeUrl) || '',
-    createdByUserId: createdByUserId || null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  db.trainingItems.push(item);
-  writeDb(db);
-  return { item };
+  const { rows } = await query(
+    `INSERT INTO training_items (category, name, subtitle, ingredients, method, serving_notes, photo_path, video_path, youtube_url, youtube_id, created_by_user_id)
+     VALUES ($1,$2,$3,$4,$5,$6,'','',$7,$8,$9) RETURNING *`,
+    [
+      input.category, String(input.name).trim(), (input.subtitle || '').trim(),
+      String(input.ingredients).trim(), String(input.method).trim(), (input.servingNotes || '').trim(),
+      (input.youtubeUrl || '').trim(), extractYoutubeId(input.youtubeUrl) || '', createdByUserId || null
+    ]
+  );
+  return { item: mapItemRow(rows[0]) };
 }
 
-function updateItem(id, input) {
+async function updateItem(id, input) {
   const error = validateInput(input);
   if (error) return { error };
-  const db = readDb();
-  const item = (db.trainingItems || []).find(i => i.id === Number(id));
-  if (!item) return { error: 'Training item not found.' };
-  item.category = input.category;
-  item.name = String(input.name).trim();
-  item.subtitle = (input.subtitle || '').trim();
-  item.ingredients = String(input.ingredients).trim();
-  item.method = String(input.method).trim();
-  item.servingNotes = (input.servingNotes || '').trim();
-  item.youtubeUrl = (input.youtubeUrl || '').trim();
-  item.youtubeId = extractYoutubeId(input.youtubeUrl) || '';
-  item.updatedAt = new Date().toISOString();
-  writeDb(db);
-  return { item };
+  const { rows } = await query(
+    `UPDATE training_items SET category=$1, name=$2, subtitle=$3, ingredients=$4, method=$5, serving_notes=$6, youtube_url=$7, youtube_id=$8, updated_at=now()
+     WHERE id=$9 RETURNING *`,
+    [
+      input.category, String(input.name).trim(), (input.subtitle || '').trim(),
+      String(input.ingredients).trim(), String(input.method).trim(), (input.servingNotes || '').trim(),
+      (input.youtubeUrl || '').trim(), extractYoutubeId(input.youtubeUrl) || '', Number(id)
+    ]
+  );
+  if (!rows.length) return { error: 'Training item not found.' };
+  return { item: mapItemRow(rows[0]) };
 }
 
 // Photo/video paths are set separately from the text fields above since
 // they come from a multer upload step in the route, not plain form fields.
-function setItemMedia(id, { photoPath, videoPath }) {
-  const db = readDb();
-  const item = (db.trainingItems || []).find(i => i.id === Number(id));
+async function setItemMedia(id, { photoPath, videoPath }) {
+  const item = await getItem(id);
   if (!item) return { error: 'Training item not found.' };
-  if (photoPath !== undefined) item.photoPath = photoPath;
-  if (videoPath !== undefined) item.videoPath = videoPath;
-  item.updatedAt = new Date().toISOString();
-  writeDb(db);
-  return { item };
+  const newPhotoPath = photoPath !== undefined ? photoPath : item.photoPath;
+  const newVideoPath = videoPath !== undefined ? videoPath : item.videoPath;
+  const { rows } = await query(
+    `UPDATE training_items SET photo_path=$1, video_path=$2, updated_at=now() WHERE id=$3 RETURNING *`,
+    [newPhotoPath, newVideoPath, Number(id)]
+  );
+  return { item: mapItemRow(rows[0]) };
 }
 
-function deleteItem(id) {
-  const db = readDb();
-  const item = (db.trainingItems || []).find(i => i.id === Number(id));
+async function deleteItem(id) {
+  const item = await getItem(id);
   if (!item) return { error: 'Training item not found.' };
-  db.trainingItems = (db.trainingItems || []).filter(i => i.id !== Number(id));
-  writeDb(db);
+  await query(`DELETE FROM training_items WHERE id = $1`, [Number(id)]);
   return { item };
 }
 
@@ -265,13 +272,14 @@ const KITCHEN_STARTER_ITEMS = [
 // kitchen category, so it never re-adds content a Manager has since edited
 // or deleted, and never duplicates on every server restart. Called once
 // from server.js at boot, same pattern as bootstrapAdmin() there.
-function seedKitchenStarterContent() {
-  const db = readDb();
-  const items = db.trainingItems || [];
+async function seedKitchenStarterContent() {
   const kitchenCategoryValues = CATEGORIES.filter(c => c.audience === 'kitchen').map(c => c.value);
-  const hasAnyKitchenContent = items.some(i => kitchenCategoryValues.includes(i.category));
-  if (hasAnyKitchenContent) return;
-  KITCHEN_STARTER_ITEMS.forEach(starter => createItem(starter, null));
+  const { rows } = await query(
+    `SELECT 1 FROM training_items WHERE category = ANY($1) LIMIT 1`,
+    [kitchenCategoryValues]
+  );
+  if (rows.length) return;
+  for (const starter of KITCHEN_STARTER_ITEMS) await createItem(starter, null);
 }
 
 module.exports = {

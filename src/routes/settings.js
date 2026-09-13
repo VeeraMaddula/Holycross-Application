@@ -6,18 +6,19 @@ const { hashPassword } = require('../password');
 const notify = require('../notify');
 
 router.get('/', async (req, res) => {
+  const [settings, googleSyncStatus] = await Promise.all([models.getSettings(), models.getGoogleSyncStatus()]);
   res.render('settings', {
-    settings: models.getSettings(),
+    settings,
     googleConfigured: googleCalendar.isConfigured(),
     googleCalendarId: googleCalendar.isConfigured() ? googleCalendar.calendarId() : null,
-    googleSyncStatus: await models.getGoogleSyncStatus(),
+    googleSyncStatus,
     cleared: req.query.cleared === '1'
   });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { slotDurationMinutes, reminderHoursBefore, openHour, closeHour } = req.body;
-  models.saveSettings({
+  await models.saveSettings({
     slotDurationMinutes: Number(slotDurationMinutes),
     reminderHoursBefore: Number(reminderHoursBefore),
     openHour: Number(openHour),

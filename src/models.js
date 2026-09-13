@@ -52,8 +52,7 @@ const { todayStr } = require('./dateUtils');
 // codebase's `module.exports = {...}` pattern breaks under a circular
 // require — see tables.js's own comment on this).
 async function getTablesWithStatus() {
-  const [allTables, allBookings] = await Promise.all([tables.listTables(), bookings.listBookings()]);
-  const settingsData = settings.getSettings();
+  const [allTables, allBookings, settingsData] = await Promise.all([tables.listTables(), bookings.listBookings(), settings.getSettings()]);
   const today = todayStr();
   const slotDuration = settingsData.slotDurationMinutes;
   const now = new Date();

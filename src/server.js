@@ -329,9 +329,9 @@ async function startServer() {
   // One-time seed of starter kitchen Training & Resources content (recipes,
   // prep process, cleaning technique) so that section isn't empty the first
   // time Kitchen Staff open it. Idempotent — see seedKitchenStarterContent's
-  // own comment for why this is safe to call on every boot. Still JSON-file
-  // backed (training hasn't been converted to SQL yet), stays synchronous.
-  models.seedKitchenTrainingStarterContent();
+  // own comment for why this is safe to call on every boot. SQL-backed as
+  // of task #209, so this is now async.
+  await models.seedKitchenTrainingStarterContent();
 
   app.listen(PORT, () => {
     console.log(`Bar & Restaurant Booking admin running at http://localhost:${PORT}`);

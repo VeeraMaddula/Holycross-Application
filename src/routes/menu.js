@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 
-router.get('/', (req, res) => {
-  res.render('menu/edit', { menu: models.getMenu(), events: models.listEvents() });
+router.get('/', async (req, res) => {
+  const [menu, events] = await Promise.all([models.getMenu(), models.listEvents()]);
+  res.render('menu/edit', { menu, events });
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { title, prices, descs, sectionTitles, intro } = req.body;
   // Rebuild menu structure from form arrays
   const sections = [].concat(sectionTitles || []).map((secTitle, i) => {
@@ -17,17 +18,17 @@ router.post('/', (req, res) => {
     return { title: secTitle, items };
   }).filter(s => s.title);
 
-  models.saveMenu({ intro: intro || '', sections });
+  await models.saveMenu({ intro: intro || '', sections });
   res.redirect('/menu');
 });
 
-router.post('/events', (req, res) => {
-  models.createEvent(req.body);
+router.post('/events', async (req, res) => {
+  await models.createEvent(req.body);
   res.redirect('/menu');
 });
 
-router.post('/events/:id/delete', (req, res) => {
-  models.deleteEvent(req.params.id);
+router.post('/events/:id/delete', async (req, res) => {
+  await models.deleteEvent(req.params.id);
   res.redirect('/menu');
 });
 

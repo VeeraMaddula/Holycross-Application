@@ -13,13 +13,13 @@ const { publicBookingLimiter } = require('../rateLimiters');
 // reasonably know. Every submission is parked as pending_approval (see
 // models.createBooking's forcePendingApproval option) so a Manager always
 // reviews it before the customer is told it's confirmed.
-router.get('/', (req, res) => {
-  const settings = models.getSettings();
+router.get('/', async (req, res) => {
+  const settings = await models.getSettings();
   res.render('public/book', { settings, today: todayStr(), error: null, values: {} });
 });
 
 router.post('/', publicBookingLimiter, async (req, res) => {
-  const settings = models.getSettings();
+  const settings = await models.getSettings();
   const rerender = (error) => res.status(400).render('public/book', { settings, today: todayStr(), error, values: req.body });
 
   // Honeypot — real visitors never see or fill this field (hidden via CSS

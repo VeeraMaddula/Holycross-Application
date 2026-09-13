@@ -38,15 +38,16 @@ const LODGEMENT_EDIT_ROLES = ['admin', 'senior_manager'];
 
 async function renderPage(req, res, status, error) {
   const u = res.locals.currentUser;
-  const [history, logs, balance] = await Promise.all([
+  const [history, logs, balance, starting] = await Promise.all([
     models.getCashLodgementHistory(),
     models.listCashLogs(),
-    models.getCurrentSafeBalance()
+    models.getCurrentSafeBalance(),
+    models.getCashSafeLodgementTarget()
   ]);
   res.status(status || 200).render('cash-safe', {
     logs,
     balance,
-    starting: models.getCashSafeLodgementTarget(),
+    starting,
     canEditLodgement: !!(u && LODGEMENT_EDIT_ROLES.includes(u.role)),
     lastLodgementChange: history[0] || null,
     error: error || null

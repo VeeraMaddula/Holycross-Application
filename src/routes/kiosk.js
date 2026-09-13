@@ -203,14 +203,14 @@ router.post('/action', kioskPinLimiter, (req, res) => {
 
 // Polled every ~30s by the kiosk page to know whether a duties section is
 // currently in its scheduled window and, if so, its live checklist state.
-router.get('/duties-status', (req, res) => {
-  res.json(models.getDutyPanelState(new Date()));
+router.get('/duties-status', async (req, res) => {
+  res.json(await models.getDutyPanelState(new Date()));
 });
 
-router.post('/duties/toggle', (req, res) => {
+router.post('/duties/toggle', async (req, res) => {
   const { date, taskId } = req.body;
   if (!date || !taskId) return res.status(400).json({ error: 'Missing date/taskId.' });
-  models.toggleDutyTask({ date, taskId, userId: null, userName: 'Bar Staff (kiosk)' });
+  await models.toggleDutyTask({ date, taskId, userId: null, userName: 'Bar Staff (kiosk)' });
   res.json({ ok: true });
 });
 
@@ -230,7 +230,7 @@ router.post('/duties/submit', (req, res) => {
 
     const { date, section, reason, submittedByUserId, submittedByName } = req.body;
     if (!date || !section) return res.status(400).json({ error: 'Missing date/section.' });
-    const checklist = models.getDutiesChecklist(date);
+    const checklist = await models.getDutiesChecklist(date);
     const sectionData = checklist.sections.find(s => s.key === section);
     if (!sectionData) return res.status(400).json({ error: 'Unknown duties section.' });
 
@@ -263,7 +263,7 @@ router.post('/duties/submit', (req, res) => {
     if (missing.length && !(reason && reason.trim())) {
       return res.json({ ok: true, needsReason: true, missing: missing.map(t => t.text) });
     }
-    const { report, isNewIncomplete } = models.recordDutyReport({
+    const { report, isNewIncomplete } = await models.recordDutyReport({
       date,
       section,
       sectionTitle: sectionData.title,
