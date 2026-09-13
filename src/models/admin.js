@@ -59,8 +59,17 @@ async function factoryReset(adminEmail, adminPasswordHash) {
   const fresh = JSON.parse(JSON.stringify(DEFAULT_DATA));
   writeDb(fresh);
 
+  // bookings.table_id has a FK to tables(id) with no ON DELETE CASCADE, so
+  // `DELETE FROM tables` MUST NOT run concurrently with (or before)
+  // `DELETE FROM bookings` — the two were previously fired together in one
+  // Promise.all, and when the tables delete reached CockroachDB before the
+  // bookings delete had committed, it hit a foreign key violation. That
+  // uncaught rejection was what produced the "Something went wrong" page
+  // even though every other part of the reset had already gone through.
+  // Deleting bookings first (awaited on its own) makes the tables delete
+  // that follows always safe.
+  await query(`DELETE FROM bookings`);
   await Promise.all([
-    query(`DELETE FROM bookings`),
     query(`DELETE FROM time_entries`),
     query(`DELETE FROM roster_shifts`),
     query(`DELETE FROM external_calendar_events`),

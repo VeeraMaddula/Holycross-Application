@@ -11,14 +11,14 @@ const DEFAULT_MAX_AGE = 1000 * 60 * 60 * 12; // 12 hours — matches the session
 
 router.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
-  res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: false });
+  res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: false, factoryResetSuccess: req.query.factoryReset === '1' });
 });
 
 router.post('/login', loginLimiter, async (req, res) => {
   const { identifier, countryCode, password, rememberMe } = req.body;
   const user = await models.getUserByLoginIdentifier(identifier || '', countryCode || '');
   if (!user || !user.active || !verifyPassword(password || '', user.passwordHash)) {
-    return res.render('login', { error: 'Incorrect username/phone number or password.', countryCodes: COUNTRY_CODES, resetSuccess: false });
+    return res.render('login', { error: 'Incorrect username/phone number or password.', countryCodes: COUNTRY_CODES, resetSuccess: false, factoryResetSuccess: false });
   }
   req.session.userId = user.id;
   req.session.role = user.role;
@@ -67,7 +67,7 @@ router.post('/reset-password/:token', forgotLimiter, async (req, res) => {
     return res.render('reset-password', { valid: true, error: PASSWORD_RULES, token: req.params.token, passwordRules: PASSWORD_RULES });
   }
   await models.resetPasswordWithToken(req.params.token, password);
-  res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: true });
+  res.render('login', { error: null, countryCodes: COUNTRY_CODES, resetSuccess: true, factoryResetSuccess: false });
 });
 
 module.exports = router;

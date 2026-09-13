@@ -11,6 +11,7 @@
       <p class="login-tagline">Holybook — sign in to continue.</p>
       <% if (error) { %><div class="error-box"><%= error %></div><% } %>
       <% if (resetSuccess) { %><div class="success-box">Password updated — log in with your new password.</div><% } %>
+      <% if (factoryResetSuccess) { %><div class="success-box">Factory reset completed successfully — the app has been wiped back to its defaults. Log in with the admin credentials.</div><% } %>
       <form method="POST" action="/login">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">

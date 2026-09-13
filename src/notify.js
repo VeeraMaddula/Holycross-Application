@@ -348,6 +348,45 @@ async function notifyAdminNewBooking(booking, tableName) {
   });
 }
 
+// Sent to ADMIN_NOTIFICATION_EMAIL whenever a booking is cancelled (any
+// role, from the Bookings page) — separate from cancellationEmail above,
+// which goes to the customer. Best-effort: a missing ADMIN_NOTIFICATION_EMAIL
+// just skips silently, same as notifyAdminNewBooking.
+async function notifyAdminBookingCancelled(booking, tableName) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (!adminEmail) return;
+  await sendEmail({
+    to: adminEmail,
+    subject: `Booking cancelled: ${booking.customerName} - ${booking.date} ${booking.time}`,
+    text: `${booking.customerName} (${booking.phone || booking.email})'s booking for ${tableName || 'a table'} on ${booking.date} at ${booking.time} (party of ${booking.partySize}) was cancelled.`,
+    type: 'admin-booking-cancelled',
+    bookingId: booking.id
+  });
+}
+
+// Sent to ADMIN_NOTIFICATION_EMAIL and every Senior Manager with an email
+// on file, right after a Danger Zone factory reset completes — the account
+// that triggered it may no longer exist afterwards, so this is the only
+// record of who did it and when, besides the day's server log.
+function factoryResetEmail(byName) {
+  const subject = 'Factory reset completed';
+  const text = `A factory reset was just completed on The Holy Cross booking app${byName ? ` by ${byName}` : ''}.\n\n`
+    + `Every booking, timesheet, roster shift, request, and the table/room list were wiped back to the app's defaults, and a fresh admin account was (re)created from the ADMIN_EMAIL/ADMIN_PASSWORD in the app's environment settings.\n\n`
+    + `If this wasn't expected, check with the team and change the admin password as soon as possible.`;
+  return { subject, text };
+}
+
+async function notifyAdminAndSeniorManagersFactoryReset(byName) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  const seniorManagers = (await models.listUsers()).filter(u => u.role === 'senior_manager' && u.email);
+  const recipients = new Set(seniorManagers.map(u => u.email));
+  if (adminEmail) recipients.add(adminEmail);
+  const { subject, text } = factoryResetEmail(byName);
+  for (const to of recipients) {
+    await sendEmail({ to, subject, text, type: 'factory-reset' });
+  }
+}
+
 // Emails every Manager / Floor Manager / Senior Manager / General Manager /
 // Admin who has an email on file — a Bar Staff booking hit a scheduling
 // conflict and needs one of them to approve it before the customer hears
@@ -590,9 +629,9 @@ module.exports = {
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
   shiftDropPickedUpEmail, shiftClaimedEmail, shiftExchangeEmail, shiftChangeManagerEmail,
   selfVerificationCodeEmail,
-  notifyAdminNewBooking, notifyManagersPendingApproval, notifyManagersPinResetRequest,
+  notifyAdminNewBooking, notifyAdminBookingCancelled, notifyManagersPendingApproval, notifyManagersPinResetRequest,
   notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
-  notifyManagersShiftChange,
+  notifyManagersShiftChange, factoryResetEmail, notifyAdminAndSeniorManagersFactoryReset,
   voucherWeeklySummaryEmail, notifyAccountantsWeeklyVoucherSummary,
   runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE

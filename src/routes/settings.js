@@ -3,6 +3,7 @@ const router = express.Router();
 const models = require('../models');
 const googleCalendar = require('../googleCalendar');
 const { hashPassword } = require('../password');
+const notify = require('../notify');
 
 router.get('/', async (req, res) => {
   res.render('settings', {
@@ -41,8 +42,14 @@ router.post('/clear-data', async (req, res) => {
 router.post('/factory-reset', async (req, res) => {
   const email = (process.env.ADMIN_EMAIL || 'admin@holycross.local').toLowerCase();
   const password = process.env.ADMIN_PASSWORD || 'changeme123';
+  const byName = req.session.name || 'an admin';
   await models.factoryReset(email, hashPassword(password));
-  req.session.destroy(() => res.redirect('/login'));
+  // Best-effort — the reset itself has already fully succeeded at this
+  // point, so a notification failure (bad SMTP config, no recipients on
+  // file, etc.) must never turn a successful reset back into an error page.
+  notify.notifyAdminAndSeniorManagersFactoryReset(byName)
+    .catch(err => console.warn('Factory reset notification email failed:', err.message));
+  req.session.destroy(() => res.redirect('/login?factoryReset=1'));
 });
 
 router.post('/google-sync-now', async (req, res) => {

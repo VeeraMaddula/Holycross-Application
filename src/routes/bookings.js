@@ -154,6 +154,12 @@ router.post('/:id/status', async (req, res) => {
       const { subject, text } = notify.cancellationEmail(result.booking);
       notify.sendEmail({ to: result.booking.email, subject, text, type: 'cancellation', bookingId: result.booking.id });
     }
+    {
+      const tables = await models.listTables();
+      const table = findTable(tables, result.booking.tableId);
+      notify.notifyAdminBookingCancelled(result.booking, table ? table.name : null)
+        .catch(err => console.warn('Admin cancellation notification email failed:', err.message));
+    }
     if (result.booking.phone) {
       sms.sendSms({ to: result.booking.phone, body: sms.cancellationSms(result.booking), type: 'cancellation', bookingId: result.booking.id });
     }
