@@ -24,18 +24,20 @@ const { normalizePhone } = require('./phoneUtils');
 const SENDMODE_API_URL = 'https://sms-rest.sendmode.dev/3.0/send';
 
 // sender_id is a REQUIRED field on every v3 request (max 15 chars,
-// alphanumeric). "HolyCross" has never been registered as a SenderName on
-// the Sendmode account (CONFIRMED by Sendmode's John McNamara, 2026-08-14),
-// so it's currently unauthorised and every send with it fails — the
-// SenderName request is now submitted, pending ComReg approval. In the
-// meantime SENDMODE_SENDER_ID is set to "Repliable" (a working sender,
-// confirmed by a real test on 2026-08-14, AFTER the earlier v2-endpoint
-// bug was fixed — don't confuse this with the earlier failed "Repliable"
-// test, which was against the broken endpoint). Set via SENDMODE_SENDER_ID
-// in .env / Render — this hardcoded default is only what's used if that
-// env var is left blank. Switch back to "HolyCross" here and in Render's
-// env vars once Sendmode confirms ComReg approval.
-const DEFAULT_SENDER_ID = 'Repliable';
+// alphanumeric). "HolyCross" was unregistered/unapproved as a SenderName on
+// the Sendmode account for a while (CONFIRMED by Sendmode's John McNamara,
+// 2026-08-14) — every send with it failed silently during that window, so
+// SENDMODE_SENDER_ID was set to "Repliable" (a working fallback sender,
+// confirmed by a real test on 2026-08-14, AFTER the earlier v2-endpoint bug
+// was fixed — don't confuse this with the earlier failed "Repliable" test,
+// which was against the broken endpoint) as a stopgap.
+//
+// ComReg has now approved "HolyCross" (confirmed 2026-09-13) — flipped back
+// here. Set via SENDMODE_SENDER_ID in .env / Render — this hardcoded
+// default is only what's used if that env var is left blank, so also
+// update SENDMODE_SENDER_ID in Render's dashboard (it's sync:false in
+// render.yaml, so it does NOT pick this up automatically from a redeploy).
+const DEFAULT_SENDER_ID = 'HolyCross';
 
 function isConfigured() {
   return !!process.env.SENDMODE_API_KEY;
