@@ -24,20 +24,28 @@ const { normalizePhone } = require('./phoneUtils');
 const SENDMODE_API_URL = 'https://sms-rest.sendmode.dev/3.0/send';
 
 // sender_id is a REQUIRED field on every v3 request (max 15 chars,
-// alphanumeric). "HolyCross" was unregistered/unapproved as a SenderName on
-// the Sendmode account for a while (CONFIRMED by Sendmode's John McNamara,
-// 2026-08-14) — every send with it failed silently during that window, so
-// SENDMODE_SENDER_ID was set to "Repliable" (a working fallback sender,
-// confirmed by a real test on 2026-08-14, AFTER the earlier v2-endpoint bug
-// was fixed — don't confuse this with the earlier failed "Repliable" test,
-// which was against the broken endpoint) as a stopgap.
+// alphanumeric). A concatenated "HolyCross" was unregistered/unapproved as a
+// SenderName on the Sendmode account for a while (CONFIRMED by Sendmode's
+// John McNamara, 2026-08-14) — every send with it failed silently during
+// that window, so SENDMODE_SENDER_ID was set to "Repliable" (a working
+// fallback sender, confirmed by a real test on 2026-08-14, AFTER the
+// earlier v2-endpoint bug was fixed — don't confuse this with the earlier
+// failed "Repliable" test, which was against the broken endpoint) as a
+// stopgap.
 //
-// ComReg has now approved "HolyCross" (confirmed 2026-09-13) — flipped back
-// here. Set via SENDMODE_SENDER_ID in .env / Render — this hardcoded
-// default is only what's used if that env var is left blank, so also
-// update SENDMODE_SENDER_ID in Render's dashboard (it's sync:false in
-// render.yaml, so it does NOT pick this up automatically from a redeploy).
-const DEFAULT_SENDER_ID = 'HolyCross';
+// ComReg's actual approval letter (2026-09-13) registered the Sender ID as
+// "Holy Cross" — WITH a space, not the concatenated "HolyCross" everyone
+// (including comments in this file) assumed while approval was pending.
+// Flipped to the real approved value below. This hasn't yet been confirmed
+// against Sendmode's own Sent SMS report with a live test — do that before
+// relying on it, same as any other sender_id change here, since Sendmode's
+// v3 docs describe this field as "alphanumeric" and it's untested whether
+// their gateway accepts the literal space or silently mangles/rejects it.
+// Set via SENDMODE_SENDER_ID in .env / Render — this hardcoded default is
+// only what's used if that env var is left blank, so also update
+// SENDMODE_SENDER_ID in Render's dashboard (it's sync:false in render.yaml,
+// so it does NOT pick this up automatically from a redeploy).
+const DEFAULT_SENDER_ID = 'Holy Cross';
 
 function isConfigured() {
   return !!process.env.SENDMODE_API_KEY;

@@ -128,7 +128,7 @@ Leave any of these unset and that category just falls back to `SMTP_FROM`.
 
 Text message notifications use [Sendmode](https://www.sendmode.com), an Irish SMS provider —
 pay-as-you-go credit bundles (no monthly subscription), with direct routes to Irish mobile
-networks and support for a branded sender ID so texts can show up as "HolyCross" instead of a
+networks and support for a branded sender ID so texts can show up as "Holy Cross" instead of a
 generic number.
 
 1. Sign up free at https://app.sendmode.com/createaccount — you get free trial credits to test
@@ -139,17 +139,25 @@ generic number.
    ```
    SENDMODE_API_KEY=your-sendmode-access-key
    ```
-4. A branded sender ID is **required** by Sendmode's v3 API (not optional) — max 15 characters,
-   letters/numbers only. In your Sendmode dashboard, register one (e.g. `HolyCross`) — Irish law
-   requires this to go through ComReg. **Confirm directly with Sendmode support that the request
-   has actually been submitted, and get a date** — don't just assume registering it in your own
-   `.env` file counts as submitting it to Sendmode. Once submitted, approval is typically ~5 days.
-   **Until it's approved, sending with it doesn't error — the message is silently rejected, with
-   no error surfaced anywhere in the app** (confirmed directly with Sendmode support — check
-   their Sent SMS report, not just the app's own logs, to see the real status). Add it to `.env`
-   once — and only once — Sendmode has explicitly confirmed it's approved:
+4. A branded sender ID is **required** by Sendmode's v3 API (not optional) — max 15 characters.
+   In your Sendmode dashboard, register one — Irish law requires this to go through ComReg.
+   **Confirm directly with Sendmode support that the request has actually been submitted, and get
+   a date** — don't just assume registering it in your own `.env` file counts as submitting it to
+   Sendmode. Once submitted, approval is typically ~5 days. **Until it's approved, sending with it
+   doesn't error — the message is silently rejected, with no error surfaced anywhere in the app**
+   (confirmed directly with Sendmode support — check their Sent SMS report, not just the app's own
+   logs, to see the real status). ComReg's own approval letter is the source of truth for the
+   *exact* registered string — Holy Cross's letter (2026-09-13) registered it as `Holy Cross`
+   **with a space**, not the concatenated `HolyCross` originally assumed while approval was
+   pending, so use whatever ComReg's letter actually says, verbatim, not a guessed/tidied version.
+   The approval letter itself also warns: *"you must confirm with your SMS Provider (OPA) if they
+   have additional registration requirements beyond the ComReg registration"* — so confirm with
+   Sendmode support that the exact same string is also set up correctly on their side, and that
+   their gateway accepts the space (their v3 docs describe the `sender_id` field as
+   "alphanumeric", which is ambiguous about spaces). Add it to `.env` once — and only once —
+   Sendmode has explicitly confirmed it's approved and working on their end:
    ```
-   SENDMODE_SENDER_ID=HolyCross
+   SENDMODE_SENDER_ID=Holy Cross
    ```
    **Also confirm you're integrated against the correct API.** Sendmode has at least two: the
    current one this app uses (`sms-rest.sendmode.dev/3.0/send`) and a legacy one
