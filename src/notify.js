@@ -41,6 +41,7 @@ function fromAddressForType(type) {
   if (type === 'staff-request') return process.env.SMTP_FROM_REQUESTS || fallback;
   if (type === 'staff-report') return process.env.SMTP_FROM_REPORTS || fallback;
   if (type === 'password-reset') return process.env.SMTP_FROM_PASSWORD_RESET || fallback;
+  if (type === 'staff-welcome') return process.env.SMTP_FROM_HR || fallback;
   return fallback;
 }
 
@@ -197,6 +198,31 @@ function passwordResetEmail(user, resetLink) {
     + `Reset it here (this link expires in 1 hour):\n${resetLink}\n\n`
     + `If you didn't request this, you can safely ignore this email — your password won't change.\n\n`
     + `For more information, please contact us on ${CONTACT_PHONE}.\n\nThe Holy Cross`;
+  return { subject, text };
+}
+
+// Sent once, right when an admin creates a new staff account (see
+// routes/users.js's POST '/' handler) — gives them everything needed for
+// their first login in one place: the site address, their username and
+// password, and their kiosk PIN if one was set at creation time (the PIN
+// is optional at creation — if it was left blank, this says so instead of
+// printing an empty line, and points them at a manager rather than
+// implying they can set it themselves, since there's no self-service PIN
+// reset by design — see pinResetRequestEmail above).
+function staffWelcomeEmail(user, { username, password, pin }) {
+  const base = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  const loginLink = base ? `${base}/login` : '';
+  const subject = `Welcome to The Holy Cross Booking & Training Platform`;
+  const text = `Hi ${user.name},\n\n`
+    + `Welcome to The Holy Cross Booking and Training platform! Your account is ready — here are your login details:\n\n`
+    + (loginLink ? `Site: ${loginLink}\n` : '')
+    + `Username: ${username}\n`
+    + `Password: ${password}\n`
+    + (pin
+      ? `Kiosk PIN: ${pin}\n`
+      : `Kiosk PIN: not set yet — ask a manager to set one for you so you can clock in/out on the kiosk.\n`)
+    + `\nWe'd recommend changing your password the first time you log in (see Profile in the app).\n\n`
+    + `If you have any questions, just ask a manager.\n\nThe Holy Cross`;
   return { subject, text };
 }
 
@@ -625,7 +651,7 @@ function startScheduler() {
 module.exports = {
   sendEmail, fromAddressForType, bookingConfirmationEmail, bookingIcsAttachment, bookingReminderEmail, cancellationEmail,
   shiftAssignedEmail, shiftUpdatedEmail, newRequestEmail, pendingApprovalEmail,
-  passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail,
+  passwordResetEmail, pinResetRequestEmail, dutyMissedEmail, reportSubmittedEmail, staffWelcomeEmail,
   publicBookingReceivedEmail, newPublicBookingRequestEmail, cashSafeLogEmail,
   shiftDropPickedUpEmail, shiftClaimedEmail, shiftExchangeEmail, shiftChangeManagerEmail,
   selfVerificationCodeEmail,

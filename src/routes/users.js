@@ -5,6 +5,7 @@ const router = express.Router();
 const models = require('../models');
 const { hashPassword, isValidPassword, PASSWORD_RULES } = require('../password');
 const fileStore = require('../fileStore');
+const notify = require('../notify');
 
 // This route lets an admin set someone's saved profile picture directly
 // from the Users page (e.g. right after creating their account), instead of
@@ -81,6 +82,16 @@ router.post('/', async (req, res) => {
   // new starter can be handed straight to the tablet without a second trip
   // through Edit first.
   if (pin) await models.setUserPin(newUser.id, pin);
+
+  // Welcome email with their login details — plain password/PIN are only
+  // ever available here, right at creation (only the hash is stored from
+  // this point on), so this is the one chance to send them. Best-effort:
+  // a failed/unconfigured send shouldn't block the account from being
+  // created (see notify.sendEmail — it logs to the Notifications page
+  // either way).
+  const { subject, text } = notify.staffWelcomeEmail(newUser, { username, password, pin });
+  notify.sendEmail({ to: newUser.email, subject, text, type: 'staff-welcome' }).catch(() => {});
+
   res.redirect('/users');
 });
 
