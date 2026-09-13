@@ -331,7 +331,23 @@ async function startServer() {
   // time Kitchen Staff open it. Idempotent — see seedKitchenStarterContent's
   // own comment for why this is safe to call on every boot. SQL-backed as
   // of task #209, so this is now async.
-  await models.seedKitchenTrainingStarterContent();
+  //
+  // Deliberately non-fatal: this queries training_items' *new* column
+  // shape (see db/012_redesign_duties_training.sql), which only exists
+  // after apply-redesign-duties-training.js has been run against the live
+  // database. If this code deploys before that migration script runs, the
+  // query fails with "column does not exist" — and until this was caught,
+  // that crashed the entire server on every boot (an uncaught rejection
+  // here took down startServer() before app.listen ever ran), which also
+  // blocked Render Shell access needed to run the migration in the first
+  // place. Catching it here lets the server come up regardless, so the
+  // migration can still be run; once it has, this succeeds on the next
+  // natural restart.
+  try {
+    await models.seedKitchenTrainingStarterContent();
+  } catch (err) {
+    console.error('seedKitchenTrainingStarterContent failed (server will still start) — likely means apply-redesign-duties-training.js has not been run yet against this database:', err.message);
+  }
 
   app.listen(PORT, () => {
     console.log(`Bar & Restaurant Booking admin running at http://localhost:${PORT}`);
