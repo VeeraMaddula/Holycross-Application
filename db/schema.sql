@@ -163,14 +163,20 @@ CREATE TABLE roster_shifts (
 CREATE INDEX idx_roster_shifts_date ON roster_shifts(date);
 CREATE INDEX idx_roster_shifts_user ON roster_shifts(user_id);
 
+-- recipient_user_id/recipient_name added in db/011 (task #208) — every
+-- request has always been addressed to one specific person
+-- (src/models/requests.js), the original table just never had a column
+-- for it.
 CREATE TABLE requests (
   id             SERIAL PRIMARY KEY,
   type           TEXT NOT NULL,
   type_label     TEXT,
   requested_by   INT NOT NULL REFERENCES users(id),
   requested_by_name TEXT,
+  recipient_user_id INT REFERENCES users(id),
+  recipient_name TEXT DEFAULT '',
   details        TEXT,
-  status         TEXT NOT NULL DEFAULT 'pending',
+  status         TEXT NOT NULL DEFAULT 'sent',
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -199,24 +205,46 @@ CREATE TABLE duty_reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Redesigned in db/011 (task #208) to add the dropped/claimed-by display
+-- names and the shift/exchange-shift JSONB snapshots shiftDrops.js has
+-- always kept (so a drop still displays correctly even if the underlying
+-- roster shift is later changed or removed) — the original columns didn't
+-- have anywhere to put those.
 CREATE TABLE shift_drops (
-  id            SERIAL PRIMARY KEY,
-  shift_id      INT REFERENCES roster_shifts(id),
-  dropped_by    INT REFERENCES users(id),
-  picked_up_by  INT REFERENCES users(id),
-  exchange_shift_id INT REFERENCES roster_shifts(id),
-  status        TEXT NOT NULL DEFAULT 'open',
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                       SERIAL PRIMARY KEY,
+  roster_shift_id          INT REFERENCES roster_shifts(id),
+  shift                    JSONB, -- snapshot: {id, date, startTime, endTime}
+  dropped_by_user_id       INT REFERENCES users(id),
+  dropped_by_name          TEXT DEFAULT '',
+  status                   TEXT NOT NULL DEFAULT 'open',
+  claimed_by_user_id       INT REFERENCES users(id),
+  claimed_by_name          TEXT,
+  exchange_roster_shift_id INT REFERENCES roster_shifts(id),
+  exchange_shift           JSONB,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  resolved_at              TIMESTAMPTZ
 );
+CREATE INDEX idx_shift_drops_status ON shift_drops(status);
 
+-- Redesigned in db/011 (task #208) — the original columns (submitted_by,
+-- file_path, notes) never matched what staffReports.js actually needed:
+-- one-to-one (a specific recipient, not just a category), a variable-length
+-- files array (not one path), and a review workflow (status/reviewed_at).
 CREATE TABLE reports (
-  id          SERIAL PRIMARY KEY,
-  category    TEXT NOT NULL,
-  submitted_by INT REFERENCES users(id),
-  file_path   TEXT,
-  notes       TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                  SERIAL PRIMARY KEY,
+  category            TEXT NOT NULL,
+  category_label      TEXT DEFAULT '',
+  details             TEXT DEFAULT '',
+  files               JSONB NOT NULL DEFAULT '[]', -- [{path, originalName, mimeType, size}, ...]
+  reported_by_user_id INT REFERENCES users(id),
+  reported_by_name    TEXT DEFAULT '',
+  recipient_user_id   INT REFERENCES users(id),
+  recipient_name      TEXT DEFAULT '',
+  status              TEXT NOT NULL DEFAULT 'sent',
+  reviewed_at         TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_reports_created_at ON reports(created_at);
 
 CREATE TABLE training_items (
   id           SERIAL PRIMARY KEY,
@@ -228,21 +256,36 @@ CREATE TABLE training_items (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Redesigned in db/011 (task #208) — the original columns were a single
+-- generic amount/notes pair; cashSafe.js has always tracked coins/notes
+-- in and out separately plus the shift's reconciled running total.
 CREATE TABLE cash_logs (
-  id          SERIAL PRIMARY KEY,
-  logged_by   INT REFERENCES users(id),
-  amount      NUMERIC(10,2),
-  photo_path  TEXT,
-  notes       TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                SERIAL PRIMARY KEY,
+  date              DATE NOT NULL,
+  logged_by_user_id INT REFERENCES users(id),
+  logged_by_name    TEXT DEFAULT '',
+  reason            TEXT DEFAULT '',
+  coins_in          NUMERIC(10,2) NOT NULL DEFAULT 0,
+  coins_out         NUMERIC(10,2) NOT NULL DEFAULT 0,
+  notes_in          NUMERIC(10,2) NOT NULL DEFAULT 0,
+  notes_out         NUMERIC(10,2) NOT NULL DEFAULT 0,
+  total             NUMERIC(10,2) NOT NULL,
+  photo_path        TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_cash_logs_created_at ON cash_logs(created_at);
 
+-- Redesigned in db/011 (task #208) to match what cashSafe.js's
+-- setCashSafeLodgementTarget has always recorded: the previous target,
+-- the new one, and why it changed.
 CREATE TABLE cash_lodgement_history (
-  id          SERIAL PRIMARY KEY,
-  amount      NUMERIC(10,2),
-  target      NUMERIC(10,2),
-  set_by      INT REFERENCES users(id),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                 SERIAL PRIMARY KEY,
+  previous           NUMERIC(10,2) NOT NULL,
+  new_amount         NUMERIC(10,2) NOT NULL,
+  reason             TEXT DEFAULT '',
+  changed_by_user_id INT REFERENCES users(id),
+  changed_by_name    TEXT DEFAULT '',
+  changed_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Note: password-reset tokens and self-verification codes are NOT separate
