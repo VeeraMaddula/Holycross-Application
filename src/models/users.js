@@ -106,11 +106,21 @@ async function getUserById(id) {
 
 async function createUser({ name, username, email, passwordHash, role, phone, dob, sex, location }) {
   const normalizedRole = normalizeRole(role);
+  // username is `UNIQUE` but not `NOT NULL` — a user created without one
+  // (bootstrapAdmin, factoryReset's fresh admin, or "Add Staff" with the
+  // field left blank) must store SQL NULL, never ''. Postgres/CockroachDB
+  // unique constraints treat every NULL as distinct from every other NULL,
+  // so any number of usernameless accounts can coexist; but two rows both
+  // storing literal '' violate the constraint against each other. That was
+  // happening here (getUserByUsername('') short-circuits to null and never
+  // catches it, so the raw 23505 hit the DB uncaught) — surfaced as
+  // factoryReset's new admin colliding with an existing usernameless user.
+  const cleanUsername = (username || '').trim() || null;
   const { rows } = await query(
     `INSERT INTO users (name, username, email, password_hash, role, phone, dob, sex, location, color, avatar_path, live_shift_avatar_path, pin_hash)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'', '', '', '')
      RETURNING id`,
-    [name, (username || '').trim(), String(email).toLowerCase(), passwordHash, normalizedRole,
+    [name, cleanUsername, String(email).toLowerCase(), passwordHash, normalizedRole,
       phone || '', dob || null, sex || '', location || '']
   );
   const id = rows[0].id;
@@ -141,8 +151,14 @@ async function updateUserProfile(id, { name, username, email, phone, dob, sex, l
     newUsername = String(username).trim();
   }
   await query(
+    // newUsername defaults to u.username, which mapRow always returns as
+    // '' (never the raw NULL) — normalize back to NULL here so an
+    // unrelated profile edit (e.g. just changing phone) doesn't write a
+    // literal '' and collide with another usernameless account. See
+    // createUser's comment above for why '' vs NULL matters for this
+    // UNIQUE column.
     `UPDATE users SET name = $1, email = $2, username = $3, phone = $4, dob = $5, sex = $6, location = $7 WHERE id = $8`,
-    [name || u.name, newEmail, newUsername, phone || '', dob || null, sex || '', location || '', u.id]
+    [name || u.name, newEmail, newUsername || null, phone || '', dob || null, sex || '', location || '', u.id]
   );
   return { user: await getUserById(u.id) };
 }
