@@ -146,8 +146,8 @@ router.post('/shifts/:id/edit', async (req, res) => {
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 
-router.post('/shifts/:id/delete', (req, res) => {
-  models.removeRosterShift(req.params.id);
+router.post('/shifts/:id/delete', async (req, res) => {
+  await models.removeRosterShift(req.params.id);
   res.redirect('/roster/week' + (req.body.redirectWeek ? `?week=${req.body.redirectWeek}` : ''));
 });
 
@@ -161,7 +161,7 @@ router.post('/notify', async (req, res) => {
   if (date) {
     const pending = await models.getPendingNotificationsForRange(date, date);
     pending.forEach(shift => notifyShift(shift, shift.pendingAction === 'updated' ? 'updated' : 'assigned'));
-    models.markShiftsNotifiedForRange(date, date);
+    await models.markShiftsNotifiedForRange(date, date);
   }
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
@@ -176,7 +176,7 @@ router.post('/notify-week', async (req, res) => {
   const weekEnd = addDays(weekStart, 6);
   const pending = await models.getPendingNotificationsForRange(weekStart, weekEnd);
   pending.forEach(shift => notifyShift(shift, shift.pendingAction === 'updated' ? 'updated' : 'assigned'));
-  models.markShiftsNotifiedForRange(weekStart, weekEnd);
+  await models.markShiftsNotifiedForRange(weekStart, weekEnd);
   res.redirect('/roster/week' + (redirectWeek ? `?week=${redirectWeek}` : ''));
 });
 

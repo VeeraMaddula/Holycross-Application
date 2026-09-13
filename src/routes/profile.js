@@ -39,10 +39,10 @@ function formatDuration(minutes) {
 
 // This week's Mon-Sun worked-hours mini calendar for the profile page —
 // zero minutes on a day just reads as "Off" (see formatDuration above).
-function buildWeekSummary(userId) {
+async function buildWeekSummary(userId) {
   const weekStart = mondayOf(todayStr());
   const weekEnd = addDays(weekStart, 6);
-  const days = models.getWeeklyHoursForUser(userId, weekStart, weekEnd);
+  const days = await models.getWeeklyHoursForUser(userId, weekStart, weekEnd);
   return days.map((d, i) => ({
     date: d.date,
     dayName: DAY_NAMES[i],
@@ -68,7 +68,7 @@ const upload = multer({
 
 router.get('/', async (req, res) => {
   const user = await models.getUserById(req.session.userId);
-  res.render('profile', { profileUser: user, error: null, success: null, weekDays: buildWeekSummary(user.id) });
+  res.render('profile', { profileUser: user, error: null, success: null, weekDays: await buildWeekSummary(user.id) });
 });
 
 router.post('/avatar', (req, res) => {
@@ -82,12 +82,12 @@ router.post('/avatar', (req, res) => {
     if (err) {
       const message = err.message || 'Upload failed.';
       if (wantsJson) return res.status(400).json({ error: message });
-      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: buildWeekSummary(user.id) });
+      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: await buildWeekSummary(user.id) });
     }
     if (!req.file) {
       const message = 'Please choose an image file.';
       if (wantsJson) return res.status(400).json({ error: message });
-      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: buildWeekSummary(user.id) });
+      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: await buildWeekSummary(user.id) });
     }
 
     let newFileId;
@@ -102,7 +102,7 @@ router.post('/avatar', (req, res) => {
     } catch (fileErr) {
       const message = fileErr.message || 'Photo upload failed.';
       if (wantsJson) return res.status(400).json({ error: message });
-      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: buildWeekSummary(user.id) });
+      return res.status(400).render('profile', { profileUser: user, error: message, success: null, weekDays: await buildWeekSummary(user.id) });
     }
     // Remove the old avatar (DB row or, for pre-migration data, disk file)
     // now that the new one is safely saved.
@@ -115,7 +115,7 @@ router.post('/avatar', (req, res) => {
     if (wantsJson) return res.json({ ok: true, avatarPath: newAvatarPath });
 
     const updatedUser = await models.getUserById(req.session.userId);
-    res.render('profile', { profileUser: updatedUser, error: null, success: 'Profile picture updated.', weekDays: buildWeekSummary(updatedUser.id) });
+    res.render('profile', { profileUser: updatedUser, error: null, success: 'Profile picture updated.', weekDays: await buildWeekSummary(updatedUser.id) });
   });
 });
 

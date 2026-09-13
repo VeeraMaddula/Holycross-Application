@@ -45,10 +45,14 @@ function summarize(entries) {
 // numbers are still correct even if the clock_in falls outside the current
 // date filter. Same elapsed-span-based definition of "worked" as summarize()
 // above, so this always agrees with the summary table.
-function buildShiftTotalsByEntryId(users) {
+//
+// Async now that listClockEntries is SQL-backed (task #207) — walks users
+// one at a time rather than Promise.all, same sequential-DB-call style used
+// elsewhere in this migration (e.g. roster.js's getPendingNotificationsForRange).
+async function buildShiftTotalsByEntryId(users) {
   const totalsByEntryId = {};
-  users.forEach(u => {
-    const chronological = models.listClockEntries({ userId: u.id }).slice().reverse(); // oldest first
+  for (const u of users) {
+    const chronological = (await models.listClockEntries({ userId: u.id })).slice().reverse(); // oldest first
     let workStart = null;
     let breakStart = null;
     let breakMs = 0;
@@ -72,7 +76,7 @@ function buildShiftTotalsByEntryId(users) {
         workStart = null;
       }
     }
-  });
+  }
   return totalsByEntryId;
 }
 
@@ -83,20 +87,18 @@ router.get('/', async (req, res) => {
   const fromIso = from ? new Date(from + 'T00:00:00').toISOString() : undefined;
   const toIso = to ? new Date(to + 'T23:59:59').toISOString() : undefined;
 
-  const shiftTotalsByEntryId = buildShiftTotalsByEntryId(users);
-  const entries = models.listClockEntries({ userId: userId || undefined, from: fromIso, to: toIso })
+  const shiftTotalsByEntryId = await buildShiftTotalsByEntryId(users);
+  const entries = (await models.listClockEntries({ userId: userId || undefined, from: fromIso, to: toIso }))
     .map(e => ({ ...e, shiftTotals: shiftTotalsByEntryId[e.id] || null }));
 
   // Per-staff summary for the selected range (defaults to today if no range given).
   const summaryFrom = from ? fromIso : new Date(todayStr() + 'T00:00:00').toISOString();
   const summaryTo = to ? toIso : undefined;
-  const summary = users
-    .filter(u => u.active)
-    .map(u => {
-      const userEntries = models.listClockEntries({ userId: u.id, from: summaryFrom, to: summaryTo });
-      return { user: u, ...summarize(userEntries) };
-    })
-    .filter(s => s.workedMinutes > 0 || s.breakMinutes > 0);
+  const activeUsers = users.filter(u => u.active);
+  const summary = (await Promise.all(activeUsers.map(async u => {
+    const userEntries = await models.listClockEntries({ userId: u.id, from: summaryFrom, to: summaryTo });
+    return { user: u, ...summarize(userEntries) };
+  }))).filter(s => s.workedMinutes > 0 || s.breakMinutes > 0);
 
   res.render('timesheets', {
     entries, users, summary,
@@ -117,24 +119,24 @@ router.post('/', requireTimesheetEditAccess, async (req, res) => {
   res.redirect('/timesheets' + (qs.toString() ? '?' + qs.toString() : ''));
 });
 
-router.get('/:id/edit', requireTimesheetEditAccess, (req, res) => {
-  const entry = models.getClockEntry(req.params.id);
+router.get('/:id/edit', requireTimesheetEditAccess, async (req, res) => {
+  const entry = await models.getClockEntry(req.params.id);
   if (!entry) return res.status(404).render('404');
   res.render('timesheet-edit', { entry, error: null, actionLabels: ACTION_LABELS });
 });
 
-router.post('/:id', requireTimesheetEditAccess, (req, res) => {
+router.post('/:id', requireTimesheetEditAccess, async (req, res) => {
   const { action, at } = req.body;
-  const result = models.updateClockEntry(req.params.id, { action, at, editedBy: res.locals.currentUser.name });
+  const result = await models.updateClockEntry(req.params.id, { action, at, editedBy: res.locals.currentUser.name });
   if (result.error) {
-    const entry = models.getClockEntry(req.params.id);
+    const entry = await models.getClockEntry(req.params.id);
     return res.status(400).render('timesheet-edit', { entry, error: result.error, actionLabels: ACTION_LABELS });
   }
   res.redirect('/timesheets');
 });
 
-router.post('/:id/delete', requireTimesheetEditAccess, (req, res) => {
-  models.deleteClockEntry(req.params.id);
+router.post('/:id/delete', requireTimesheetEditAccess, async (req, res) => {
+  await models.deleteClockEntry(req.params.id);
   res.redirect('/timesheets');
 });
 
@@ -154,14 +156,12 @@ router.get('/export', async (req, res) => {
   // zero rows whenever a specific staff member was selected (same class of
   // bug just found and fixed in the roster's "Unknown staff" issue).
   const targetUsers = userId ? users.filter(u => String(u.id) === String(userId)) : users;
-  const rows = targetUsers
-    .filter(u => u.active)
-    .map(u => {
-      const userEntries = models.listClockEntries({ userId: u.id, from: fromIso, to: toIso });
-      const { workedMinutes, breakMinutes } = summarize(userEntries);
-      return { name: u.name, role: u.role, workedMinutes, breakMinutes };
-    })
-    .filter(r => r.workedMinutes > 0 || r.breakMinutes > 0);
+  const activeTargetUsers = targetUsers.filter(u => u.active);
+  const rows = (await Promise.all(activeTargetUsers.map(async u => {
+    const userEntries = await models.listClockEntries({ userId: u.id, from: fromIso, to: toIso });
+    const { workedMinutes, breakMinutes } = summarize(userEntries);
+    return { name: u.name, role: u.role, workedMinutes, breakMinutes };
+  }))).filter(r => r.workedMinutes > 0 || r.breakMinutes > 0);
 
   const fmt = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
   // Quoting alone stops values spilling into the next column, but Excel/

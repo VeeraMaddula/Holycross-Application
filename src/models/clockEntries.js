@@ -1,34 +1,49 @@
 // Staff clock in/out (the kiosk tablet's core job) and the 4-digit kiosk
 // PIN that gates it — a separate, shorter credential from the login
 // password, punched in on the shared tablet rather than typed on a keyboard.
-const { readDb, writeDb } = require('../db');
+//
+// SQL-backed as of task #207 (time_entries table — see db/schema.sql and
+// db/009_redesign_time_entries.sql). One row per clock action (clock_in,
+// clock_out, break_start, break_end), matching exactly how the kiosk always
+// recorded entries — shift/break durations are still computed here in
+// application code by pairing consecutive rows, never stored as a span.
+// Every exported function that touches the database is now ASYNC; every
+// caller has been updated to await it.
+const { query } = require('../sqlPool');
 const { hashPassword, verifyPassword } = require('../password');
 const { listUsers, getUserById, setUserPinHash, setLiveShiftAvatar } = require('./users');
 const { toDateStr } = require('../dateUtils');
 
-// NOTE ON MIXED SYNC/ASYNC: users now live in CockroachDB (async), but
-// clock entries (timeEntries) are still in data/db.json (sync) until this
-// file's own turn in the migration (task #207). Functions that only touch
-// timeEntries stay sync; anything that touches a user (PIN, live shift
-// avatar, staff roster) is now async because users.js is. Every caller of
-// an async function below has been updated to await it — see routes/kiosk.js,
-// routes/profile.js, routes/timesheets.js, routes/dashboard.js,
-// routes/staffStatus.js, routes/myShifts.js.
+function mapEntryRow(r) {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    userName: r.user_name,
+    action: r.action,
+    at: new Date(r.at).toISOString(),
+    selfiePath: r.selfie_path || '',
+    manuallyAdded: r.manually_added,
+    edited: r.edited,
+    editedBy: r.edited_by || '',
+    editedAt: r.edited_at ? new Date(r.edited_at).toISOString() : null
+  };
+}
 
 // Status is derived from each user's most recent time entry rather than
 // stored separately, so there's a single source of truth:
 //   no entries, or latest action is clock_out -> "clocked_out"
 //   latest action is break_start              -> "on_break"
 //   latest action is clock_in or break_end     -> "clocked_in"
-function getLatestClockEntry(userId) {
-  const db = readDb();
-  const entries = (db.timeEntries || []).filter(e => e.userId === Number(userId));
-  if (!entries.length) return null;
-  return entries.reduce((latest, e) => (new Date(e.at) > new Date(latest.at) ? e : latest));
+async function getLatestClockEntry(userId) {
+  const { rows } = await query(
+    `SELECT * FROM time_entries WHERE user_id = $1 ORDER BY at DESC LIMIT 1`,
+    [Number(userId)]
+  );
+  return rows[0] ? mapEntryRow(rows[0]) : null;
 }
 
-function getStaffStatus(userId) {
-  const latest = getLatestClockEntry(userId);
+async function getStaffStatus(userId) {
+  const latest = await getLatestClockEntry(userId);
   if (!latest || latest.action === 'clock_out') {
     return { status: 'clocked_out', since: latest ? latest.at : null };
   }
@@ -43,8 +58,8 @@ function getStaffStatus(userId) {
 // clock_out, meaning there's no active shift). Distinct from getStaffStatus's
 // `since`, which for "on_break" is the break's own start time, not the
 // original clock-in — the dashboard needs both.
-function getCurrentShiftStart(userId) {
-  const entries = listClockEntries({ userId }); // newest first
+async function getCurrentShiftStart(userId) {
+  const entries = await listClockEntries({ userId }); // newest first
   for (const e of entries) {
     if (e.action === 'clock_in') return e.at;
     if (e.action === 'clock_out') return null;
@@ -64,17 +79,19 @@ function nextValidAction(status) {
 
 async function listAllStaffStatus() {
   const users = (await listUsers()).filter(u => u.active);
-  return users.map(u => {
-    const status = getStaffStatus(u.id);
+  const result = [];
+  for (const u of users) {
+    const status = await getStaffStatus(u.id);
     const clockInAt = (status.status === 'clocked_in' || status.status === 'on_break')
-      ? getCurrentShiftStart(u.id)
+      ? await getCurrentShiftStart(u.id)
       : null;
-    return {
+    result.push({
       user: { id: u.id, name: u.name, role: u.role, avatarPath: u.liveShiftAvatarPath || u.avatarPath || '' },
       ...status,
       clockInAt
-    };
-  });
+    });
+  }
+  return result;
 }
 
 function isValidPin(pin) {
@@ -114,9 +131,10 @@ async function setUserLiveShiftAvatar(id, avatarPath) {
 // otherwise their saved profile picture).
 async function getKioskRoster() {
   const users = (await listUsers()).filter(u => u.active && u.role !== 'kiosk');
-  return users.map(u => {
-    const status = getStaffStatus(u.id);
-    return {
+  const result = [];
+  for (const u of users) {
+    const status = await getStaffStatus(u.id);
+    result.push({
       id: u.id,
       name: u.name,
       avatarPath: u.liveShiftAvatarPath || u.avatarPath || '',
@@ -125,39 +143,35 @@ async function getKioskRoster() {
       hasPin: !!u.pinHash,
       status: status.status,
       since: status.since
-    };
-  });
+    });
+  }
+  return result;
 }
 
-function addClockEntry({ userId, userName, action, selfiePath }) {
-  const db = readDb();
-  if (!db.timeEntries) db.timeEntries = [];
-  if (!db.meta.nextTimeEntryId) db.meta.nextTimeEntryId = 1;
-  const entry = {
-    id: db.meta.nextTimeEntryId++,
-    userId: Number(userId),
-    userName,
-    action,
-    at: new Date().toISOString(),
-    selfiePath: selfiePath || ''
-  };
-  db.timeEntries.push(entry);
-  writeDb(db);
-  return entry;
+async function addClockEntry({ userId, userName, action, selfiePath }) {
+  const { rows } = await query(
+    `INSERT INTO time_entries (user_id, user_name, action, at, selfie_path)
+     VALUES ($1, $2, $3, now(), $4)
+     RETURNING *`,
+    [Number(userId), userName, action, selfiePath || '']
+  );
+  return mapEntryRow(rows[0]);
 }
 
-function listClockEntries({ userId, from, to } = {}) {
-  const db = readDb();
-  let entries = db.timeEntries || [];
-  if (userId) entries = entries.filter(e => e.userId === Number(userId));
-  if (from) entries = entries.filter(e => e.at >= from);
-  if (to) entries = entries.filter(e => e.at <= to);
-  return entries.slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+async function listClockEntries({ userId, from, to } = {}) {
+  const conditions = [];
+  const params = [];
+  if (userId) { params.push(Number(userId)); conditions.push(`user_id = $${params.length}`); }
+  if (from) { params.push(from); conditions.push(`at >= $${params.length}`); }
+  if (to) { params.push(to); conditions.push(`at <= $${params.length}`); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const { rows } = await query(`SELECT * FROM time_entries ${where} ORDER BY at DESC`, params);
+  return rows.map(mapEntryRow);
 }
 
-function getClockEntry(id) {
-  const db = readDb();
-  return (db.timeEntries || []).find(e => e.id === Number(id));
+async function getClockEntry(id) {
+  const { rows } = await query(`SELECT * FROM time_entries WHERE id = $1`, [Number(id)]);
+  return rows[0] ? mapEntryRow(rows[0]) : null;
 }
 
 const CLOCK_ACTIONS = ['clock_in', 'clock_out', 'break_start', 'break_end'];
@@ -169,57 +183,48 @@ const CLOCK_ACTIONS = ['clock_in', 'clock_out', 'break_start', 'break_end'];
 async function addManualClockEntry({ userId, action, at, addedBy }) {
   const user = await getUserById(userId);
   if (!user) return { error: 'Staff member not found.' };
-  const db = readDb();
   if (!CLOCK_ACTIONS.includes(action)) return { error: 'Please choose a valid action.' };
   const atDate = at ? new Date(at) : new Date();
   if (isNaN(atDate.getTime())) return { error: 'Please enter a valid date and time.' };
-  if (!db.timeEntries) db.timeEntries = [];
-  if (!db.meta.nextTimeEntryId) db.meta.nextTimeEntryId = 1;
-  const entry = {
-    id: db.meta.nextTimeEntryId++,
-    userId: user.id,
-    userName: user.name,
-    action,
-    at: atDate.toISOString(),
-    selfiePath: '',
-    manuallyAdded: true,
-    editedBy: addedBy || ''
-  };
-  db.timeEntries.push(entry);
-  writeDb(db);
-  return { entry };
+  const { rows } = await query(
+    `INSERT INTO time_entries (user_id, user_name, action, at, selfie_path, manually_added, edited_by)
+     VALUES ($1, $2, $3, $4, '', true, $5)
+     RETURNING *`,
+    [Number(user.id), user.name, action, atDate.toISOString(), addedBy || '']
+  );
+  return { entry: mapEntryRow(rows[0]) };
 }
 
 // Corrects an existing entry's action and/or time (e.g. the kiosk logged
 // "clock in" at the wrong time, or someone tapped the wrong tile). Tracks
 // who made the correction and when, without touching the original selfie.
-function updateClockEntry(id, { action, at, editedBy }) {
-  const db = readDb();
-  const entry = (db.timeEntries || []).find(e => e.id === Number(id));
-  if (!entry) return { error: 'Entry not found.' };
+async function updateClockEntry(id, { action, at, editedBy }) {
+  const existing = await getClockEntry(id);
+  if (!existing) return { error: 'Entry not found.' };
+  let newAction = existing.action;
   if (action) {
     if (!CLOCK_ACTIONS.includes(action)) return { error: 'Please choose a valid action.' };
-    entry.action = action;
+    newAction = action;
   }
+  let newAt = existing.at;
   if (at) {
     const atDate = new Date(at);
     if (isNaN(atDate.getTime())) return { error: 'Please enter a valid date and time.' };
-    entry.at = atDate.toISOString();
+    newAt = atDate.toISOString();
   }
-  entry.edited = true;
-  entry.editedBy = editedBy || entry.editedBy || '';
-  entry.editedAt = new Date().toISOString();
-  writeDb(db);
-  return { entry };
+  const { rows } = await query(
+    `UPDATE time_entries SET action = $1, at = $2, edited = true, edited_by = $3, edited_at = now()
+     WHERE id = $4
+     RETURNING *`,
+    [newAction, newAt, editedBy || existing.editedBy || '', Number(id)]
+  );
+  return { entry: mapEntryRow(rows[0]) };
 }
 
 // Removes a mistaken entry entirely (accidental double-tap on the kiosk, etc).
-function deleteClockEntry(id) {
-  const db = readDb();
-  const idx = (db.timeEntries || []).findIndex(e => e.id === Number(id));
-  if (idx === -1) return { error: 'Entry not found.' };
-  db.timeEntries.splice(idx, 1);
-  writeDb(db);
+async function deleteClockEntry(id) {
+  const { rowCount } = await query(`DELETE FROM time_entries WHERE id = $1`, [Number(id)]);
+  if (!rowCount) return { error: 'Entry not found.' };
   return { ok: true };
 }
 
@@ -232,8 +237,8 @@ function deleteClockEntry(id) {
 // now (clocked in or on break) counts up to this moment, so "today" doesn't
 // show as Off mid-shift. Powers the "this week" mini calendar on the
 // profile page — a day with 0 minutes is simply rendered as "Off" there.
-function getWeeklyHoursForUser(userId, fromDateStr, toDateStrParam) {
-  const chronological = listClockEntries({ userId }).slice().reverse(); // oldest first
+async function getWeeklyHoursForUser(userId, fromDateStr, toDateStrParam) {
+  const chronological = (await listClockEntries({ userId })).slice().reverse(); // oldest first
   const byDay = {};
   let workStart = null;
   let workStartDay = null;

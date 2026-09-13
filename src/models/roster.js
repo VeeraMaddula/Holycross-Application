@@ -5,21 +5,42 @@
 // just meant editing overrides on top of a template every week anyway.
 // Assigning directly to a date is simpler and always shows exactly who's
 // actually working.
-const { readDb, writeDb } = require('../db');
+//
+// SQL-backed as of task #207 (roster_shifts table — see db/schema.sql and
+// db/008_add_roster_shift_fields.sql). Every exported function is now
+// ASYNC; every caller must await it (most already did, since this file
+// already touched users.js, which went SQL earlier).
+const { query } = require('../sqlPool');
 const { toDateStr } = require('../dateUtils');
 const { defaultColorForId } = require('./shared');
 const { getUserById, listUsers } = require('./users');
-// NOTE: rosterShifts themselves are still JSON (this file's own turn in the
-// migration hasn't happened yet — task #207); only the user lookups here
-// are now async SQL, same mixed-async pattern as clockEntries.js.
 
 // Which part of the venue a shift covers. Optional — older shifts saved
-// before this field existed simply have area === undefined, which the UI
+// before this field existed simply have area === null, which the UI
 // treats as "unspecified" rather than an error. To schedule someone on both
 // bar and floor in one day, add two separate shift entries (one per area)
 // rather than trying to encode a split inside a single shift.
 const AREAS = ['floor', 'bar', 'booth'];
 const AREA_LABELS = { floor: 'Floor', bar: 'Bar', booth: 'Booth' };
+
+const SHIFT_COLUMNS = `id, to_char(date, 'YYYY-MM-DD') AS date, user_id, start_time, end_time, area, notified, pending_action`;
+
+// date comes back pre-formatted as 'YYYY-MM-DD' via to_char above, so the
+// rest of this file's plain string comparisons (s.date >= fromDate) and
+// .localeCompare-style sorting keep working exactly as they did against
+// the old JSON rows — no Date-object/timezone handling needed here.
+function mapShiftRow(r) {
+  return {
+    id: r.id,
+    date: r.date,
+    userId: r.user_id,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    area: r.area || null,
+    notified: r.notified,
+    pendingAction: r.pending_action || null
+  };
+}
 
 function dateToDayOfWeek(dateStr) {
   return new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun..6=Sat
@@ -36,19 +57,23 @@ function eachDateInRange(fromDate, toDate) {
   return dates;
 }
 
+async function getRosterShiftById(id) {
+  const { rows } = await query(`SELECT ${SHIFT_COLUMNS} FROM roster_shifts WHERE id = $1`, [Number(id)]);
+  return rows[0] ? mapShiftRow(rows[0]) : null;
+}
+
 // Shifts within a date range, joined with staff name/colour for the roster grid.
 async function listRosterShiftsForRange(fromDate, toDate) {
-  const db = readDb();
+  const { rows } = await query(
+    `SELECT ${SHIFT_COLUMNS} FROM roster_shifts WHERE date >= $1 AND date <= $2`,
+    [fromDate, toDate]
+  );
   const users = await listUsers();
-  const shifts = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate);
-  return shifts.map(s => {
-    // String-compare, not ===: users.id comes back from CockroachDB (via
-    // `pg`) as a string for its INT8-backed SERIAL column, while s.userId
-    // here is a plain JS Number (see addRosterShift's Number(userId)) — a
-    // strict === between them is always false, which is exactly what was
-    // making every shift show up as "Unknown staff" regardless of which
-    // staff member was actually picked. Same fix already used in
-    // timesheets.ejs's filter dropdown for the same underlying mismatch.
+  return rows.map(mapShiftRow).map(s => {
+    // String-compare, not === : users.id and s.userId are both SQL-sourced
+    // now, but id columns come back from CockroachDB (via `pg`) as strings
+    // for INT8-backed SERIAL columns — keep the defensive coercion rather
+    // than relying on both sides happening to already be the same type.
     const user = users.find(u => String(u.id) === String(s.userId));
     return {
       ...s,
@@ -66,36 +91,41 @@ async function listRosterShiftsForRange(fromDate, toDate) {
 // given day whenever they're ready, via the day's "Send notifications"
 // button (see routes/roster.js's /notify route). `pendingAction` picks which
 // email/SMS wording applies once that button is pressed.
+//
+// roster_shifts.user_id carries a foreign key to users(id), so a shift can
+// no longer be created against a nonexistent staff member — the insert
+// fails loudly (mapped to a friendly error below) instead of silently
+// producing a future "Unknown staff" row.
 async function addRosterShift({ date, userId, startTime, endTime, area }) {
-  const db = readDb();
-  if (!db.rosterShifts) db.rosterShifts = [];
-  if (!db.meta.nextRosterShiftId) db.meta.nextRosterShiftId = 1;
-  const shift = {
-    id: db.meta.nextRosterShiftId++,
-    date,
-    userId: Number(userId),
-    startTime, endTime,
-    area: AREAS.includes(area) ? area : null,
-    notified: false,
-    pendingAction: 'assigned'
-  };
-  db.rosterShifts.push(shift);
-  writeDb(db);
-  const user = await getUserById(shift.userId);
-  return { shift: { ...shift, user: user || null } };
+  const finalArea = AREAS.includes(area) ? area : null;
+  try {
+    const { rows } = await query(
+      `INSERT INTO roster_shifts (user_id, date, start_time, end_time, area, notified, pending_action)
+       VALUES ($1, $2, $3, $4, $5, false, 'assigned')
+       RETURNING ${SHIFT_COLUMNS}`,
+      [Number(userId), date, startTime, endTime, finalArea]
+    );
+    const shift = mapShiftRow(rows[0]);
+    const user = await getUserById(shift.userId);
+    return { shift: { ...shift, user: user || null } };
+  } catch (err) {
+    if (err.code === '23503') return { error: 'Staff member not found.' };
+    throw err;
+  }
 }
 
 async function updateRosterShift(id, { date, startTime, endTime, area }) {
-  const db = readDb();
-  const shift = (db.rosterShifts || []).find(s => s.id === Number(id));
-  if (!shift) return { error: 'Shift not found.' };
-  if (date) shift.date = date;
-  if (startTime) shift.startTime = startTime;
-  if (endTime) shift.endTime = endTime;
-  if (area !== undefined) shift.area = AREAS.includes(area) ? area : null;
-  shift.notified = false;
-  shift.pendingAction = 'updated';
-  writeDb(db);
+  const existing = await getRosterShiftById(id);
+  if (!existing) return { error: 'Shift not found.' };
+  const finalArea = area !== undefined ? (AREAS.includes(area) ? area : null) : existing.area;
+  const { rows } = await query(
+    `UPDATE roster_shifts
+     SET date = $1, start_time = $2, end_time = $3, area = $4, notified = false, pending_action = 'updated'
+     WHERE id = $5
+     RETURNING ${SHIFT_COLUMNS}`,
+    [date || existing.date, startTime || existing.startTime, endTime || existing.endTime, finalArea, Number(id)]
+  );
+  const shift = mapShiftRow(rows[0]);
   const user = await getUserById(shift.userId);
   return { shift: { ...shift, user: user || null } };
 }
@@ -106,50 +136,49 @@ async function updateRosterShift(id, { date, startTime, endTime, area }) {
 // A single day's "Send notifications" button calls this with fromDate ===
 // toDate; the whole week's button passes the week's start/end.
 async function getPendingNotificationsForRange(fromDate, toDate) {
-  const db = readDb();
-  const pending = (db.rosterShifts || []).filter(s => s.date >= fromDate && s.date <= toDate && !s.notified);
+  const { rows } = await query(
+    `SELECT ${SHIFT_COLUMNS} FROM roster_shifts WHERE date >= $1 AND date <= $2 AND notified = false`,
+    [fromDate, toDate]
+  );
   const result = [];
-  for (const s of pending) {
+  for (const r of rows) {
+    const s = mapShiftRow(r);
     const user = await getUserById(s.userId);
     result.push({ ...s, user: user || null });
   }
   return result;
 }
 
-function markShiftsNotifiedForRange(fromDate, toDate) {
-  const db = readDb();
-  (db.rosterShifts || []).forEach(s => { if (s.date >= fromDate && s.date <= toDate) s.notified = true; });
-  writeDb(db);
+async function markShiftsNotifiedForRange(fromDate, toDate) {
+  await query(`UPDATE roster_shifts SET notified = true WHERE date >= $1 AND date <= $2`, [fromDate, toDate]);
 }
 
-function removeRosterShift(id) {
-  const db = readDb();
-  db.rosterShifts = (db.rosterShifts || []).filter(s => s.id !== Number(id));
-  writeDb(db);
+async function removeRosterShift(id) {
+  await query(`DELETE FROM roster_shifts WHERE id = $1`, [Number(id)]);
 }
 
-// Removes any shift whose userId no longer matches a real user — these
-// show up as "Unknown staff" in the UI. In practice this happens when the
-// JSON roster file (still not migrated to the SQL database — task #207)
-// has entries left over from before the users table moved to CockroachDB,
-// where the old JSON-era user ids don't line up with the new ones. Returns
-// how many were removed so the caller can report it back.
-//
-// validIds must hold strings, not the raw values from listUsers() — a
-// user's id comes back from CockroachDB as a string (INT8-backed SERIAL
-// column), and Set.has() uses strict equality, so comparing it against
-// s.userId (a plain JS Number) would never match and this would wrongly
-// treat every real shift as orphaned.
+// Changes who a shift belongs to without touching anything else (date,
+// times, area, notified/pendingAction) — used by shiftDrops.js (Shift
+// Marketplace: pick-up / exchange hand the shift to a different staff
+// member, but that's still JSON-backed for its own drop-listing bookkeeping
+// — task #208 — and now reaches in here rather than into data/db.json
+// directly, since roster_shifts moved to SQL in task #207).
+async function setRosterShiftOwner(id, userId) {
+  const { rows } = await query(
+    `UPDATE roster_shifts SET user_id = $1 WHERE id = $2 RETURNING ${SHIFT_COLUMNS}`,
+    [Number(userId), Number(id)]
+  );
+  return rows[0] ? mapShiftRow(rows[0]) : null;
+}
+
+// With roster_shifts.user_id now enforced by a foreign key (see above),
+// a shift can never reference a nonexistent user — "orphaned" shifts
+// structurally cannot exist once this table is SQL-backed. Kept as a
+// no-op, rather than removing the route/button outright, so
+// routes/roster.js's existing call site and the roster-week.ejs banner
+// don't need to change; it will now always report zero removed.
 async function removeOrphanedShifts() {
-  const db = readDb();
-  const users = await listUsers();
-  const validIds = new Set(users.map(u => String(u.id)));
-  const shifts = db.rosterShifts || [];
-  const before = shifts.length;
-  db.rosterShifts = shifts.filter(s => validIds.has(String(s.userId)));
-  const removed = before - db.rosterShifts.length;
-  if (removed > 0) writeDb(db);
-  return removed;
+  return 0;
 }
 
 // Groups shifts by date for a range. Returns [{ date, dayOfWeek, shifts: [...] }, ...].
@@ -165,9 +194,11 @@ async function getResolvedScheduleForRange(fromDate, toDate) {
 
 async function getUserUpcomingShifts(userId, fromDate, toDate) {
   const schedule = await getResolvedScheduleForRange(fromDate, toDate);
-  const uid = Number(userId);
+  // String-compare, not === : s.userId is SQL-sourced (string, INT8-backed)
+  // while userId here is whatever the caller passed in (often a plain
+  // Number) — same mismatch class as the listRosterShiftsForRange join above.
   return schedule
-    .map(day => ({ date: day.date, dayOfWeek: day.dayOfWeek, shifts: day.shifts.filter(s => s.userId === uid) }))
+    .map(day => ({ date: day.date, dayOfWeek: day.dayOfWeek, shifts: day.shifts.filter(s => String(s.userId) === String(userId)) }))
     .filter(day => day.shifts.length > 0);
 }
 
@@ -176,5 +207,5 @@ module.exports = {
   listRosterShiftsForRange, addRosterShift, updateRosterShift, removeRosterShift,
   getResolvedScheduleForRange, getUserUpcomingShifts,
   getPendingNotificationsForRange, markShiftsNotifiedForRange,
-  removeOrphanedShifts
+  removeOrphanedShifts, getRosterShiftById, setRosterShiftOwner
 };

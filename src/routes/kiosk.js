@@ -82,7 +82,7 @@ router.post('/verify', kioskPinLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Wrong PIN. Try again.' });
   }
   pinLockout.recordSuccess(user.id);
-  const status = models.getStaffStatus(user.id);
+  const status = await models.getStaffStatus(user.id);
   res.json({ ok: true, status: status.status });
 });
 
@@ -129,7 +129,7 @@ router.post('/action', kioskPinLimiter, (req, res) => {
       return res.status(400).json({ error: 'Wrong PIN.' });
     }
     pinLockout.recordSuccess(user.id);
-    const status = models.getStaffStatus(user.id);
+    const status = await models.getStaffStatus(user.id);
     const allowed = models.nextValidAction(status.status);
     const allowedList = Array.isArray(allowed) ? allowed : [allowed].filter(Boolean);
     if (!allowedList.includes(action)) {
@@ -177,7 +177,7 @@ router.post('/action', kioskPinLimiter, (req, res) => {
       effectiveAvatarPath = user.avatarPath || '';
     }
 
-    models.addClockEntry({
+    await models.addClockEntry({
       userId: user.id,
       userName: user.name,
       action,

@@ -16,9 +16,9 @@ const models = require('../models');
 // slice is just "the most recent N", not an arbitrary sample.
 const SECTION_LIMIT = 200;
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   res.render('logs', {
-    clockEntries: models.listClockEntries().slice(0, SECTION_LIMIT),
+    clockEntries: (await models.listClockEntries()).slice(0, SECTION_LIMIT),
     dutyReports: models.listAllDutyReports().slice(0, SECTION_LIMIT),
     reports: models.listAllReports().slice(0, SECTION_LIMIT),
     requests: models.listAllRequests().slice(0, SECTION_LIMIT),
