@@ -4,12 +4,12 @@ const models = require('../models');
 const googleCalendar = require('../googleCalendar');
 const { hashPassword } = require('../password');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   res.render('settings', {
     settings: models.getSettings(),
     googleConfigured: googleCalendar.isConfigured(),
     googleCalendarId: googleCalendar.isConfigured() ? googleCalendar.calendarId() : null,
-    googleSyncStatus: models.getGoogleSyncStatus(),
+    googleSyncStatus: await models.getGoogleSyncStatus(),
     cleared: req.query.cleared === '1'
   });
 });
@@ -28,8 +28,8 @@ router.post('/', (req, res) => {
 // Danger zone — wipes bookings/notifications/timesheets/roster/requests but
 // keeps user accounts, tables, the menu, and settings. Admin-only (this
 // whole router is mounted behind requireAdmin in server.js).
-router.post('/clear-data', (req, res) => {
-  models.clearOperationalData();
+router.post('/clear-data', async (req, res) => {
+  await models.clearOperationalData();
   res.redirect('/settings?cleared=1');
 });
 
@@ -49,7 +49,7 @@ router.post('/google-sync-now', async (req, res) => {
   if (googleCalendar.isConfigured()) {
     try {
       const events = await googleCalendar.listExternalEvents();
-      models.replaceExternalCalendarEvents(events);
+      await models.replaceExternalCalendarEvents(events);
     } catch (err) {
       console.warn('Google Calendar manual sync failed:', err.message);
     }

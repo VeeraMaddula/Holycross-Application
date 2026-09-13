@@ -57,21 +57,34 @@ CREATE TABLE tables (
   area   TEXT NOT NULL
 );
 
+-- Redesigned in db/010_redesign_bookings.sql (task #206) to add the fields
+-- the JSON model always carried (duration/occasion/payment/deposit/
+-- reminder/createdBy/history) and to correct `music` from TEXT to JSONB
+-- (it's a structured object — provider, times, genres, artist, price —
+-- same shape category as `food`, not plain text).
 CREATE TABLE bookings (
-  id             SERIAL PRIMARY KEY,
-  table_id       INT REFERENCES tables(id),
-  customer_name  TEXT NOT NULL,
-  phone          TEXT,
-  email          TEXT,
-  party_size     INT NOT NULL,
-  date           DATE NOT NULL,
-  time           TEXT NOT NULL,
-  status         TEXT NOT NULL DEFAULT 'confirmed',
-  music          TEXT,
-  food           JSONB,          -- courses + price, variable shape
-  notes          TEXT,
-  google_event_id TEXT,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                 SERIAL PRIMARY KEY,
+  table_id           INT REFERENCES tables(id),
+  customer_name      TEXT NOT NULL,
+  phone              TEXT DEFAULT '',
+  email              TEXT DEFAULT '',
+  party_size         INT NOT NULL,
+  date               DATE NOT NULL,
+  time               TEXT NOT NULL,
+  duration_minutes   INT NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'confirmed',
+  music              JSONB,          -- structured object: provider/times/genres/artist/price
+  food               JSONB,          -- courses + price, variable shape
+  notes              TEXT DEFAULT '',
+  occasion           TEXT DEFAULT '',
+  payment_status     TEXT NOT NULL DEFAULT 'unpaid',
+  deposit_amount     NUMERIC NOT NULL DEFAULT 0,
+  reminder_sent      BOOLEAN NOT NULL DEFAULT false,
+  google_event_id    TEXT DEFAULT '',
+  created_by_user_id INT REFERENCES users(id),
+  created_by_name    TEXT DEFAULT '',
+  history            JSONB NOT NULL DEFAULT '[]',   -- [{at, event}, ...] audit trail
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_bookings_date ON bookings(date);
 CREATE INDEX idx_bookings_status ON bookings(status);

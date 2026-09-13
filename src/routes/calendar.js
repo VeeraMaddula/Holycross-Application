@@ -7,11 +7,17 @@ router.get('/', (req, res) => {
 });
 
 // JSON feed consumed by the calendar view
-router.get('/api/events', (req, res) => {
-  const bookings = models.listBookings().filter(b => b.status !== 'cancelled');
-  const tables = models.listTables();
+router.get('/api/events', async (req, res) => {
+  const [allBookings, tables, externalEvents] = await Promise.all([
+    models.listBookings(),
+    models.listTables(),
+    models.listExternalCalendarEvents()
+  ]);
+  const bookings = allBookings.filter(b => b.status !== 'cancelled');
   const bookingEvents = bookings.map(b => {
-    const table = tables.find(t => t.id === b.tableId);
+    // String-compare, not === : table.id is a SQL-sourced string
+    // (INT8-backed SERIAL) while b.tableId is a plain INT column.
+    const table = tables.find(t => String(t.id) === String(b.tableId));
     const start = `${b.date}T${b.time}:00`;
     return {
       id: 'booking-' + b.id,
@@ -24,7 +30,7 @@ router.get('/api/events', (req, res) => {
 
   // Events pulled in from Google Calendar that weren't created by this app
   // (e.g. someone added "Closed for private function" directly on the calendar).
-  const externalEvents = models.listExternalCalendarEvents().map(e => ({
+  const externalCalEvents = externalEvents.map(e => ({
     id: 'gcal-' + e.id,
     title: `📅 ${e.title}`,
     start: e.start,
@@ -33,7 +39,7 @@ router.get('/api/events', (req, res) => {
     editable: false
   }));
 
-  res.json([...bookingEvents, ...externalEvents]);
+  res.json([...bookingEvents, ...externalCalEvents]);
 });
 
 module.exports = router;

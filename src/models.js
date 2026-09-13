@@ -39,7 +39,56 @@ const admin = require('./models/admin');
 const vouchers = require('./models/vouchers');
 const breakage = require('./models/breakage');
 const design = require('./models/design');
-const { toMinutes } = require('./models/shared');
+const { toMinutes, bookingRange, minutesToHHMM } = require('./models/shared');
+const { todayStr } = require('./dateUtils');
+
+// Live occupancy for the Tables page: for each table, checks today's
+// non-cancelled bookings against the current time. A table is "occupied"
+// if right now falls inside a booking's start-to-start+duration window,
+// "reserved" if nothing's active now but something's coming up later
+// today, otherwise "available". Composed here rather than in tables.js or
+// bookings.js because it needs both — tables.js can't require bookings.js
+// (bookings.js already requires tables.js for getTableById, and this
+// codebase's `module.exports = {...}` pattern breaks under a circular
+// require — see tables.js's own comment on this).
+async function getTablesWithStatus() {
+  const [allTables, allBookings] = await Promise.all([tables.listTables(), bookings.listBookings()]);
+  const settingsData = settings.getSettings();
+  const today = todayStr();
+  const slotDuration = settingsData.slotDurationMinutes;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const todaysByTable = new Map();
+  allBookings.forEach(b => {
+    if (b.date !== today || b.status === 'cancelled') return;
+    const key = String(b.tableId);
+    if (!todaysByTable.has(key)) todaysByTable.set(key, []);
+    todaysByTable.get(key).push(b);
+  });
+
+  return allTables.map(t => {
+    const todaysBookings = (todaysByTable.get(String(t.id)) || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+    const current = todaysBookings.find(b => {
+      const r = bookingRange(b, slotDuration);
+      return nowMinutes >= r.start && nowMinutes < r.end;
+    });
+    if (current) {
+      const r = bookingRange(current, slotDuration);
+      return {
+        ...t,
+        status: 'occupied',
+        statusLabel: `Occupied · ${current.time}–${minutesToHHMM(r.end)}`,
+        booking: current
+      };
+    }
+    const upcoming = todaysBookings.find(b => bookingRange(b, slotDuration).start > nowMinutes);
+    if (upcoming) {
+      return { ...t, status: 'reserved', statusLabel: `Reserved · ${upcoming.time}`, booking: upcoming };
+    }
+    return { ...t, status: 'available', statusLabel: 'Available', booking: null };
+  });
+}
 
 module.exports = {
   // Admin danger-zone (Settings page)
@@ -48,7 +97,7 @@ module.exports = {
 
   // Tables
   listTables: tables.listTables,
-  getTablesWithStatus: tables.getTablesWithStatus,
+  getTablesWithStatus,
   createTable: tables.createTable,
   deleteTable: tables.deleteTable,
 

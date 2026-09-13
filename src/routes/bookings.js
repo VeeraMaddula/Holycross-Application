@@ -26,26 +26,33 @@ function requireManagerRole(req, res, next) {
   return res.status(403).render('403');
 }
 
-function tablesForUser(user) {
-  const tables = models.listTables();
+async function tablesForUser(user) {
+  const tables = await models.listTables();
   if (canBookFunctionRoom(user)) return tables;
   return tables.filter(t => t.area !== 'Function Room');
 }
 
-router.get('/', (req, res) => {
+// String-compare a table id against a booking's tableId, not === : table.id
+// is a SQL-sourced string (INT8-backed SERIAL) while a booking's tableId is
+// a plain INT column — same mismatch class fixed throughout this migration.
+function findTable(tables, tableId) {
+  return tables.find(t => String(t.id) === String(tableId));
+}
+
+router.get('/', async (req, res) => {
   const { date, status } = req.query;
-  const bookings = models.listBookings({ date, status });
-  const tables = models.listTables();
+  const bookings = await models.listBookings({ date, status });
+  const tables = await models.listTables();
   res.render('bookings/list', { bookings, tables, filterDate: date || '', filterStatus: status || '' });
 });
 
-router.get('/new', (req, res) => {
-  res.render('bookings/form', { booking: null, tables: tablesForUser(res.locals.currentUser), error: null });
+router.get('/new', async (req, res) => {
+  res.render('bookings/form', { booking: null, tables: await tablesForUser(res.locals.currentUser), error: null });
 });
 
 router.post('/', async (req, res) => {
-  const tables = tablesForUser(res.locals.currentUser);
-  const chosenTable = models.listTables().find(t => t.id === Number(req.body.tableId));
+  const tables = await tablesForUser(res.locals.currentUser);
+  const chosenTable = findTable(await models.listTables(), req.body.tableId);
   if (chosenTable && chosenTable.area === 'Function Room' && !canBookFunctionRoom(res.locals.currentUser)) {
     return res.status(403).render('bookings/form', { booking: req.body, tables, error: "You don't have permission to book the Function Room. Ask an admin to grant Function bookings access." });
   }
@@ -55,11 +62,11 @@ router.post('/', async (req, res) => {
   // parked as 'pending_approval' instead of rejected outright — see
   // models.createBooking.
   const isManager = MANAGER_ROLES.includes((res.locals.currentUser || {}).role);
-  const result = models.createBooking(req.body, res.locals.currentUser, { autoOverrideConflict: isManager });
+  const result = await models.createBooking(req.body, res.locals.currentUser, { autoOverrideConflict: isManager });
   if (result.error) {
     return res.status(400).render('bookings/form', { booking: req.body, tables, error: result.error });
   }
-  const table = tables.find(t => t.id === result.booking.tableId);
+  const table = findTable(tables, result.booking.tableId);
 
   if (result.booking.status === 'pending_approval') {
     // Conflict held for approval — the customer hears nothing yet. Notify
@@ -96,41 +103,41 @@ router.post('/', async (req, res) => {
   res.redirect(`/bookings/${result.booking.id}`);
 });
 
-router.get('/:id', (req, res) => {
-  const booking = models.getBooking(req.params.id);
+router.get('/:id', async (req, res) => {
+  const booking = await models.getBooking(req.params.id);
   if (!booking) return res.status(404).render('404');
-  const table = models.listTables().find(t => t.id === booking.tableId);
+  const table = findTable(await models.listTables(), booking.tableId);
   res.render('bookings/details', { booking, table });
 });
 
-router.get('/:id/edit', (req, res) => {
-  const booking = models.getBooking(req.params.id);
+router.get('/:id/edit', async (req, res) => {
+  const booking = await models.getBooking(req.params.id);
   if (!booking) return res.status(404).render('404');
-  let tables = tablesForUser(res.locals.currentUser);
+  let tables = await tablesForUser(res.locals.currentUser);
   // Keep the booking's current table selectable even if it's a Function Room
   // the editor can't newly assign, so the form doesn't silently blank it out.
-  if (!tables.some(t => t.id === booking.tableId)) {
-    const current = models.listTables().find(t => t.id === booking.tableId);
+  if (!findTable(tables, booking.tableId)) {
+    const current = findTable(await models.listTables(), booking.tableId);
     if (current) tables = [...tables, current];
   }
   res.render('bookings/form', { booking, tables, error: null });
 });
 
-router.post('/:id', (req, res) => {
-  const tables = tablesForUser(res.locals.currentUser);
-  const existingBooking = models.getBooking(req.params.id);
-  const chosenTable = models.listTables().find(t => t.id === Number(req.body.tableId));
-  const isNewTableAssignment = !existingBooking || existingBooking.tableId !== Number(req.body.tableId);
+router.post('/:id', async (req, res) => {
+  const tables = await tablesForUser(res.locals.currentUser);
+  const existingBooking = await models.getBooking(req.params.id);
+  const chosenTable = findTable(await models.listTables(), req.body.tableId);
+  const isNewTableAssignment = !existingBooking || String(existingBooking.tableId) !== String(req.body.tableId);
   if (chosenTable && chosenTable.area === 'Function Room' && isNewTableAssignment && !canBookFunctionRoom(res.locals.currentUser)) {
     return res.status(403).render('bookings/form', { booking: { ...req.body, id: req.params.id }, tables, error: "You don't have permission to book the Function Room. Ask an admin to grant Function bookings access." });
   }
-  const result = models.updateBooking(req.params.id, req.body);
+  const result = await models.updateBooking(req.params.id, req.body);
   if (result.error) {
     return res.status(400).render('bookings/form', { booking: { ...req.body, id: req.params.id }, tables, error: result.error });
   }
 
   if (googleCalendar.isConfigured()) {
-    const table = tables.find(t => t.id === result.booking.tableId);
+    const table = findTable(tables, result.booking.tableId);
     googleCalendar.updateEvent(result.booking, table)
       .then(eventId => { if (eventId && eventId !== result.booking.googleEventId) models.setBookingGoogleEventId(result.booking.id, eventId); })
       .catch(err => console.warn('Google Calendar sync (update) failed:', err.message));
@@ -141,7 +148,7 @@ router.post('/:id', (req, res) => {
 
 router.post('/:id/status', async (req, res) => {
   const { status } = req.body;
-  const result = models.setStatus(req.params.id, status);
+  const result = await models.setStatus(req.params.id, status);
   if (!result.error && status === 'cancelled') {
     if (result.booking.email) {
       const { subject, text } = notify.cancellationEmail(result.booking);
@@ -164,9 +171,9 @@ router.post('/:id/status', async (req, res) => {
 // customer get their confirmation email/SMS and does the booking sync to
 // Google Calendar.
 router.post('/:id/approve', requireManagerRole, async (req, res) => {
-  const result = models.approveBooking(req.params.id, res.locals.currentUser);
+  const result = await models.approveBooking(req.params.id, res.locals.currentUser);
   if (result.error) return res.status(400).render('403');
-  const table = models.listTables().find(t => t.id === result.booking.tableId);
+  const table = findTable(await models.listTables(), result.booking.tableId);
 
   if (result.booking.email) {
     const { subject, text } = notify.bookingConfirmationEmail(result.booking, table);
@@ -192,17 +199,17 @@ router.post('/:id/approve', requireManagerRole, async (req, res) => {
   res.redirect(`/bookings/${req.params.id}`);
 });
 
-router.post('/:id/payment', requireAdmin, (req, res) => {
-  models.updatePayment(req.params.id, req.body);
+router.post('/:id/payment', requireAdmin, async (req, res) => {
+  await models.updatePayment(req.params.id, req.body);
   res.redirect(`/bookings/${req.params.id}`);
 });
 
-router.post('/:id/delete', requireAdmin, (req, res) => {
-  const booking = models.getBooking(req.params.id);
+router.post('/:id/delete', requireAdmin, async (req, res) => {
+  const booking = await models.getBooking(req.params.id);
   if (booking && googleCalendar.isConfigured() && booking.googleEventId) {
     googleCalendar.deleteEvent(booking.googleEventId).catch(err => console.warn('Google Calendar sync (delete) failed:', err.message));
   }
-  models.deleteBooking(req.params.id);
+  await models.deleteBooking(req.params.id);
   res.redirect('/bookings');
 });
 

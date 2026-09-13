@@ -31,9 +31,11 @@ router.post('/:id/retry', async (req, res) => {
   let subject = notification.subject;
 
   if (!text && notification.bookingId && ['confirmation', 'reminder', 'admin-new-booking'].includes(baseType)) {
-    const booking = models.getBooking(notification.bookingId);
+    const booking = await models.getBooking(notification.bookingId);
     if (booking) {
-      const table = models.listTables().find(t => t.id === booking.tableId);
+      // String-compare, not === : table.id is a SQL-sourced string
+      // (INT8-backed SERIAL) while booking.tableId is a plain INT column.
+      const table = (await models.listTables()).find(t => String(t.id) === String(booking.tableId));
       const tableName = table ? table.name : 'your table';
       if (baseType === 'confirmation') {
         const built = isSms

@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
     dutyReports: models.listAllDutyReports().slice(0, SECTION_LIMIT),
     reports: models.listAllReports().slice(0, SECTION_LIMIT),
     requests: models.listAllRequests().slice(0, SECTION_LIMIT),
-    bookingHistory: models.listBookingHistory().slice(0, SECTION_LIMIT),
+    bookingHistory: (await models.listBookingHistory()).slice(0, SECTION_LIMIT),
     notifications: models.listNotifications(SECTION_LIMIT)
   });
 });

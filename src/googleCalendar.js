@@ -195,7 +195,7 @@ function startSync(models) {
   const run = async () => {
     try {
       const events = await listExternalEvents();
-      models.replaceExternalCalendarEvents(events);
+      await models.replaceExternalCalendarEvents(events);
       console.log(`Google Calendar: synced ${events.length} external event(s).`);
     } catch (err) {
       console.warn('Google Calendar sync failed:', err.message);

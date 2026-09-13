@@ -6,23 +6,24 @@ const { MANAGER_ROLES } = require('../roles');
 
 router.get('/', async (req, res) => {
   const today = todayStr();
-  const todayBookings = models.listBookings({ date: today }).filter(b => b.status !== 'cancelled');
-  const pendingApprovalBookings = MANAGER_ROLES.includes((res.locals.currentUser || {}).role)
-    ? models.listBookings({ status: 'pending_approval' })
-    : [];
+
+  const [todayBookingsRaw, pendingApprovalBookings, allBookings, tables, allStaffStatus] = await Promise.all([
+    models.listBookings({ date: today }),
+    MANAGER_ROLES.includes((res.locals.currentUser || {}).role) ? models.listBookings({ status: 'pending_approval' }) : Promise.resolve([]),
+    models.listBookings(),
+    models.listTables(),
+    models.listAllStaffStatus()
+  ]);
+  const todayBookings = todayBookingsRaw.filter(b => b.status !== 'cancelled');
 
   const now = new Date();
-  const upcoming = models.listBookings()
+  const upcoming = allBookings
     .filter(b => b.status === 'confirmed' && new Date(`${b.date}T${b.time}:00`) >= now)
     .slice(0, 8);
-
-  const tables = models.listTables();
-  const allBookings = models.listBookings();
 
   // Who's currently on the clock, for the "working now" card. Only clocked-in
   // and on-break staff are shown here — clocked-out staff aren't relevant to
   // "who's working right now".
-  const allStaffStatus = await models.listAllStaffStatus();
   const workingNow = allStaffStatus.filter(s => s.status === 'clocked_in' || s.status === 'on_break');
 
   const stats = {

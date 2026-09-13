@@ -1,70 +1,41 @@
 // Tables: the physical seating inventory (Main Floor + the two Function
-// Rooms) and their live occupied/reserved/available status for today.
-const { readDb, writeDb } = require('../db');
-const { todayStr } = require('../dateUtils');
-const { bookingRange, minutesToHHMM } = require('./shared');
+// Rooms). SQL-backed as of task #206 (tables table — see db/schema.sql;
+// its shape already matched the JSON model exactly, id/name/seats/area, so
+// no migration was needed here). Every exported function is now ASYNC.
+//
+// getTablesWithStatus (today's live occupied/reserved/available status,
+// combining tables with bookings) is NOT here — it needs both tables.js
+// and bookings.js, and bookings.js already requires this file (for
+// getTableById), so putting it here too would create a circular require
+// that breaks under this codebase's `module.exports = {...}` pattern (see
+// src/models.js's own comment on avoiding exactly this). It's composed in
+// src/models.js instead, which already requires both peer files safely.
+const { query } = require('../sqlPool');
 
-function listTables() {
-  return readDb().tables;
+function mapTableRow(r) {
+  return { id: r.id, name: r.name, seats: r.seats, area: r.area };
 }
 
-// Live occupancy for the Tables page: for each table, checks today's
-// non-cancelled bookings against the current time. A table is "occupied"
-// if right now falls inside a booking's start-to-start+duration window
-// (same window logic booking conflict-detection already uses), "reserved"
-// if nothing's active now but something's coming up later today, otherwise
-// "available". This reads straight off existing booking data — no new
-// fields, no external system, so it's accurate for anything booked through
-// this app; it doesn't know about walk-ins that never got a booking record.
-function getTablesWithStatus() {
-  const db = readDb();
-  const today = todayStr();
-  const slotDuration = db.settings.slotDurationMinutes;
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const todaysByTable = new Map();
-  db.bookings.forEach(b => {
-    if (b.date !== today || b.status === 'cancelled') return;
-    if (!todaysByTable.has(b.tableId)) todaysByTable.set(b.tableId, []);
-    todaysByTable.get(b.tableId).push(b);
-  });
-
-  return db.tables.map(t => {
-    const todaysBookings = (todaysByTable.get(t.id) || []).slice().sort((a, b) => a.time.localeCompare(b.time));
-    const current = todaysBookings.find(b => {
-      const r = bookingRange(b, slotDuration);
-      return nowMinutes >= r.start && nowMinutes < r.end;
-    });
-    if (current) {
-      const r = bookingRange(current, slotDuration);
-      return {
-        ...t,
-        status: 'occupied',
-        statusLabel: `Occupied · ${current.time}–${minutesToHHMM(r.end)}`,
-        booking: current
-      };
-    }
-    const upcoming = todaysBookings.find(b => bookingRange(b, slotDuration).start > nowMinutes);
-    if (upcoming) {
-      return { ...t, status: 'reserved', statusLabel: `Reserved · ${upcoming.time}`, booking: upcoming };
-    }
-    return { ...t, status: 'available', statusLabel: 'Available', booking: null };
-  });
+async function listTables() {
+  const { rows } = await query(`SELECT * FROM tables ORDER BY id ASC`);
+  return rows.map(mapTableRow);
 }
 
-function createTable({ name, seats, area }) {
-  const db = readDb();
-  const table = { id: db.meta.nextTableId++, name, seats: Number(seats), area: area || 'Main Floor' };
-  db.tables.push(table);
-  writeDb(db);
-  return table;
+async function createTable({ name, seats, area }) {
+  const { rows } = await query(
+    `INSERT INTO tables (name, seats, area) VALUES ($1, $2, $3) RETURNING *`,
+    [name, Number(seats), area || 'Main Floor']
+  );
+  return mapTableRow(rows[0]);
 }
 
-function deleteTable(id) {
-  const db = readDb();
-  db.tables = db.tables.filter(t => t.id !== Number(id));
-  writeDb(db);
+async function deleteTable(id) {
+  await query(`DELETE FROM tables WHERE id = $1`, [Number(id)]);
 }
 
-module.exports = { listTables, getTablesWithStatus, createTable, deleteTable };
+async function getTableById(id) {
+  const { rows } = await query(`SELECT * FROM tables WHERE id = $1`, [Number(id)]);
+  return rows[0] ? mapTableRow(rows[0]) : null;
+}
+
+module.exports = { listTables, createTable, deleteTable, getTableById };

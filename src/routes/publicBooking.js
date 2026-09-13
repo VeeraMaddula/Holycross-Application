@@ -40,12 +40,12 @@ router.post('/', publicBookingLimiter, async (req, res) => {
     return rerender('Please confirm you\'ve read the Privacy Notice before submitting.');
   }
 
-  const table = models.findBestAvailableTable({ date, time, durationMinutes: settings.slotDurationMinutes, partySize });
+  const table = await models.findBestAvailableTable({ date, time, durationMinutes: settings.slotDurationMinutes, partySize });
   if (!table) {
     return rerender(`We can't seat a party of ${partySize} on the Main Floor — for larger groups or private events, please call us on ${notify.CONTACT_PHONE} to talk about the Function Room.`);
   }
 
-  const result = models.createBooking(
+  const result = await models.createBooking(
     { customerName, phone, email, date, time, partySize, tableId: table.id, occasion, notes },
     null,
     { forcePendingApproval: true }

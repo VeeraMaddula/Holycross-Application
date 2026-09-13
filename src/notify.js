@@ -527,17 +527,26 @@ async function checkClosingDutiesOnClockOut(now = new Date()) {
   });
 }
 
-// Checks for bookings starting within the reminder window and sends a reminder once.
+// Checks for bookings starting within the reminder window and sends a
+// reminder once. Bookings/tables moved to SQL in task #206 — this now goes
+// through models.listBookings/listTables/setReminderSent instead of
+// reaching into data/db.json directly (that array is permanently empty now
+// that bookings.js no longer writes to it, so the old direct-readDb version
+// would otherwise have silently stopped sending any reminders at all).
 async function runReminderSweep() {
   const db = readDb();
   const hoursBefore = db.settings.reminderHoursBefore || 24;
   const now = new Date();
-  for (const booking of db.bookings) {
-    if (booking.status !== 'confirmed' || booking.reminderSent || (!booking.email && !booking.phone)) continue;
+  const [bookings, tables] = await Promise.all([models.listBookings({ status: 'confirmed' }), models.listTables()]);
+  for (const booking of bookings) {
+    if (booking.reminderSent || (!booking.email && !booking.phone)) continue;
     const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
     const hoursUntil = (bookingDateTime - now) / (1000 * 60 * 60);
     if (hoursUntil > 0 && hoursUntil <= hoursBefore) {
-      const table = db.tables.find(t => t.id === booking.tableId);
+      // String-compare, not === : table.id is a SQL-sourced string
+      // (INT8-backed SERIAL) while booking.tableId is a plain INT column —
+      // same mismatch class fixed throughout this migration.
+      const table = tables.find(t => String(t.id) === String(booking.tableId));
       if (booking.email) {
         const { subject, text } = bookingReminderEmail(booking, table);
         await sendEmail({ to: booking.email, subject, text, type: 'reminder', bookingId: booking.id });
@@ -545,14 +554,7 @@ async function runReminderSweep() {
       if (booking.phone) {
         await sms.sendSms({ to: booking.phone, body: sms.bookingReminderSms(booking, table), type: 'reminder', bookingId: booking.id });
       }
-      models.updateBookingReminderFlag && models.updateBookingReminderFlag(booking.id);
-      // Mark reminderSent directly via models
-      const dbFresh = readDb();
-      const b = dbFresh.bookings.find(x => x.id === booking.id);
-      if (b) {
-        b.reminderSent = true;
-        require('./db').writeDb(dbFresh);
-      }
+      await models.setReminderSent(booking.id);
     }
   }
 }
