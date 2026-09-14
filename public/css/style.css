@@ -430,6 +430,31 @@ textarea { resize: vertical; min-height: 70px; }
   .menu-section-title h3 { font-size: 18px; }
 }
 
+/* Menu hub ("Check the Menu" landing page): 4 big cards, one per category,
+   each linking to its own filtered menu page. Same flat-card + soft-shadow
+   language as the dish cards below it, just larger. A category with no
+   items yet (Carvery/Bar until content is added) gets a muted photo
+   placeholder and a "Coming soon" badge instead of an item count, but stays
+   clickable so the page underneath is reachable and explains itself. */
+.menu-hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+.menu-hub-card {
+  display: block; border-radius: 18px; overflow: hidden; background: #fff; color: var(--ink);
+  box-shadow: 0 1px 2px rgba(18, 51, 40, 0.06), 0 4px 14px rgba(18, 51, 40, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.menu-hub-card:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(18, 51, 40, 0.08), 0 10px 24px rgba(18, 51, 40, 0.14); text-decoration: none; }
+.menu-hub-card-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--paper); }
+.menu-hub-card-photo--placeholder { background: linear-gradient(135deg, var(--paper), var(--line)); }
+.menu-hub-card-body { padding: 16px 18px 18px; text-align: center; }
+.menu-hub-card-title { font-weight: 700; font-size: 19px; color: var(--accent-dark); }
+.menu-hub-card-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.menu-hub-card-badge {
+  display: inline-block; margin-top: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+  text-transform: uppercase; color: var(--muted); background: var(--paper); border: 1px solid var(--line);
+  border-radius: 20px; padding: 3px 12px;
+}
+.menu-hub-card--soon .menu-hub-card-title { color: var(--muted); }
+
 .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; margin-top: 6px; }
 .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; color: var(--ink); }
 .checkbox-item input { width: auto; }

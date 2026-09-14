@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Menu - The Holy Cross</title>
+  <%- include('../partials/head') %>
+</head>
+<body class="public-menu-body">
+  <div class="main" style="max-width:1000px;margin:0 auto;padding:36px 20px;float:none">
+    <div style="text-align:center;margin-bottom:32px">
+      <img src="/img/logo-full.png" alt="The Holy Cross" style="max-width:220px;margin-bottom:12px">
+      <p class="muted" style="font-size:15px">What would you like to see?</p>
+    </div>
+
+    <div class="menu-hub-grid">
+      <% cards.forEach(card => { %>
+        <a class="menu-hub-card<%= card.itemCount ? '' : ' menu-hub-card--soon' %>" href="/our-menu/<%= card.slug %>">
+          <% if (card.thumbnailUrl) { %>
+            <img class="menu-hub-card-photo" src="<%= card.thumbnailUrl %>" alt="<%= card.label %>" loading="lazy">
+          <% } else { %>
+            <div class="menu-hub-card-photo menu-hub-card-photo--placeholder"></div>
+          <% } %>
+          <div class="menu-hub-card-body">
+            <div class="menu-hub-card-title"><%= card.label %></div>
+            <% if (card.itemCount) { %>
+              <div class="menu-hub-card-sub"><%= card.itemCount %> item<%= card.itemCount === 1 ? '' : 's' %></div>
+            <% } else { %>
+              <div class="menu-hub-card-badge">Coming soon</div>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+
+    <p style="text-align:center;margin-top:32px">
+      <a class="btn" href="/book">Reserve a table</a>
+    </p>
+  </div>
+</body>
+</html>

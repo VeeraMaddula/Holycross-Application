@@ -23,6 +23,25 @@ function titleCase(key) {
   return key.replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// The public "Check the Menu" button on the Wix site links here. Instead of
+// one long scrolling page of every section, this is a hub of 4 category
+// cards (Breakfast / Carvery / Bar / Beverages) — the 4 the restaurant
+// actually wants customers choosing between — each opening its own page.
+// Sections are matched to a category by keyword rather than an exact title
+// match, so whatever the admin happens to call a section (e.g. "Breakfasts"
+// vs "Breakfast Menu") still lands in the right card without needing the
+// admin-entered title to match some fixed string exactly.
+const MENU_CATEGORIES = [
+  { slug: 'breakfast', label: 'Breakfast', match: /breakfast/i },
+  { slug: 'carvery', label: 'Carvery', match: /carvery/i },
+  { slug: 'bar', label: 'Bar Menu', match: /\bbar\b/i },
+  { slug: 'beverages', label: 'Beverages', match: /beverage|drinks?\b/i }
+];
+
+function sectionsForCategory(menu, category) {
+  return (menu.sections || []).filter(s => category.match.test(s.title || ''));
+}
+
 function withAllergenBadges(menu) {
   const nameByKey = new Map();
   (menu.sections || []).forEach(section => {
@@ -56,8 +75,28 @@ function withAllergenBadges(menu) {
 
 router.get('/', async (req, res) => {
   const rawMenu = await models.getMenu();
-  const { menu, allergenLegend } = withAllergenBadges(rawMenu);
-  res.render('public/menu', { menu, allergenLegend });
+  const cards = MENU_CATEGORIES.map(category => {
+    const sections = sectionsForCategory(rawMenu, category);
+    const items = sections.flatMap(s => s.items || []);
+    const thumbnail = items.find(i => i.photoUrl);
+    return {
+      slug: category.slug,
+      label: category.label,
+      itemCount: items.length,
+      thumbnailUrl: thumbnail ? thumbnail.photoUrl : null
+    };
+  });
+  res.render('public/menu-hub', { cards });
+});
+
+router.get('/:slug', async (req, res) => {
+  const category = MENU_CATEGORIES.find(c => c.slug === req.params.slug);
+  if (!category) return res.redirect('/our-menu');
+
+  const rawMenu = await models.getMenu();
+  const sections = sectionsForCategory(rawMenu, category);
+  const { menu, allergenLegend } = withAllergenBadges({ sections });
+  res.render('public/menu-category', { category, sections: menu.sections, allergenLegend });
 });
 
 module.exports = router;
