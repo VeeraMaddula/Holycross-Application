@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
     const d = [].concat(descs[i] || []);
     const a = [].concat((allergensField && allergensField[i]) || []);
     const items = names.map((n, j) => {
-      const item = { name: n, price: p[j] || '', desc: d[j] || '' };
+      const item = { name: n, price: p[j] || '', desc: (d[j] || '').trim() };
       const allergenList = String(a[j] || '').split(',').map(s => s.trim()).filter(Boolean);
       if (allergenList.length) item.allergens = allergenList;
       const photoUrl = photoByName[String(n).trim().toLowerCase()];

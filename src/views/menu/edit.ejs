@@ -34,8 +34,10 @@
                       <input type="text" name="title[<%= i %>][]" placeholder="Item name" value="<%= item.name %>">
                       <input type="text" name="prices[<%= i %>][]" placeholder="Price" value="<%= item.price %>">
                     </div>
-                    <input type="text" name="descs[<%= i %>][]" placeholder="Description" value="<%= item.desc %>">
-                    <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated)" value="<%= (item.allergens || []).join(', ') %>">
+                    <label class="menu-edit-label">Description</label>
+                    <textarea name="descs[<%= i %>][]" placeholder="Description" rows="2"><%= item.desc %></textarea>
+                    <label class="menu-edit-label">Allergens</label>
+                    <textarea name="allergensField[<%= i %>][]" placeholder="Comma separated, e.g. Gluten, Egg, Milk" rows="2"><%= (item.allergens || []).join(', ') %></textarea>
                   </div>
                 </div>
               <% }) %>
@@ -43,8 +45,8 @@
                 <div class="menu-add-card-label">Add item</div>
                 <input type="text" name="title[<%= i %>][]" placeholder="New item name">
                 <input type="text" name="prices[<%= i %>][]" placeholder="Price">
-                <input type="text" name="descs[<%= i %>][]" placeholder="Description">
-                <input type="text" name="allergensField[<%= i %>][]" placeholder="Allergens (comma separated)">
+                <textarea name="descs[<%= i %>][]" placeholder="Description" rows="2"></textarea>
+                <textarea name="allergensField[<%= i %>][]" placeholder="Allergens, comma separated" rows="2"></textarea>
               </div>
             </div>
           </div>
@@ -59,8 +61,8 @@
               <div class="menu-add-card-label">First item in new section</div>
               <input type="text" name="title[<%= menu.sections.length %>][]" placeholder="Item name">
               <input type="text" name="prices[<%= menu.sections.length %>][]" placeholder="Price">
-              <input type="text" name="descs[<%= menu.sections.length %>][]" placeholder="Description">
-              <input type="text" name="allergensField[<%= menu.sections.length %>][]" placeholder="Allergens (comma separated)">
+              <textarea name="descs[<%= menu.sections.length %>][]" placeholder="Description" rows="2"></textarea>
+              <textarea name="allergensField[<%= menu.sections.length %>][]" placeholder="Allergens, comma separated" rows="2"></textarea>
             </div>
           </div>
         </div>
