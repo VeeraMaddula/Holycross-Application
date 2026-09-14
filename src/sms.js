@@ -110,6 +110,14 @@ function cancellationSms(booking) {
   return `The Holy Cross: Your booking for ${booking.date} at ${booking.time} has been cancelled. Contact us on +353 51 353087 if this wasn't expected.`;
 }
 
+// Sent immediately when a customer submits the public "Reserve a table"
+// form, alongside publicBookingReceivedEmail — the public booking page's
+// own copy already promises "we'll confirm by text and email", so this
+// closes a real gap (only the email side was ever actually sent).
+function publicBookingReceivedSms(booking) {
+  return `The Holy Cross: Thanks! Got your request for ${booking.partySize} on ${booking.date} at ${booking.time}. We'll text/email to confirm within 60 mins - call ${'+353 51 353087'} if not.`;
+}
+
 function shiftAssignedSms(shift) {
   const areaSuffix = shift.areaLabel ? ` (${shift.areaLabel})` : '';
   return `The Holy Cross: New shift on ${shift.date} from ${shift.startTime} to ${shift.endTime}${areaSuffix}.`;
@@ -143,6 +151,7 @@ function shiftExchangeSms(newShift, oldDate) {
 
 module.exports = {
   isConfigured, sendSms, normalizePhone, bookingConfirmationSms, bookingReminderSms, cancellationSms,
+  publicBookingReceivedSms,
   shiftAssignedSms, shiftUpdatedSms, newRequestSms,
   shiftDropPickedUpSms, shiftClaimedSms, shiftExchangeSms
 };

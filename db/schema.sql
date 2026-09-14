@@ -84,7 +84,8 @@ CREATE TABLE bookings (
   created_by_user_id INT REFERENCES users(id),
   created_by_name    TEXT DEFAULT '',
   history            JSONB NOT NULL DEFAULT '[]',   -- [{at, event}, ...] audit trail
-  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  escalation_tier    INT NOT NULL DEFAULT 0   -- db/014_add_booking_escalation_tier.sql — website booking approval SLA (see notify.js ESCALATION_TIERS)
 );
 CREATE INDEX idx_bookings_date ON bookings(date);
 CREATE INDEX idx_bookings_status ON bookings(status);

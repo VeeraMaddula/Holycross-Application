@@ -42,12 +42,19 @@
           </div>
         </div>
         <div class="field">
+          <label>What are you booking?</label>
+          <select name="bookingType" id="bookingType">
+            <option value="table" <%= (values.bookingType || 'table') === 'table' ? 'selected' : '' %>>A table (Main Floor)</option>
+            <option value="function_room" <%= values.bookingType === 'function_room' ? 'selected' : '' %>>Function Room / private event</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Party size</label>
-          <input type="number" name="partySize" min="1" max="20" required value="<%= values.partySize || '' %>">
+          <input type="number" name="partySize" id="partySize" min="1" max="20" required value="<%= values.partySize || '' %>">
         </div>
         <div class="field">
           <label>Occasion <span class="muted" style="font-weight:400">(optional)</span></label>
-          <input type="text" name="occasion" value="<%= values.occasion || '' %>" placeholder="Birthday, anniversary...">
+          <input type="text" name="occasion" value="<%= values.occasion || '' %>" placeholder="Birthday, anniversary, corporate event...">
         </div>
         <div class="field">
           <label>Anything we should know? <span class="muted" style="font-weight:400">(optional)</span></label>
@@ -59,8 +66,19 @@
         </div>
         <button class="btn" type="submit">Request booking</button>
       </form>
-      <p class="muted" style="margin-top:14px;text-align:center;font-size:12.5px">We'll confirm by text and email within 60 minutes. For parties over 20 or private events, please give us a call.</p>
+      <p class="muted" style="margin-top:14px;text-align:center;font-size:12.5px">We'll confirm by text and email within 60 minutes. For parties over 100, please give us a call.</p>
     </div>
   </div>
+  <script>
+  (function() {
+    var typeSelect = document.getElementById('bookingType');
+    var partySize = document.getElementById('partySize');
+    function syncMax() {
+      partySize.max = typeSelect.value === 'function_room' ? '100' : '20';
+    }
+    typeSelect.addEventListener('change', syncMax);
+    syncMax();
+  })();
+  </script>
 </body>
 </html>

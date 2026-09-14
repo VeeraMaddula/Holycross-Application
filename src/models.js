@@ -106,12 +106,24 @@ module.exports = {
   getBooking: bookings.getBooking,
   createBooking: bookings.createBooking,
   findBestAvailableTable: bookings.findBestAvailableTable,
+  findBestAvailableFunctionRoom: bookings.findBestAvailableFunctionRoom,
   approveBooking: bookings.approveBooking,
   updateBooking: bookings.updateBooking,
   setStatus: bookings.setStatus,
   updatePayment: bookings.updatePayment,
   deleteBooking: bookings.deleteBooking,
   listBookingHistory: bookings.listBookingHistory,
+  // NOTE: setReminderSent was missing from this barrel entirely until now —
+  // notify.js's runReminderSweep has been calling models.setReminderSent()
+  // on every tick since the models-file split, which threw
+  // "not a function" every time (silently swallowed by that sweep's own
+  // top-level .catch in startScheduler). Booking reminder emails/SMS were
+  // still SENT (that happens before this call), but reminderSent was never
+  // actually recorded, so — worse than just a missing flag — every
+  // eligible confirmed booking got re-sent a reminder on every 15-minute
+  // tick for as long as it stayed in the reminder window, instead of once.
+  setReminderSent: bookings.setReminderSent,
+  setEscalationTier: bookings.setEscalationTier,
 
   // Menu / events
   getMenu: menu.getMenu,

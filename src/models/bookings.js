@@ -19,7 +19,7 @@ const tablesModel = require('./tables');
 const BOOKING_COLUMNS = `id, table_id, customer_name, phone, email, party_size,
   to_char(date, 'YYYY-MM-DD') AS date, time, duration_minutes, status, music, food,
   notes, occasion, payment_status, deposit_amount, reminder_sent, google_event_id,
-  created_by_user_id, created_by_name, history, created_at`;
+  created_by_user_id, created_by_name, history, created_at, escalation_tier`;
 
 // NUMERIC columns (deposit_amount) come back from `pg` as strings, same
 // precision-safety reason INT8/SERIAL columns come back as strings — cast
@@ -49,7 +49,8 @@ function mapBookingRow(r) {
     createdByUserId: r.created_by_user_id,
     createdByName: r.created_by_name || '',
     history: r.history || [],
-    createdAt: r.created_at ? new Date(r.created_at).toISOString() : null
+    createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+    escalationTier: r.escalation_tier || 0
   };
 }
 
@@ -123,6 +124,28 @@ async function findBestAvailableTable({ date, time, durationMinutes, partySize }
   const allTables = await tablesModel.listTables();
   const fitting = allTables
     .filter(t => t.area !== 'Function Room' && t.seats >= Number(partySize))
+    .sort((a, b) => a.seats - b.seats);
+  if (!fitting.length) return null;
+  const candidate = { date, time, durationMinutes: duration };
+  for (const t of fitting) {
+    const conflict = await findConflict({ ...candidate, tableId: t.id });
+    if (!conflict) return t;
+  }
+  return fitting[0];
+}
+
+// Same idea as findBestAvailableTable, but for the two actual Function
+// Room entries (Whitefield Room seats 100, Butlerstone Room seats 50) —
+// used by the public "Reserve a table" form's Function Room / private
+// event option (see routes/publicBooking.js). Returns null if the party
+// is bigger than even the larger room, so the caller can fall back to
+// "please call us" for genuinely oversized events.
+async function findBestAvailableFunctionRoom({ date, time, durationMinutes, partySize }) {
+  const db = readDb();
+  const duration = durationMinutes || db.settings.slotDurationMinutes;
+  const allTables = await tablesModel.listTables();
+  const fitting = allTables
+    .filter(t => t.area === 'Function Room' && t.seats >= Number(partySize))
     .sort((a, b) => a.seats - b.seats);
   if (!fitting.length) return null;
   const candidate = { date, time, durationMinutes: duration };
@@ -294,8 +317,15 @@ async function setReminderSent(id) {
   await query(`UPDATE bookings SET reminder_sent = true WHERE id = $1`, [Number(id)]);
 }
 
+// Records that a given escalation tier's reminder has gone out for a
+// pending_approval booking (see runBookingApprovalEscalationSweep in
+// notify.js), so the next sweep tick doesn't re-notify the same tier.
+async function setEscalationTier(id, tier) {
+  await query(`UPDATE bookings SET escalation_tier = $1 WHERE id = $2`, [tier, Number(id)]);
+}
+
 module.exports = {
-  listBookings, getBooking, findConflict, findBestAvailableTable, createBooking,
+  listBookings, getBooking, findConflict, findBestAvailableTable, findBestAvailableFunctionRoom, createBooking,
   approveBooking, updateBooking, updatePayment, setStatus, deleteBooking, listBookingHistory,
-  setReminderSent
+  setReminderSent, setEscalationTier
 };

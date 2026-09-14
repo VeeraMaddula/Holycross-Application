@@ -135,12 +135,13 @@ function publicBookingReceivedEmail(booking) {
 // even though only a Manager/Floor Manager/Senior Manager/General
 // Manager/Admin can actually approve it.
 function newPublicBookingRequestEmail(booking, table) {
-  const subject = `New online booking request: ${booking.customerName} - ${booking.date} at ${booking.time}`;
-  const text = `A new booking request came in from the website, awaiting Manager approval:\n\n`
+  const isFunctionRoom = table && table.area === 'Function Room';
+  const subject = `New online ${isFunctionRoom ? 'Function Room ' : ''}booking request: ${booking.customerName} - ${booking.date} at ${booking.time}`;
+  const text = `A new ${isFunctionRoom ? 'Function Room / private event' : 'table'} booking request came in from the website, awaiting Manager approval:\n\n`
     + `  - Customer: ${booking.customerName}\n`
     + `  - Party size: ${booking.partySize}\n`
     + `  - Date: ${booking.date} at ${booking.time}\n`
-    + `  - Suggested table: ${table ? table.name : 'none available for that party size'}\n`
+    + `  - Suggested ${isFunctionRoom ? 'room' : 'table'}: ${table ? table.name : 'none available for that party size'}\n`
     + (booking.occasion ? `  - Occasion: ${booking.occasion}\n` : '')
     + (booking.notes ? `  - Notes: ${booking.notes}\n` : '')
     + `\nView and approve it in the app under Bookings (booking #${booking.id}).`;
@@ -426,6 +427,72 @@ async function notifyManagersPendingApproval(booking, table, conflict) {
   }
 }
 
+// Website booking approval SLA: every online booking request is meant to
+// be actioned (approved, declined, or at minimum acknowledged) within 4
+// hours of coming in. If it's still sitting in pending_approval, this
+// escalates up the management hierarchy the longer it waits — Floor
+// Manager first, then also Senior Manager, then also General Manager/
+// Admin once the 4-hour SLA is actually breached — rather than a single
+// reminder to everyone at once. Each tier only fires once per booking
+// (tracked via bookings.escalation_tier / models.setEscalationTier), so
+// re-running the sweep every 15 minutes doesn't re-notify a tier that
+// already went out.
+//
+// Timing is a judgment call, not something Veera specified exactly: 1hr /
+// 2.5hr / 4hr(SLA breach) tiers. Easy to retune — see ESCALATION_TIERS.
+const ESCALATION_TIERS = [
+  { tier: 1, afterMinutes: 60, roles: ['floor_manager'], label: 'first reminder (1hr)' },
+  { tier: 2, afterMinutes: 150, roles: ['floor_manager', 'senior_manager'], label: 'second reminder (2.5hr)' },
+  { tier: 3, afterMinutes: 240, roles: ['floor_manager', 'senior_manager', 'general_manager', 'admin'], label: 'SLA BREACHED (4hr+)' }
+];
+
+function bookingEscalationEmail(booking, table, tierInfo, minutesPending) {
+  const hoursPending = (minutesPending / 60).toFixed(1);
+  const overdue = tierInfo.tier === ESCALATION_TIERS.length;
+  const subject = `${overdue ? 'OVERDUE — ' : 'Reminder: '}Booking request from ${booking.customerName} awaiting approval (${hoursPending}hr)`;
+  const text = `A website booking request has been pending_approval for ${hoursPending} hours`
+    + `${overdue ? ' — this has now passed the 4-hour approval SLA.' : '.'}\n\n`
+    + `  - Customer: ${booking.customerName}\n`
+    + `  - Party size: ${booking.partySize}\n`
+    + `  - Date: ${booking.date} at ${booking.time}\n`
+    + `  - Table/room: ${table ? table.name : 'none available for that party size'}\n`
+    + `\nPlease review and approve, decline, or otherwise acknowledge booking #${booking.id} in the app under Bookings.`;
+  return { subject, text };
+}
+
+// Runs every 15 minutes (see startScheduler below). For every booking
+// still awaiting approval, works out how many minutes it's been pending
+// and whether that's crossed into a new escalation tier since the last
+// check; if so, emails that tier's roles and records the tier so it isn't
+// re-sent next tick.
+async function runBookingApprovalEscalationSweep() {
+  const [pending, tables] = await Promise.all([
+    models.listBookings({ status: 'pending_approval' }),
+    models.listTables()
+  ]);
+  if (!pending.length) return;
+  const now = Date.now();
+  const users = await models.listUsers();
+  for (const booking of pending) {
+    if (!booking.createdAt) continue;
+    const minutesPending = (now - new Date(booking.createdAt).getTime()) / 60000;
+    // Highest tier whose threshold has been crossed.
+    let dueTier = null;
+    for (const t of ESCALATION_TIERS) {
+      if (minutesPending >= t.afterMinutes) dueTier = t;
+    }
+    if (!dueTier || dueTier.tier <= (booking.escalationTier || 0)) continue;
+
+    const table = tables.find(t => String(t.id) === String(booking.tableId));
+    const { subject, text } = bookingEscalationEmail(booking, table, dueTier, minutesPending);
+    const recipients = users.filter(u => dueTier.roles.includes(u.role) && u.email);
+    for (const r of recipients) {
+      await sendEmail({ to: r.email, subject, text, type: 'booking-approval-escalation', bookingId: booking.id });
+    }
+    await models.setEscalationTier(booking.id, dueTier.tier);
+  }
+}
+
 // Every active staff account (not just Managers) gets told about a new
 // public booking request — Bar/Kitchen Staff can see it on the Bookings
 // page but can't approve it; only a Manager-tier account can.
@@ -663,6 +730,13 @@ function startScheduler() {
   });
   console.log('Reminder scheduler started (checks every 15 minutes).');
 
+  // Runs every 15 minutes to escalate any website booking request that's
+  // sat in pending_approval too long — see ESCALATION_TIERS above.
+  cron.schedule('*/15 * * * *', () => {
+    runBookingApprovalEscalationSweep().catch(err => console.error('Booking approval escalation sweep failed:', err.message));
+  });
+  console.log('Booking approval escalation sweep started (checks every 15 minutes).');
+
   // Runs every 5 minutes to catch duty windows nobody confirmed on the
   // kiosk (fixed-time windows), plus the overnight safety net for
   // Closing's lastClockout windows.
@@ -692,6 +766,7 @@ module.exports = {
   notifyManagersShiftChange, factoryResetEmail, notifyAdminAndSeniorManagersFactoryReset,
   voucherWeeklySummaryEmail, notifyAccountantsWeeklyVoucherSummary,
   stockDeliverySubmittedEmail, notifyManagersStockDelivery,
+  bookingEscalationEmail, runBookingApprovalEscalationSweep, ESCALATION_TIERS,
   runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };
