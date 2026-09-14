@@ -119,6 +119,7 @@ router.post('/', async (req, res) => {
       sent, received,
       recipients: await recipientOptions(req.session.userId),
       requestTypes: models.REQUEST_TYPES,
+      formatTime12,
       ...(await marketplaceLocals(req.session.userId)),
       error
     });
