@@ -6,8 +6,58 @@ const models = require('../models');
 // emails/texts so a customer can see what's on before they arrive. No
 // login required; this never lets a visitor change anything, unlike the
 // staff-only /menu admin page.
+//
+// Allergens are free-text (admin types whatever they like, comma
+// separated — see routes/menu.js), so there's no fixed vocabulary to map
+// against a standard allergen list. Instead of guessing synonyms, we build
+// the numbered key straight from whatever's actually on the live menu
+// right now: collect every distinct allergen string used anywhere on the
+// menu, normalized so "Gluten" / "gluten" / "GLUTEN " count as the same
+// thing, sort it alphabetically, and number it 1..N. Recomputed on every
+// request, so the key always covers 100% of what's entered — nothing can
+// ever go unnumbered or get silently dropped from a dish's badges.
+function normalizeAllergen(a) {
+  return (a || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function titleCase(key) {
+  return key.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function withAllergenBadges(menu) {
+  const nameByKey = new Map();
+  (menu.sections || []).forEach(section => {
+    (section.items || []).forEach(item => {
+      (item.allergens || []).forEach(a => {
+        const key = normalizeAllergen(a);
+        if (key && !nameByKey.has(key)) nameByKey.set(key, titleCase(key));
+      });
+    });
+  });
+
+  const sortedKeys = Array.from(nameByKey.keys())
+    .sort((x, y) => nameByKey.get(x).localeCompare(nameByKey.get(y), undefined, { sensitivity: 'base' }));
+  const numberByKey = {};
+  sortedKeys.forEach((key, i) => { numberByKey[key] = i + 1; });
+  const allergenLegend = sortedKeys.map(key => ({ number: numberByKey[key], name: nameByKey.get(key) }));
+
+  const sections = (menu.sections || []).map(section => ({
+    ...section,
+    items: (section.items || []).map(item => ({
+      ...item,
+      allergenBadges: (item.allergens || [])
+        .map(a => numberByKey[normalizeAllergen(a)])
+        .filter(n => n)
+        .sort((a, b) => a - b)
+    }))
+  }));
+
+  return { menu: { ...menu, sections }, allergenLegend };
+}
+
 router.get('/', async (req, res) => {
-  res.render('public/menu', { menu: await models.getMenu() });
+  const rawMenu = await models.getMenu();
+  const { menu, allergenLegend } = withAllergenBadges(rawMenu);
+  res.render('public/menu', { menu, allergenLegend });
 });
 
 module.exports = router;

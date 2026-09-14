@@ -4,12 +4,30 @@
   <title>Menu - The Holy Cross</title>
   <%- include('../partials/head') %>
 </head>
-<body>
-  <div class="main" style="max-width:1100px;margin:0 auto;padding:36px 20px;float:none">
-    <div style="text-align:center;margin-bottom:32px">
+<body class="public-menu-body">
+  <div class="main menu-glass-bg" style="max-width:1100px;margin:0 auto;padding:36px 20px;float:none">
+    <div style="text-align:center;margin-bottom:28px">
       <img src="/img/logo-full.png" alt="The Holy Cross" style="max-width:220px;margin-bottom:12px">
       <p class="muted" style="font-size:15px"><%= menu.intro %></p>
     </div>
+
+    <% if (allergenLegend.length) { %>
+      <div class="menu-allergen-legend">
+        <strong>Allergen key</strong>
+        <% allergenLegend.forEach(a => { %>
+          <span class="menu-allergen-legend-item">
+            <span class="menu-allergen-badge menu-allergen-badge--static"><%= a.number %></span><%= a.name %>
+          </span>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <%
+      function legendName(n) {
+        const found = allergenLegend.find(a => a.number === n);
+        return found ? found.name : '';
+      }
+    %>
 
     <% menu.sections.forEach(section => { %>
       <div class="menu-section-title">
@@ -19,24 +37,26 @@
       <div class="menu-grid">
         <% section.items.forEach(item => { %>
           <div class="menu-dish-card">
-            <% if (item.photoUrl) { %>
-              <img class="menu-dish-photo" src="<%= item.photoUrl %>" alt="<%= item.name %>" loading="lazy">
-            <% } %>
-            <div class="menu-dish-body">
-              <div class="menu-dish-top">
-                <div class="menu-dish-name"><%= item.name %></div>
-                <div class="menu-dish-price">&euro;<%= item.price %></div>
+            <% if (item.allergenBadges && item.allergenBadges.length) { %>
+              <div class="menu-dish-rail">
+                <% item.allergenBadges.forEach(n => { %>
+                  <span class="menu-allergen-badge" title="Allergen <%= n %>: <%= legendName(n) %>"><%= n %></span>
+                <% }) %>
               </div>
-              <% if (item.desc) { %>
-                <div class="menu-dish-desc"><%= item.desc %></div>
+            <% } %>
+            <div class="menu-dish-main">
+              <% if (item.photoUrl) { %>
+                <img class="menu-dish-photo" src="<%= item.photoUrl %>" alt="<%= item.name %>" loading="lazy">
               <% } %>
-              <% if (item.allergens && item.allergens.length) { %>
-                <div class="menu-allergen-tags">
-                  <% item.allergens.forEach(a => { %>
-                    <span class="menu-allergen-tag"><%= a %></span>
-                  <% }) %>
+              <div class="menu-dish-body">
+                <div class="menu-dish-top">
+                  <div class="menu-dish-name"><%= item.name %></div>
+                  <div class="menu-dish-price">&euro;<%= item.price %></div>
                 </div>
-              <% } %>
+                <% if (item.desc) { %>
+                  <div class="menu-dish-desc"><%= item.desc %></div>
+                <% } %>
+              </div>
             </div>
           </div>
         <% }) %>
