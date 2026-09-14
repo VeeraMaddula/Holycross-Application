@@ -6,51 +6,178 @@
   <%- include('partials/sidebar') %>
   <div class="main">
     <h2>Breakage &amp; Stock</h2>
-    <p class="muted">Submitted from the kiosk every time a staff member clocks out. Use this to spot patterns — who's breaking or losing more stock over time.</p>
 
-    <div class="card">
-      <h3 style="margin-top:0">By staff member</h3>
-      <% if (!byUser.length) { %>
-        <p class="muted">No breakage reported yet.</p>
-      <% } else { %>
-        <table>
-          <thead><tr><th>Staff member</th><th>Glass</th><th>Spirit</th><th>Soft Drink</th><th>Total</th></tr></thead>
-          <tbody>
-          <% byUser.forEach(u => { %>
-            <tr>
-              <td><%= u.userName %></td>
-              <td><%= u.byCategory.glass || 0 %></td>
-              <td><%= u.byCategory.spirit || 0 %></td>
-              <td><%= u.byCategory.soft_drink || 0 %></td>
-              <td><strong><%= u.total %></strong></td>
-            </tr>
-          <% }) %>
-          </tbody>
-        </table>
-      <% } %>
+    <div class="logs-tabs" id="breakageTabs">
+      <button type="button" class="logs-tab-btn active" data-tab="breakages">Breakages <span class="logs-tab-count"><%= reports.length %></span></button>
+      <button type="button" class="logs-tab-btn" data-tab="deliveries">Stock Deliveries &amp; Recheck <span class="logs-tab-count"><%= deliveries.length %></span></button>
     </div>
 
-    <div class="card">
-      <h3 style="margin-top:0">All reports</h3>
-      <% if (!reports.length) { %>
-        <p class="muted">No reports yet.</p>
-      <% } else { %>
-        <table>
-          <thead><tr><th>Date</th><th>Staff member</th><th>Category</th><th>Note</th></tr></thead>
-          <tbody>
-          <% reports.forEach(r => { %>
-            <tr>
-              <td><%= new Date(r.createdAt).toLocaleString() %></td>
-              <td><%= r.userName %></td>
-              <td><%= categoryLabels[r.category] || r.category %></td>
-              <td><%= r.note || '—' %></td>
-            </tr>
-          <% }) %>
-          </tbody>
-        </table>
-      <% } %>
+    <% if (error) { %><div class="error-box"><%= error %></div><% } %>
+
+    <div class="breakage-section" id="breakage-breakages">
+      <p class="muted">Submitted from the kiosk every time a staff member clocks out. Use this to spot patterns — who's breaking or losing more stock over time.</p>
+
+      <div class="card">
+        <h3 style="margin-top:0">By staff member</h3>
+        <% if (!byUser.length) { %>
+          <p class="muted">No breakage reported yet.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Staff member</th><th>Glass</th><th>Spirit</th><th>Soft Drink</th><th>Total</th></tr></thead>
+            <tbody>
+            <% byUser.forEach(u => { %>
+              <tr>
+                <td><%= u.userName %></td>
+                <td><%= u.byCategory.glass || 0 %></td>
+                <td><%= u.byCategory.spirit || 0 %></td>
+                <td><%= u.byCategory.soft_drink || 0 %></td>
+                <td><strong><%= u.total %></strong></td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">All reports</h3>
+        <% if (!reports.length) { %>
+          <p class="muted">No reports yet.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Date</th><th>Staff member</th><th>Category</th><th>Note</th></tr></thead>
+            <tbody>
+            <% reports.forEach(r => { %>
+              <tr>
+                <td><%= new Date(r.createdAt).toLocaleString() %></td>
+                <td><%= r.userName %></td>
+                <td><%= categoryLabels[r.category] || r.category %></td>
+                <td><%= r.note || '—' %></td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="breakage-section" id="breakage-deliveries" style="display:none">
+      <p class="muted">Log every vendor delivery — spirits, wine, beer, soft drinks, food, toiletries, equipment, anything. Take a photo of the invoice/receipt and the physical stock, tick whether they match, and Floor Manager, Senior Manager, General Manager and Admin all get an email straight away.</p>
+
+      <div class="card">
+        <h3 style="margin-top:0">Log a new delivery</h3>
+        <form method="POST" action="/breakage/stock-deliveries" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="form-grid">
+            <div class="field">
+              <label>Category</label>
+              <select name="category" required>
+                <option value="">Select a category</option>
+                <% stockCategories.forEach(c => { %>
+                  <option value="<%= c.value %>"><%= c.label %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="field">
+              <label>Subcategory (optional)</label>
+              <input type="text" name="subcategory" placeholder="e.g. Whiskey, Draught Beer">
+            </div>
+            <div class="field">
+              <label>Item / product name</label>
+              <input type="text" name="itemName" placeholder="e.g. Jameson 1L" required>
+            </div>
+            <div class="field">
+              <label>Vendor</label>
+              <input type="text" name="vendorName" placeholder="e.g. Barry's Wholesale">
+            </div>
+            <div class="field">
+              <label>Delivery date</label>
+              <input type="date" name="deliveryDate" value="<%= new Date().toISOString().slice(0,10) %>" required>
+            </div>
+            <div class="field">
+              <label>Quantity delivered</label>
+              <input type="text" name="quantity" placeholder="e.g. 24 bottles, 2 cases, 10kg">
+            </div>
+            <div class="field full">
+              <label class="checkbox-item" style="font-weight:600;color:var(--ink)">
+                <input type="checkbox" name="matchesInvoice" style="width:auto">
+                The physical stock matches the amount and items on the invoice/receipt
+              </label>
+            </div>
+            <div class="field full">
+              <label>Notes (e.g. discrepancy details)</label>
+              <textarea name="notes" placeholder="Leave blank if everything matched"></textarea>
+            </div>
+            <div class="field">
+              <label>Invoice / receipt photo</label>
+              <input type="file" name="invoicePhoto" accept="image/*" capture="environment" required>
+            </div>
+            <div class="field">
+              <label>Photo(s) of the physical stock</label>
+              <input type="file" name="stockPhotos" accept="image/*" capture="environment" multiple required>
+            </div>
+          </div>
+          <button class="btn" type="submit">Submit delivery</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Delivery log</h3>
+        <% if (!deliveries.length) { %>
+          <p class="muted">No stock deliveries logged yet.</p>
+        <% } else { %>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Item</th><th>Vendor</th><th>Qty</th>
+                <th>Matches?</th><th>Verified by</th><th>Invoice</th><th>Stock photos</th><th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+            <% deliveries.forEach(d => { %>
+              <tr>
+                <td><%= d.deliveryDate %></td>
+                <td><%= stockCategoryLabels[d.category] || d.category %><% if (d.subcategory) { %><br><span class="muted" style="font-size:11px"><%= d.subcategory %></span><% } %></td>
+                <td><%= d.itemName %></td>
+                <td><%= d.vendorName || '—' %></td>
+                <td><%= d.quantity || '—' %></td>
+                <td>
+                  <% if (d.matchesInvoice) { %>
+                    <span class="badge confirmed">Matches</span>
+                  <% } else { %>
+                    <span class="badge table-status-occupied">Discrepancy</span>
+                  <% } %>
+                </td>
+                <td><%= d.submittedByName %></td>
+                <td><a href="<%= d.invoicePhotoPath %>" target="_blank" rel="noopener"><img src="<%= d.invoicePhotoPath %>" alt="Invoice" style="width:44px;height:44px;object-fit:cover;border-radius:6px"></a></td>
+                <td style="display:flex;gap:4px;flex-wrap:wrap;max-width:160px">
+                  <% d.stockPhotoPaths.forEach(p => { %>
+                    <a href="<%= p %>" target="_blank" rel="noopener"><img src="<%= p %>" alt="Stock photo" style="width:44px;height:44px;object-fit:cover;border-radius:6px"></a>
+                  <% }) %>
+                </td>
+                <td><%= d.notes || '—' %></td>
+              </tr>
+            <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
     </div>
   </div>
 </div>
+<script>
+(function() {
+  var tabs = document.querySelectorAll('#breakageTabs .logs-tab-btn');
+  var sections = document.querySelectorAll('.breakage-section');
+  function activate(tab) {
+    tabs.forEach(function(b) { b.classList.toggle('active', b.getAttribute('data-tab') === tab); });
+    sections.forEach(function(s) { s.style.display = s.id === 'breakage-' + tab ? 'block' : 'none'; });
+  }
+  tabs.forEach(function(btn) {
+    btn.addEventListener('click', function() { activate(btn.getAttribute('data-tab')); });
+  });
+  if (/[?&]tab=deliveries\b/.test(window.location.search)) activate('deliveries');
+})();
+</script>
 </body>
 </html>

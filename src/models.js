@@ -38,6 +38,7 @@ const selfVerification = require('./models/selfVerification');
 const admin = require('./models/admin');
 const vouchers = require('./models/vouchers');
 const breakage = require('./models/breakage');
+const stockDeliveries = require('./models/stockDeliveries');
 const design = require('./models/design');
 const { toMinutes, bookingRange, minutesToHHMM } = require('./models/shared');
 const { todayStr } = require('./dateUtils');
@@ -282,6 +283,14 @@ module.exports = {
   listBreakageReportsByUser: breakage.listBreakageReportsByUser,
   addBreakageReport: breakage.addBreakageReport,
   getBreakageCountsByUser: breakage.getBreakageCountsByUser,
+
+  // Stock Delivery & Recheck (sub-feature of Breakage & Stock)
+  STOCK_CATEGORIES: stockDeliveries.STOCK_CATEGORIES,
+  STOCK_CATEGORY_VALUES: stockDeliveries.STOCK_CATEGORY_VALUES,
+  STOCK_CATEGORY_LABELS: stockDeliveries.STOCK_CATEGORY_LABELS,
+  listStockDeliveries: stockDeliveries.listStockDeliveries,
+  getStockDelivery: stockDeliveries.getStockDelivery,
+  addStockDelivery: stockDeliveries.addStockDelivery,
 
   // Design Studio (AI image/video generation history via OpenArt)
   listGenerations: design.listGenerations,

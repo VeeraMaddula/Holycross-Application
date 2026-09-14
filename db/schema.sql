@@ -401,6 +401,28 @@ CREATE TABLE breakage_reports (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Stock Delivery & Recheck (db/013_add_stock_deliveries.sql) — a second tab
+-- on the same Breakage & Stock page. Every vendor delivery logged here with
+-- an invoice photo, one or more physical-stock photos, and a tick
+-- confirming the delivery matches the invoice; see src/models/stockDeliveries.js
+-- for the fixed category list.
+CREATE TABLE stock_deliveries (
+  id                   SERIAL PRIMARY KEY,
+  category             TEXT NOT NULL,
+  subcategory          TEXT DEFAULT '',
+  item_name            TEXT NOT NULL,
+  vendor_name          TEXT DEFAULT '',
+  delivery_date        DATE NOT NULL,
+  quantity             TEXT DEFAULT '',
+  matches_invoice      BOOLEAN NOT NULL DEFAULT false,
+  notes                TEXT DEFAULT '',
+  submitted_by_user_id INT REFERENCES users(id),
+  submitted_by_name    TEXT NOT NULL,
+  invoice_photo_path   TEXT NOT NULL, -- '/breakage/photo/<files.id>', not '/files/<id>' (internal, not public)
+  stock_photo_paths    JSONB NOT NULL DEFAULT '[]',
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- AI image/video generations via the OpenArt CLI (see src/openArt.js) — the
 -- Design Studio page (src/routes/design.js). Only metadata + the OpenArt CDN
 -- result URL are stored here, never the media bytes: images/videos stay

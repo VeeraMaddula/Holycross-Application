@@ -42,6 +42,7 @@ function fromAddressForType(type) {
   if (type === 'staff-report') return process.env.SMTP_FROM_REPORTS || fallback;
   if (type === 'password-reset') return process.env.SMTP_FROM_PASSWORD_RESET || fallback;
   if (type === 'staff-welcome') return process.env.SMTP_FROM_HR || fallback;
+  if (type === 'stock-delivery') return process.env.SMTP_FROM_STOCK || fallback;
   return fallback;
 }
 
@@ -466,6 +467,37 @@ async function notifyManagersDutyReport(report) {
   }
 }
 
+// Stock Delivery & Recheck (Breakage & Stock page) — Floor Manager, Senior
+// Manager, General Manager, and Admin get notified every time a delivery
+// is logged (deliberately not Staff Manager/Accountant, per how this was
+// requested).
+const STOCK_DELIVERY_NOTIFY_ROLES = ['admin', 'senior_manager', 'general_manager', 'floor_manager'];
+
+function stockDeliverySubmittedEmail(delivery) {
+  const subject = `Stock delivery logged: ${delivery.itemName}`;
+  const lines = [
+    `A new stock delivery has been logged on the Breakage & Stock page.`,
+    ``,
+    `Item: ${delivery.itemName}`,
+    `Category: ${delivery.categoryLabel}${delivery.subcategory ? ' (' + delivery.subcategory + ')' : ''}`,
+    `Vendor: ${delivery.vendorName || 'not given'}`,
+    `Quantity: ${delivery.quantity || 'not given'}`,
+    `Delivery date: ${delivery.deliveryDate}`,
+    `Stock matches invoice: ${delivery.matchesInvoice ? 'Yes' : 'No — discrepancy flagged, see notes'}`,
+  ];
+  if (delivery.notes) lines.push(`Notes: ${delivery.notes}`);
+  lines.push(`Taken/verified by: ${delivery.submittedByName}`, ``, `View the invoice and stock photos on the Breakage & Stock page.`);
+  return { subject, text: lines.join('\n') };
+}
+
+async function notifyManagersStockDelivery(delivery) {
+  const recipients = (await models.listUsers()).filter(u => STOCK_DELIVERY_NOTIFY_ROLES.includes(u.role) && u.email);
+  const { subject, text } = stockDeliverySubmittedEmail(delivery);
+  for (const m of recipients) {
+    await sendEmail({ to: m.email, subject, text, type: 'stock-delivery' });
+  }
+}
+
 // Evaluates one duty section for one date and, if it's incomplete and
 // hasn't already been reported, records + emails it. Shared by the fixed-
 // window sweep, the lastClockout closing check, and the overnight safety
@@ -659,6 +691,7 @@ module.exports = {
   notifyManagersDutyReport, notifyAllStaffNewPublicBooking, notifySeniorManagerCashLog,
   notifyManagersShiftChange, factoryResetEmail, notifyAdminAndSeniorManagersFactoryReset,
   voucherWeeklySummaryEmail, notifyAccountantsWeeklyVoucherSummary,
+  stockDeliverySubmittedEmail, notifyManagersStockDelivery,
   runDutyWindowSweep, checkClosingDutiesOnClockOut,
   runReminderSweep, startScheduler, getTransporter, CONTACT_PHONE
 };
